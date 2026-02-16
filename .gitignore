@@ -130,3 +130,10 @@ dist
 .pnp.*
 
 .DS_Store
+
+# Local Cursor artifacts
+.cursor.backup/
+_tmp_*
+
+# Generated Storybook build output
+storybook-static/
