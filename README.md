@@ -1,19 +1,34 @@
-# Mantine Next.js template
+# LiveLink Health Report
 
-This is a template for [Next.js](https://nextjs.org/) app router + [Mantine](https://mantine.dev/).
-If you want to use pages router instead, see [next-pages-template](https://github.com/mantinedev/next-pages-template).
+Automated health reporting tool for the Unified LiveLink program. Built with [Next.js](https://nextjs.org/) (App Router), [Mantine](https://mantine.dev/), [Prisma](https://www.prisma.io/) ORM, and PostgreSQL.
 
 ## Features
 
-This template comes with the following features:
+- **Workstream & Sprint Management** — Track 4 workstreams with ADO area paths, sprint definitions, and capacity data
+- **Azure DevOps Integration** — Store raw ADO work items (Epics, Features, User Stories, Tasks, Bugs, Spikes, Support); **Iteration sync** fetches team iterations, selects rolling 5-sprint window, and upserts Sprint records by ADO iteration path
+- **Metric Engine** — Compute velocity, overhead, predictability, and carry-over after sync; persist per-workstream snapshots and expose `GET /api/metrics` + `POST /api/metrics/compute`
+- **ADP Milestone Tracking** — Monitor Annual Development Plan commitments linked to ADO Features with status progression and target months
+- **Configurable RAG Thresholds** — Auto-calculated health status (Green/Amber/Red) from configurable per-metric thresholds
+- **Sync Audit Trail** — Full audit logging for all ADO data synchronization operations
+- **Ceremony Intelligence (Phase 2)** — Transcript storage and LLM-extracted insights from Teams ceremonies (Standup, Scrum of Scrums, Sprint Planning, Backlog Refinement)
 
+## Current Story Progress
+
+- **Metric Engine Spec:** 24/24 tasks complete (100%)
+- **Story 1:** Completed (7/7)
+- **Story 2:** Completed (8/8)
+- **Story 3:** Completed (9/9) — 83 tests passing
+
+### Tech Stack
+
+- [Next.js](https://nextjs.org/) 15 (App Router)
+- [Mantine](https://mantine.dev/) UI framework
+- [Prisma](https://www.prisma.io/) 6 ORM with PostgreSQL 16
 - [PostCSS](https://postcss.org/) with [mantine-postcss-preset](https://mantine.dev/styles/postcss-preset)
 - [TypeScript](https://www.typescriptlang.org/)
+- [Jest](https://jestjs.io/) with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro)
+- [Docker](https://www.docker.com/) for local PostgreSQL
 - [Storybook](https://storybook.js.org/)
-- [Jest](https://jestjs.io/) setup with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro)
-- ESLint setup with [eslint-config-mantine](https://github.com/mantinedev/eslint-config-mantine)
-- [Prisma](https://www.prisma.io/) ORM with PostgreSQL
-- [Docker](https://www.docker.com/) setup for local development
 
 ## Quick Start
 
@@ -48,38 +63,39 @@ This template comes with the following features:
    pnpm run db:migrate
    ```
 
-5. **Seed the database (optional)**
+5. **Seed the database**
 
    ```bash
    pnpm run db:seed
    ```
+
+   Seeds 4 workstreams, 5 RAG threshold configs, and 6 sprints (5 historical + current).
 
 6. **Start the development server**
    ```bash
    pnpm dev
    ```
 
-## pnpm scripts
+## pnpm Scripts
 
-### Build and dev scripts
+### Build and Dev
 
 - `dev` – start dev server
 - `build` – bundle application for production
 - `start` – start production server
 - `analyze` – analyzes application bundle with [@next/bundle-analyzer](https://www.npmjs.com/package/@next/bundle-analyzer)
 
-### Database scripts
+### Database
 
 - `db:up` – start PostgreSQL container
 - `db:down` – stop all Docker containers
 - `db:reset` – reset database (removes all data and restarts container)
 - `db:migrate` – run database migrations
 - `db:generate` – generate Prisma client
-- `db:studio` – open Prisma Studio (database GUI at http://localhost:5555)
 - `db:seed` – seed database with initial data
 - `db:push` – push schema changes to database (development only)
 
-### Testing scripts
+### Testing
 
 - `typecheck` – checks TypeScript types
 - `lint` – runs ESLint and Stylelint
@@ -90,61 +106,110 @@ This template comes with the following features:
 - `jest:watch` – starts jest watch
 - `test` – runs `jest`, `prettier:check`, `lint` and `typecheck` scripts
 
-### Other scripts
+### Other
 
 - `storybook` – starts storybook dev server
 - `storybook:build` – build production storybook bundle to `storybook-static`
 - `prettier:write` – formats all files with Prettier
 
-## Database Setup
+## Database Schema
 
-This project uses PostgreSQL with Prisma ORM. The database runs in a Docker container for easy development.
+This project uses PostgreSQL with Prisma ORM. The database runs in a Docker container for local development.
 
-### Database Models
+### Models (10 tables)
 
-The project includes the following Prisma models:
+**Phase 1 — Core:**
 
-- **User**: User accounts with email, name, and timestamps
-- **Post**: Blog posts with title, content, author relationship, and publish status
+| Model              | Table                | Purpose                                                                   |
+| ------------------ | -------------------- | ------------------------------------------------------------------------- |
+| `Workstream`       | `workstreams`        | 4 development workstreams with ADO area paths                             |
+| `Sprint`           | `sprints`            | Sprint definitions with ADO iteration paths and date ranges               |
+| `SprintWorkstream` | `sprint_workstreams` | Sprint capacity and planned/completed points per workstream               |
+| `WorkItem`         | `work_items`         | Raw Azure DevOps work items (all types) synced from ADO                   |
+| `Milestone`        | `milestones`         | ADP Commitment milestones linked to ADO Features                          |
+| `ThresholdConfig`  | `threshold_configs`  | Configurable RAG thresholds per health metric                             |
+| `SyncLog`          | `sync_logs`          | ADO sync audit trail with status and item counts                          |
+| `MetricSnapshot`   | `metric_snapshots`   | Persisted per-sprint per-workstream metrics (with rolling averages + RAG) |
+
+**Phase 2 — Ceremony Intelligence:**
+
+| Model             | Table               | Purpose                                          |
+| ----------------- | ------------------- | ------------------------------------------------ |
+| `Transcript`      | `transcripts`       | Teams ceremony VTT file storage and metadata     |
+| `CeremonyInsight` | `ceremony_insights` | LLM-extracted insights from ceremony transcripts |
+
+### Enums
+
+| Enum              | Values                                                    |
+| ----------------- | --------------------------------------------------------- |
+| `WorkItemType`    | Epic, Feature, UserStory, Task, Bug, Spike, Support       |
+| `MilestoneStatus` | NotStarted, InProgress, Done                              |
+| `SyncStatus`      | Running, Success, Failed                                  |
+| `SyncType`        | WorkItems, Iterations, Capacity, Full                     |
+| `CeremonyType`    | Standup, ScrumOfScrums, SprintPlanning, BacklogRefinement |
+| `InsightType`     | Risk, Blocker, Dependency, Theme, Sentiment               |
+| `Severity`        | High, Medium, Low                                         |
+
+### Relationships
+
+```
+Workstream ──┬── SprintWorkstream ──── Sprint
+             ├── WorkItem
+             ├── Milestone
+             ├── MetricSnapshot
+             ├── Transcript
+             └── CeremonyInsight
+
+Sprint ──┬── SprintWorkstream
+         ├── WorkItem
+         ├── MetricSnapshot
+         └── Transcript
+
+Transcript ──── CeremonyInsight
+```
+
+### Seed Data
+
+The seed script (`pnpm run db:seed`) creates:
+
+- **4 Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services + UCM
+- **5 Threshold Configs:** sprintPredictability, carryOverRate, overheadPercent, agingWipDays, scopeCreepIndex (with Green/Amber/Red ranges)
+- **6 Sprints:** 5 historical Q3 FY26 sprints + current Sprint 1 Q4 FY26
 
 ### Database Access
 
-- **PostgreSQL**: `localhost:5433`
-- **Username**: `postgres`
-- **Password**: `postgres`
-- **Database**: `nextapp`
-- **Prisma Studio**: Available at `http://localhost:5555` after running `pnpm run db:studio`
+- **PostgreSQL:** `localhost:5433`
+- **Username:** `postgres`
+- **Password:** `postgres`
+- **Database:** `nextapp`
 
-### Using Prisma in Your Code
+### Using Prisma in Code
 
 ```typescript
 import { prisma } from '@/lib/prisma';
 
-// Get all users
-const users = await prisma.user.findMany();
+// Get all workstreams
+const workstreams = await prisma.workstream.findMany();
 
-// Create a new user
-const user = await prisma.user.create({
-  data: {
-    email: 'user@example.com',
-    name: 'John Doe',
-  },
+// Get sprint with capacity data
+const sprint = await prisma.sprint.findUnique({
+  where: { id: 'sprint-id' },
+  include: { sprintWorkstreams: true },
 });
 
-// Get user with posts
-const userWithPosts = await prisma.user.findUnique({
-  where: { id: 'user-id' },
-  include: { posts: true },
+// Get work items for a workstream in a sprint
+const workItems = await prisma.workItem.findMany({
+  where: { workstreamId: 'ws-id', sprintId: 'sprint-id' },
 });
 
-// Create a new post
-const post = await prisma.post.create({
-  data: {
-    title: 'New Post',
-    content: 'Post content here...',
-    authorId: 'user-id',
-    published: true,
-  },
+// Get milestones by workstream
+const milestones = await prisma.milestone.findMany({
+  where: { workstreamId: 'ws-id' },
+});
+
+// Check RAG threshold for a metric
+const threshold = await prisma.thresholdConfig.findUnique({
+  where: { metricName: 'sprintPredictability' },
 });
 ```
 
@@ -158,9 +223,28 @@ When you modify the Prisma schema:
 
 For development-only changes, you can use: `pnpm run db:push`
 
-## Docker Commands
+## Metric Calculations
 
-The project uses Docker Compose to manage the PostgreSQL database:
+Core metrics are computed after sync and persisted in `MetricSnapshot` (not recomputed on every dashboard read):
+
+| Metric                    | Formula                                                             |
+| ------------------------- | ------------------------------------------------------------------- |
+| **Velocity**              | SUM(storyPoints) for completed UserStories in a sprint/workstream   |
+| **Sprint Predictability** | completedPoints / plannedPoints                                     |
+| **Carry-Over Rate**       | carryOverPoints / plannedPoints                                     |
+| **Overhead %**            | (ceremonyHours + bugHours + spikeHours + supportHours) / grossHours |
+| **Bug Hours**             | SUM(completedWork or originalEstimate) for Bugs                     |
+| **Spike Hours**           | SUM(storyPoints) for Spikes (1 point = 1 hour)                      |
+| **Support Hours**         | SUM(completedWork or originalEstimate) for Support items            |
+
+### Metric APIs
+
+- `GET /api/metrics` - Returns per-workstream metrics for the latest sprint with snapshots (or by `sprintId`)
+- `POST /api/metrics/compute` - Triggers metric computation for a sprint (or latest by end date)
+
+See `docs/API.md` and `docs/features/metric-engine.md` for full request/response details.
+
+## Docker Commands
 
 ```bash
 # Start database (detached mode)
@@ -183,20 +267,32 @@ docker exec -it next-app-postgres psql -U postgres -d nextapp
 
 ```
 ├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── users/             # User pages
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page
-├── components/            # Reusable components
-├── lib/                   # Utility libraries
-│   └── prisma.ts          # Prisma client instance
-├── prisma/               # Database schema and migrations
-│   ├── schema.prisma     # Database schema
-│   ├── migrations/       # Database migrations
-│   └── seed.ts           # Database seed file
-├── docker/               # Docker configuration
-└── docs/                 # Documentation
+│   ├── layout.tsx          # Root layout
+│   └── page.tsx            # Home page
+├── components/             # Reusable components
+├── lib/                    # Utility libraries
+│   └── prisma.ts           # Prisma client instance
+├── prisma/                 # Database schema and migrations
+│   ├── schema.prisma       # Database schema (9 models, 7 enums)
+│   ├── migrations/         # Database migrations
+│   └── seed.ts             # Seed script (workstreams, thresholds, sprints)
+├── __tests__/              # Test suites
+│   └── prisma/             # Prisma model tests (15 test files)
+├── docker/                 # Docker configuration
+├── docs/                   # Documentation
+│   ├── API.md              # Sync + metrics API contracts and schemas
+│   └── DATABASE_SETUP.md   # Detailed database setup guide
+└── .code-captain/          # Specifications and decision records
+    └── specs/              # Feature specifications
 ```
+
+## Program Context
+
+- **Program:** Unified LiveLink
+- **ADO Org/Project:** Operations-Innovation / Event Streaming Platform
+- **Team:** Yellow Boxers
+- **Sprint cadence:** 2-week, synchronized
+- **Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services + UCM
 
 ## Troubleshooting
 
@@ -205,4 +301,4 @@ docker exec -it next-app-postgres psql -U postgres -d nextapp
 - **Migration errors**: Try `pnpm run db:reset` to start fresh
 - **Prisma Client errors**: Run `pnpm run db:generate` to regenerate the client
 
-For detailed database setup instructions, see [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md).
+For detailed database setup instructions, see [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md). For the ADO sync API contract and SyncLog schema, see [docs/API.md](docs/API.md).

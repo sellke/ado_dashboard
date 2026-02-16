@@ -2,34 +2,316 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model User {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    name      String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    posts     Post[]
+// ============================================================================
+// ENUMS
+// ============================================================================
 
-    @@map("users")
+enum WorkItemType {
+  Epic
+  Feature
+  UserStory
+  Task
+  Bug
+  Spike
+  Support
 }
 
-model Post {
-    id        String   @id @default(cuid())
-    title     String
-    content   String?
-    published Boolean  @default(false)
-    authorId  String
-    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// ============================================================================
+// MODELS
+// ============================================================================
 
-    @@map("posts")
+model Workstream {
+  id          String   @id @default(cuid())
+  name        String
+  adoAreaPath String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sprintWorkstreams SprintWorkstream[]
+  workItems         WorkItem[]
+  milestones        Milestone[]
+  transcripts       Transcript[]
+  ceremonyInsights  CeremonyInsight[]
+  metricSnapshots   MetricSnapshot[]
+
+  @@map("workstreams")
+}
+
+model Sprint {
+  id               String   @id @default(cuid())
+  name             String
+  adoIterationPath String?  @unique
+  startDate        DateTime
+  endDate          DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  sprintWorkstreams SprintWorkstream[]
+  workItems         WorkItem[]
+  transcripts       Transcript[]
+  metricSnapshots    MetricSnapshot[]
+
+  @@map("sprints")
+}
+
+model SprintWorkstream {
+  id              String   @id @default(cuid())
+  sprintId        String
+  workstreamId    String
+  plannedPoints   Float?
+  completedPoints Float?
+  grossHours      Float?
+  ptoHours        Float?
+  ceremonyHours   Float?
+  fteCount        Int?
+  capacityLocked  Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  sprint     Sprint     @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workstream Workstream @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+
+  @@unique([sprintId, workstreamId])
+  @@map("sprint_workstreams")
+}
+
+// ============================================================================
+// MODELS — Metric Snapshots (Story 1)
+// ============================================================================
+// Stores per-workstream per-sprint computed metrics (velocity, overhead,
+// predictability, carry-over). Unique on [sprintId, workstreamId]; use upsert.
+// See docs/API.md#metricsnapshot-schema-story-1 and lib/metrics/types.ts.
+
+model MetricSnapshot {
+  id                  String   @id @default(cuid())
+  sprintId            String
+  workstreamId        String
+
+  // Core metrics (nullable = could not compute)
+  velocity            Float?
+  overheadPercent     Float?
+  predictability      Float?
+  carryOverRate       Float?
+
+  // Carry-over detail
+  carryOverItems      Int?
+  carryOverPoints     Float?
+
+  // Planning data (for audit / recalculation)
+  plannedPoints       Float?
+  completedPoints     Float?
+  overheadHours       Float?
+  grossHours          Float?
+
+  // Rolling averages (4-sprint window)
+  velocityAvg         Float?
+  overheadPercentAvg  Float?
+  predictabilityAvg   Float?
+  carryOverRateAvg    Float?
+
+  // RAG status
+  velocityRag         String?
+  overheadRag         String?
+  predictabilityRag  String?
+  carryOverRag        String?
+
+  // Meta
+  computedAt          DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  sprint     Sprint     @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workstream Workstream @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+
+  @@unique([sprintId, workstreamId])
+  @@index([sprintId])
+  @@map("metric_snapshots")
+}
+
+// ============================================================================
+// ENUMS — Transcript & Insight (Story 5)
+// ============================================================================
+
+enum CeremonyType {
+  Standup
+  ScrumOfScrums
+  SprintPlanning
+  BacklogRefinement
+}
+
+enum InsightType {
+  Risk
+  Blocker
+  Dependency
+  Theme
+  Sentiment
+}
+
+enum Severity {
+  High
+  Medium
+  Low
+}
+
+// ============================================================================
+// ENUMS — Configuration & Sync
+// ============================================================================
+
+enum SyncType {
+  WorkItems
+  Iterations
+  Capacity
+  Full
+}
+
+enum SyncStatus {
+  Running
+  Success
+  Failed
+}
+
+enum MilestoneStatus {
+  NotStarted
+  InProgress
+  Done
+}
+
+// ============================================================================
+// MODELS — Configuration & Sync Infrastructure (Story 4)
+// ============================================================================
+
+model ThresholdConfig {
+  id         String   @id @default(cuid())
+  metricName String   @unique
+  greenMin   Float
+  greenMax   Float
+  amberMin   Float
+  amberMax   Float
+  redMin     Float?
+  redMax     Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("threshold_configs")
+}
+
+model SyncLog {
+  id                   String     @id @default(cuid())
+  syncType             SyncType
+  status               SyncStatus
+  itemsFetched         Int?
+  itemsCreated         Int?
+  itemsUpdated         Int?
+  errorMessage         String?
+  perWorkstreamSummary Json?
+  startedAt            DateTime   @default(now())
+  completedAt          DateTime?
+  createdAt            DateTime   @default(now())
+
+  @@index([startedAt])
+  @@map("sync_logs")
+}
+
+model WorkItem {
+  id               String       @id @default(cuid())
+  adoId            Int          @unique
+  adoRevision      Int?
+  type             WorkItemType
+  title            String
+  state            String
+  storyPoints      Float?
+  originalEstimate Float?
+  completedWork    Float?
+  remainingWork    Float?
+  areaPath         String
+  iterationPath    String
+  parentAdoId      Int?
+  assignedTo       String?
+  tags             String?
+  adoCreatedDate   DateTime?
+  adoChangedDate   DateTime?
+  workstreamId     String?
+  sprintId         String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  workstream Workstream? @relation(fields: [workstreamId], references: [id], onDelete: SetNull)
+  sprint     Sprint?     @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  @@index([workstreamId, sprintId])
+  @@index([type])
+  @@index([iterationPath])
+  @@map("work_items")
+}
+
+model Milestone {
+  id           String          @id @default(cuid())
+  title        String
+  adoFeatureId Int?
+  workstreamId String
+  targetMonth  DateTime
+  status       MilestoneStatus @default(NotStarted)
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  workstream Workstream @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+
+  @@index([workstreamId])
+  @@map("milestones")
+}
+
+// ============================================================================
+// MODELS — Transcript & Insight (Story 5)
+// ============================================================================
+
+model Transcript {
+  id           String       @id @default(cuid())
+  fileName     String
+  ceremonyType CeremonyType
+  ceremonyDate DateTime
+  sprintId     String
+  workstreamId String?
+  rawContent   String
+  processedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  sprint           Sprint            @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workstream       Workstream?       @relation(fields: [workstreamId], references: [id], onDelete: SetNull)
+  ceremonyInsights CeremonyInsight[]
+
+  @@map("transcripts")
+}
+
+model CeremonyInsight {
+  id                  String      @id @default(cuid())
+  transcriptId        String
+  insightType         InsightType
+  severity            Severity
+  content             String
+  relatedWorkstreamId String?
+  createdAt           DateTime    @default(now())
+
+  // Relations
+  transcript        Transcript  @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  relatedWorkstream Workstream? @relation(fields: [relatedWorkstreamId], references: [id], onDelete: SetNull)
+
+  @@map("ceremony_insights")
 }
