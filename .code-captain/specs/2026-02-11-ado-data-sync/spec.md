@@ -62,7 +62,8 @@ The live ADO iteration taxonomy and sprint naming in production data do not matc
   - Streams
   - Pitch Tracker
   - Action Tracker
-  - KPI Services + UCM
+  - KPI Services
+  - UCM
 - Resource domains:
   - Iterations (rolling 5, includes current)
   - Work items (types: Feature, User Story, Bug, Spike, Support)

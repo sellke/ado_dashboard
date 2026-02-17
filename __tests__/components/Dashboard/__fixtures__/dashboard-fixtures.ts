@@ -71,6 +71,24 @@ export function createWorkstreamCard(
       carryOverItems: '3',
       carryOverPoints: '6',
     },
+    trendSprints: [
+      {
+        sprintId: 's1',
+        sprintName: 'Sprint 1',
+        velocity: '40 pts',
+        velocityRate: '0.67 pts/hr',
+        activeBugs: '2',
+        bugsClosed: '5',
+      },
+      {
+        sprintId: 's2',
+        sprintName: 'Sprint 2',
+        velocity: '42 pts',
+        velocityRate: '0.70 pts/hr',
+        activeBugs: '3',
+        bugsClosed: '4',
+      },
+    ],
     ...overrides,
   };
 }
@@ -84,13 +102,17 @@ export function createDashboardViewModel(
     loading: {
       state: 'loading',
       sprintLabel: null,
+      rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programTrendSprints: [],
+      sprint5Prediction: null,
       workstreamCards: [],
     },
     success: {
       state: 'success',
       sprintLabel: 'Sprint 26.21',
+      rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
       computedAtLabel: '2/11/2026, 6:30:00 PM',
       programMetrics: [
         createMetricTile({
@@ -104,6 +126,25 @@ export function createDashboardViewModel(
         createMetricTile({ label: 'Predictability', value: '82%', rawValue: 82, rag: 'Green' }),
         createMetricTile({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Amber' }),
       ],
+      programTrendSprints: [
+        {
+          sprintId: 's1',
+          sprintName: 'Sprint 1',
+          velocity: '110 pts',
+          velocityRate: '1.20 pts/hr',
+          activeBugs: '11',
+          bugsClosed: '16',
+        },
+        {
+          sprintId: 's2',
+          sprintName: 'Sprint 2',
+          velocity: '118 pts',
+          velocityRate: '1.25 pts/hr',
+          activeBugs: '9',
+          bugsClosed: '18',
+        },
+      ],
+      sprint5Prediction: { velocity: '124 pts', isPredicted: true },
       workstreamCards: [
         createWorkstreamCard({ workstreamId: 'ws-1', workstreamName: 'Platform' }),
         createWorkstreamCard({ workstreamId: 'ws-2', workstreamName: 'Apps' }),
@@ -112,15 +153,21 @@ export function createDashboardViewModel(
     empty: {
       state: 'empty',
       sprintLabel: null,
+      rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programTrendSprints: [],
+      sprint5Prediction: null,
       workstreamCards: [],
     },
     error: {
       state: 'error',
       sprintLabel: null,
+      rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programTrendSprints: [],
+      sprint5Prediction: null,
       workstreamCards: [],
       errorMessage: 'Failed to load metrics',
     },
@@ -183,6 +230,17 @@ export function createApiResponse(overrides: Partial<ApiResponse> = {}): ApiResp
       },
     },
     computedAt: '2026-02-11T18:30:00.000Z',
+    rollingWindow: {
+      count: 5,
+      currentSprintId: 's1',
+      sprints: [
+        { id: 's1', name: 'Sprint 26.21', startDate: '2026-01-06', endDate: '2026-01-19' },
+        { id: 's2', name: 'Sprint 26.20', startDate: '2025-12-23', endDate: '2026-01-05' },
+        { id: 's3', name: 'Sprint 26.19', startDate: '2025-12-09', endDate: '2025-12-22' },
+        { id: 's4', name: 'Sprint 26.18', startDate: '2025-11-25', endDate: '2025-12-08' },
+        { id: 's5', name: 'Sprint 26.17', startDate: '2025-11-11', endDate: '2025-11-24' },
+      ],
+    },
     ...overrides,
   };
 }
@@ -194,6 +252,7 @@ export function createEmptyApiResponse(): ApiResponse {
     workstreams: [],
     program: null,
     computedAt: null,
+    rollingWindow: null,
   };
 }
 

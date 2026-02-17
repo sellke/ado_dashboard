@@ -92,3 +92,103 @@ export const Error = () => {
   });
   return <DashboardShell viewModel={viewModel} onRetry={onRetry} />;
 };
+
+export const SuccessTrendRich = () => {
+  const viewModel = createDashboardViewModel('success', {
+    programTrendSprints: [
+      {
+        sprintId: 's1',
+        sprintName: 'Sprint 1',
+        velocity: '118 pts',
+        velocityRate: '1.25 pts/hr',
+        activeBugs: '13',
+        bugsClosed: '17',
+      },
+      {
+        sprintId: 's2',
+        sprintName: 'Sprint 2',
+        velocity: '122 pts',
+        velocityRate: '1.30 pts/hr',
+        activeBugs: '10',
+        bugsClosed: '18',
+      },
+      {
+        sprintId: 's3',
+        sprintName: 'Sprint 3',
+        velocity: '127 pts',
+        velocityRate: '1.36 pts/hr',
+        activeBugs: '9',
+        bugsClosed: '19',
+      },
+      {
+        sprintId: 's4',
+        sprintName: 'Sprint 4',
+        velocity: '131 pts',
+        velocityRate: '1.41 pts/hr',
+        activeBugs: '8',
+        bugsClosed: '20',
+      },
+    ],
+    sprint5Prediction: {
+      velocity: '136 pts',
+      isPredicted: true,
+    },
+    workstreamCards: [
+      createWorkstreamCard({ workstreamId: 'ws-1', workstreamName: 'Platform' }),
+      createWorkstreamCard({ workstreamId: 'ws-2', workstreamName: 'Apps' }),
+    ],
+  });
+  return <DashboardShell viewModel={viewModel} onRetry={onRetry} />;
+};
+
+export const SuccessTrendPartialData = () => {
+  const viewModel = createDashboardViewModel('success', {
+    programTrendSprints: [
+      {
+        sprintId: 's1',
+        sprintName: 'Sprint 1',
+        velocity: 'N/A',
+        velocityRate: 'N/A',
+        activeBugs: 'N/A',
+        bugsClosed: 'N/A',
+      },
+      {
+        sprintId: 's2',
+        sprintName: 'Sprint 2',
+        velocity: '122 pts',
+        velocityRate: '1.30 pts/hr',
+        activeBugs: '10',
+        bugsClosed: '18',
+      },
+    ],
+    sprint5Prediction: {
+      velocity: 'N/A',
+      isPredicted: true,
+    },
+    workstreamCards: [
+      createWorkstreamCard({
+        workstreamId: 'ws-1',
+        workstreamName: 'Platform',
+        trendSprints: [
+          {
+            sprintId: 's1',
+            sprintName: 'Sprint 1',
+            velocity: 'N/A',
+            velocityRate: 'N/A',
+            activeBugs: 'N/A',
+            bugsClosed: 'N/A',
+          },
+          {
+            sprintId: 's2',
+            sprintName: 'Sprint 2',
+            velocity: '42 pts',
+            velocityRate: '0.70 pts/hr',
+            activeBugs: '3',
+            bugsClosed: '4',
+          },
+        ],
+      }),
+    ],
+  });
+  return <DashboardShell viewModel={viewModel} onRetry={onRetry} />;
+};

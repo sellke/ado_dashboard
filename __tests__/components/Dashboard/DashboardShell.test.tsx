@@ -11,14 +11,18 @@ describe('DashboardShell', () => {
   const loadingViewModel: DashboardViewModel = {
     state: 'loading',
     sprintLabel: null,
+    rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programTrendSprints: [],
+    sprint5Prediction: null,
     workstreamCards: [],
   };
 
   const successViewModel: DashboardViewModel = {
     state: 'success',
     sprintLabel: 'Sprint 26.21',
+    rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
     computedAtLabel: '2/11/2026, 6:30:00 PM',
     programMetrics: [
       {
@@ -30,6 +34,8 @@ describe('DashboardShell', () => {
         avgLabel: '120.5 pts',
       },
     ],
+    programTrendSprints: [],
+    sprint5Prediction: null,
     workstreamCards: [
       {
         workstreamId: 'ws-1',
@@ -41,6 +47,7 @@ describe('DashboardShell', () => {
           carryOverItems: '3',
           carryOverPoints: '6',
         },
+        trendSprints: [],
       },
     ],
   };
@@ -48,16 +55,22 @@ describe('DashboardShell', () => {
   const emptyViewModel: DashboardViewModel = {
     state: 'empty',
     sprintLabel: null,
+    rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programTrendSprints: [],
+    sprint5Prediction: null,
     workstreamCards: [],
   };
 
   const errorViewModel: DashboardViewModel = {
     state: 'error',
     sprintLabel: null,
+    rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programTrendSprints: [],
+    sprint5Prediction: null,
     workstreamCards: [],
     errorMessage: 'Failed to load metrics',
   };
@@ -112,8 +125,11 @@ describe('DashboardShell', () => {
     const vmWithNulls: DashboardViewModel = {
       state: 'success',
       sprintLabel: null,
+      rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programTrendSprints: [],
+      sprint5Prediction: null,
       workstreamCards: [
         {
           workstreamId: 'ws-1',
@@ -134,6 +150,7 @@ describe('DashboardShell', () => {
             carryOverItems: 'N/A',
             carryOverPoints: 'N/A',
           },
+          trendSprints: [],
         },
       ],
     };

@@ -39,6 +39,19 @@ describe('dashboard adapter', () => {
           overheadHours: 22.8,
           grossHours: 80,
         },
+        trends: {
+          sprints: [
+            {
+              sprintId: 'sprint-a',
+              sprintName: 'Sprint 1',
+              velocity: 30,
+              velocityRate: 0.5,
+              activeBugs: 2,
+              bugsClosed: 3,
+              mode: 'actual',
+            },
+          ],
+        },
       },
     ],
     program: {
@@ -48,8 +61,40 @@ describe('dashboard adapter', () => {
         predictability: { value: 82, avg: 80.5, rag: 'Green' },
         carryOverRate: { value: 12, avg: 13.5, rag: 'Amber' },
       },
+      trends: {
+        sprints: [
+          {
+            sprintId: 'sprint-a',
+            sprintName: 'Sprint 1',
+            velocity: 120,
+            velocityRate: 1.2,
+            activeBugs: 11,
+            bugsClosed: 16,
+            mode: 'actual',
+          },
+        ],
+      },
+      prediction: {
+        sprint5: {
+          velocity: 130,
+          mode: 'predicted',
+          formula: 'average velocity rate × current sprint net capacity hours',
+        },
+      },
     },
     computedAt: '2026-02-11T18:30:00.000Z',
+    rollingWindow: {
+      count: 5,
+      currentSprintId: 'sprint-1',
+      sprints: [
+        {
+          id: 'sprint-1',
+          name: 'Sprint 26.21',
+          startDate: '2026-01-06T00:00:00Z',
+          endDate: '2026-01-19T00:00:00Z',
+        },
+      ],
+    },
   };
 
   describe('mapApiResponseToDashboardViewModel', () => {
@@ -58,6 +103,7 @@ describe('dashboard adapter', () => {
 
       expect(vm.state).toBe('success');
       expect(vm.sprintLabel).toBe('Sprint 26.21');
+      expect(vm.rollingWindowLabel).toBe('Rolling 5 sprints (current + 4 prior)');
       expect(vm.computedAtLabel).toBeTruthy();
       expect(vm.programMetrics).toHaveLength(4);
       expect(vm.workstreamCards).toHaveLength(1);
@@ -71,6 +117,23 @@ describe('dashboard adapter', () => {
       expect(ws.workstreamName).toBe('Streams');
       expect(ws.detail.plannedPoints).toBe('40');
       expect(ws.detail.completedPoints).toBe('34');
+      expect(ws.trendSprints).toHaveLength(1);
+      expect(ws.trendSprints[0]).toMatchObject({
+        sprintId: 'sprint-a',
+        velocity: '30 pts',
+        velocityRate: '0.50 pts/hr',
+        activeBugs: '2',
+        bugsClosed: '3',
+      });
+      expect(vm.programTrendSprints).toHaveLength(1);
+      expect(vm.programTrendSprints[0]).toMatchObject({
+        sprintId: 'sprint-a',
+        velocity: '120 pts',
+      });
+      expect(vm.sprint5Prediction).toMatchObject({
+        velocity: '130 pts',
+        isPredicted: true,
+      });
     });
 
     it('maps empty/null API response to empty state', () => {
@@ -79,12 +142,14 @@ describe('dashboard adapter', () => {
         workstreams: [],
         program: null,
         computedAt: null,
+        rollingWindow: null,
       };
 
       const vm = mapApiResponseToDashboardViewModel(emptyResponse);
 
       expect(vm.state).toBe('empty');
       expect(vm.sprintLabel).toBeNull();
+      expect(vm.rollingWindowLabel).toBeNull();
       expect(vm.computedAtLabel).toBeNull();
       expect(vm.programMetrics).toBeNull();
       expect(vm.workstreamCards).toEqual([]);
@@ -115,6 +180,7 @@ describe('dashboard adapter', () => {
         ],
         program: null,
         computedAt: null,
+        rollingWindow: null,
       };
 
       const vm = mapApiResponseToDashboardViewModel(nullMetricResponse);
@@ -201,6 +267,7 @@ describe('dashboard adapter', () => {
 
       expect(vm.state).toBe('loading');
       expect(vm.sprintLabel).toBeNull();
+      expect(vm.rollingWindowLabel).toBeNull();
       expect(vm.computedAtLabel).toBeNull();
       expect(vm.programMetrics).toBeNull();
       expect(vm.workstreamCards).toEqual([]);
@@ -214,6 +281,7 @@ describe('dashboard adapter', () => {
       expect(vm.state).toBe('error');
       expect(vm.errorMessage).toBe('Network error');
       expect(vm.sprintLabel).toBeNull();
+      expect(vm.rollingWindowLabel).toBeNull();
       expect(vm.programMetrics).toBeNull();
       expect(vm.workstreamCards).toEqual([]);
     });

@@ -60,6 +60,7 @@
     "eslint-plugin-react": "^7.37.5",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
+    "playwright": "^1.58.2",
     "postcss": "^8.5.5",
     "postcss-preset-mantine": "1.17.0",
     "postcss-simple-vars": "^7.0.1",

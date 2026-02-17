@@ -72,7 +72,7 @@ Full sync pipeline from ADO to local database:
 3. **Work Item Sync** — Fetches, maps, and upserts work items per workstream with ADO field mapping (state, type, story points, effort, area path, parent/child)
 4. **Capacity Sync** — Fetches team capacity per iteration, upserts SprintWorkstream capacity/ceremony hours with retry and locked-sprint skip
 5. **Sync API** — `POST /api/sync/ado` supporting Full, WorkItems, Iterations, and Capacity sync types
-6. **Program Config** — 4 workstreams configured: Streams, Action Tracker, Pitch Tracker, KPI Services + UCM
+6. **Program Config** — 5 workstreams configured: Streams, Action Tracker, Pitch Tracker, KPI Services, UCM
 
 #### Metric Calculation Engine (Feb 12)
 

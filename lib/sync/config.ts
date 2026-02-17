@@ -25,9 +25,14 @@ export const SYNC_CONFIG = {
       adoAreaPathSuffix: '\\Pitch Tracker',
     },
     {
-      name: 'KPI Services + UCM',
+      name: 'KPI Services',
       teamId: 'ad5cf6e2-be70-45e5-8e0f-366558717b46',
       adoAreaPathSuffix: '\\Tier Boards',
+    },
+    {
+      name: 'UCM',
+      teamId: 'a30ebc14-025a-4960-be36-1eafb5a4c009',
+      adoAreaPathSuffix: '\\Unified Configuration Manager',
     },
   ],
 } as const;

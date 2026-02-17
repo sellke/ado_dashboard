@@ -3,49 +3,56 @@
 > Source: `spec.md`
 > Purpose: Compact AI context
 > Created: 2026-02-12
+> Last Updated: 2026-02-16
 > Contract Locked: Yes
 
 ## Core Objective
 
-Deliver a Mantine dashboard that shows program-level sprint health and per-workstream health cards using `GET /api/metrics`, with no client-side metric recomputation.
+Deliver a Mantine dashboard that shows program-level and workstream-level health, plus sprint trends (4 actual sprints and Sprint 5 velocity prediction), using backend-computed metrics from `GET /api/metrics`.
 
 ## Must-Have UI
 
 - Program summary section with sprint metadata and 4 core metrics
-- Four workstream health cards in responsive layout
-- RAG-based status presentation (from API values)
-- Single "Sync Now" action that triggers full ADO refresh on click
+- Trend display for Sprint 1-4:
+  - velocity
+  - velocity rate
+  - active bugs
+  - bugs closed
+- Sprint 5 predicted velocity (predicted label required)
+- Four workstream health cards with sprint-scoped trend values
+- Single `Sync Now` action that triggers full ADO refresh on click
 - Automatic metrics refetch after sync completion
 - Loading, empty, error, and null-value handling
 
+## Locked Metric Rules
+
+- `velocityRate = doneLikeStoryPoints / netCapacityHours`
+- `netCapacityHours = totalHours - overhead - bugHours - spikeHours - supportHours`
+- Sprint 5 prediction: `avg(velocityRate) * currentSprintNetCapacityHours`
+- Bug counts are sprint-scoped and require sprint assignment:
+  - closed: `Closed|Done|Resolved`
+  - active: non-done-like states
+
 ## Data Contract
 
-- Source endpoint: `GET /api/metrics`
+- Source endpoint: `GET /api/metrics` (extended payload blocks for trend and bug series)
 - Trigger endpoint: `POST /api/sync/ado` (full sync only for dashboard action)
-- Primary response usage:
-  - `sprint` metadata
-  - `program.metrics`
-  - `workstreams[].metrics` and `workstreams[].detail`
-  - `computedAt` freshness display
+- Existing response fields stay compatible; new trend fields are additive
 - Null-safe rendering required for all metric fields
-
-## Non-Goals
-
-- New metric formulas or backend aggregation logic
-- Milestone entry workflows
-- pptx export implementation
 
 ## Story Breakdown
 
-1. Dashboard data contract and shell
-2. Program summary section
-3. Workstream health cards
-4. State coverage, Storybook, and tests
-5. Dashboard sync trigger and automatic refresh
+1. Dashboard data contract and shell (baseline complete)
+2. Program summary section (baseline complete)
+3. Workstream health cards (baseline complete)
+4. State coverage, Storybook, and tests (baseline complete)
+5. Dashboard sync trigger and automatic refresh (baseline complete)
+6. Metric calculation service/layer + trend API extensions (new)
+7. Trend and bug metrics UI integration (new)
 
 ## Quality Gates
 
-- Component/unit tests for populated, empty, error, and null-value states
-- Integration tests for sync click, in-flight disable, completion auto-refresh, and sync failure handling
-- Storybook stories for healthy, mixed-RAG, and no-data snapshots
-- Dashboard remains visually consistent with existing Mantine theme
+- Unit tests for velocity-rate, net-capacity, bug counts, and Sprint 5 prediction logic
+- API tests for additive trend payload contract
+- Component/integration tests for full, partial, and missing trend states
+- Storybook stories for trend-rich and partial-data scenarios

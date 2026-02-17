@@ -24,6 +24,38 @@ import { syncWorkItemsForWorkstream } from './work-items';
 const defaultIterationsFetcher = () =>
   fetchTeamIterations(SYNC_CONFIG.projectNameOrId, SYNC_CONFIG.iterationTeamId);
 
+/** Build canonical ADO area path for a configured workstream. */
+function buildAdoAreaPath(adoAreaPathSuffix: string): string {
+  return `${SYNC_CONFIG.projectNameOrId}\\App\\LiveLink - Yellow Box${adoAreaPathSuffix}`;
+}
+
+/**
+ * Ensure configured workstreams exist in DB so Sync Now remains self-healing
+ * even when seed data was cleared by tests or local resets.
+ */
+async function ensureConfiguredWorkstreams(): Promise<void> {
+  for (const cfg of SYNC_CONFIG.workstreams) {
+    const adoAreaPath = buildAdoAreaPath(cfg.adoAreaPathSuffix);
+    const existing = await prisma.workstream.findFirst({ where: { name: cfg.name } });
+    if (existing) {
+      if (existing.adoAreaPath !== adoAreaPath) {
+        await prisma.workstream.update({
+          where: { id: existing.id },
+          data: { adoAreaPath },
+        });
+      }
+      continue;
+    }
+
+    await prisma.workstream.create({
+      data: {
+        name: cfg.name,
+        adoAreaPath,
+      },
+    });
+  }
+}
+
 /**
  * Run ADO sync: create SyncLog, process workstreams with per-workstream isolation,
  * update SyncLog with final status and per-workstream summary.
@@ -35,6 +67,8 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   const syncType = input.syncType ?? 'Full';
   const syncFn = input.syncWorkstreamFn; // undefined = use real implementation
   const iterationsFetcher = input.iterationsFetcher ?? defaultIterationsFetcher;
+
+  await ensureConfiguredWorkstreams();
 
   // 1. Create SyncLog with status Running
   const syncLog = await prisma.syncLog.create({
@@ -56,6 +90,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   let currentSprintId: string | null = null;
   let currentSprintPath: string | null = null;
   let sprintsSynced = 0;
+  let selectedSprintPathsOrderedDesc: string[] = [];
   /** Map from ADO iteration path → local Sprint.id (used by work item and capacity sync). */
   let sprintIdMap = new Map<string, string>();
   /** Map from ADO iteration path → iteration GUID (for capacity API). */
@@ -65,6 +100,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     try {
       const allIterations = await iterationsFetcher();
       const selected = selectRollingFiveSprints(allIterations);
+      selectedSprintPathsOrderedDesc = selected.map((s) => s.path).filter((p): p is string => Boolean(p));
       if (selected.length > 0) {
         const current = selected.find((s) => s.isCurrent) ?? selected[0];
         const upsertResult = await upsertSprintsFromIterations(selected, current.path);
@@ -200,10 +236,22 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   });
 
   // Metric computation hook (Story 3) — non-fatal
-  if (finalStatus === 'Success' && currentSprintId) {
+  if (finalStatus === 'Success' && sprintIdMap.size > 0) {
     try {
       const { computeAllMetrics } = await import('@/lib/metrics/orchestrator');
-      await computeAllMetrics(currentSprintId);
+      // Recompute rolling window oldest -> newest so current sprint projections can use prior snapshots.
+      const orderedSprintIds = selectedSprintPathsOrderedDesc
+        .slice()
+        .reverse()
+        .map((path) => sprintIdMap.get(path))
+        .filter((id): id is string => Boolean(id));
+      if (orderedSprintIds.length === 0 && currentSprintId) {
+        orderedSprintIds.push(currentSprintId);
+      }
+
+      for (const sprintId of orderedSprintIds) {
+        await computeAllMetrics(sprintId);
+      }
     } catch {
       // Intentionally non-fatal: metric computation failure should not fail sync completion.
     }
@@ -213,6 +261,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     syncLogId: syncLog.id,
     summary: {
       status: finalStatus,
+      errorMessage: errorMessages.length > 0 ? errorMessages.join('; ') : null,
       workstreams: perWorkstreamSummaries,
       totals: {
         itemsFetched: totalFetched,

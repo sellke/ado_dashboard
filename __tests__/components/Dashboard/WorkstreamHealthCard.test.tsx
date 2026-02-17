@@ -31,6 +31,24 @@ const fullDataCard: WorkstreamCardViewModel = {
     carryOverItems: '3',
     carryOverPoints: '6',
   },
+  trendSprints: [
+    {
+      sprintId: 's1',
+      sprintName: 'Sprint 1',
+      velocity: '10 pts',
+      velocityRate: '0.17 pts/hr',
+      activeBugs: '2',
+      bugsClosed: '4',
+    },
+    {
+      sprintId: 's2',
+      sprintName: 'Sprint 2',
+      velocity: '12 pts',
+      velocityRate: '0.20 pts/hr',
+      activeBugs: '1',
+      bugsClosed: '5',
+    },
+  ],
 };
 
 describe('WorkstreamHealthCard', () => {
@@ -81,6 +99,17 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText(/Carry-over: 3 items, 6 pts/)).toBeInTheDocument();
   });
 
+  it('renders trend rows for Sprint 1-4 metrics', () => {
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    expect(screen.getByText('Sprint Trend (1-4)')).toBeInTheDocument();
+    expect(screen.getByText('Sprint 1')).toBeInTheDocument();
+    expect(screen.getByText(/Velocity: 10 pts/)).toBeInTheDocument();
+    expect(screen.getByText(/Velocity rate: 0.17 pts\/hr/)).toBeInTheDocument();
+    expect(screen.getByText(/Active bugs: 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Bugs closed: 4/)).toBeInTheDocument();
+  });
+
   it('renders N/A for null detail values', () => {
     const nullDetailCard: WorkstreamCardViewModel = {
       ...fullDataCard,
@@ -129,6 +158,17 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
+  });
+
+  it('does not render trend section when trendSprints is empty', () => {
+    const noTrendsCard: WorkstreamCardViewModel = {
+      ...fullDataCard,
+      trendSprints: [],
+    };
+
+    render(<WorkstreamHealthCard card={noTrendsCard} />);
+
+    expect(screen.queryByText('Sprint Trend (1-4)')).not.toBeInTheDocument();
   });
 
   it('RAG display does not break when metric values are null', () => {

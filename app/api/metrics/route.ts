@@ -13,6 +13,7 @@
 
 import { NextResponse } from 'next/server';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
+import { buildTrendSeries } from '@/lib/metrics/trend-service';
 import type { MetricWithRag, ThresholdConfigInput, WorkstreamMetrics } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
 
@@ -21,14 +22,23 @@ function toMetricWithRag(
   value: number | null,
   avg: number | null,
   rag: string | null,
-  includeAvg: boolean
-): { value: number | null; avg?: number | null; rag: string | null } {
-  const m: { value: number | null; avg?: number | null; rag: string | null } = {
+  includeAvg: boolean,
+  mode?: 'actual' | 'projected'
+): { value: number | null; avg?: number | null; rag: string | null; mode?: 'actual' | 'projected' } {
+  const m: {
+    value: number | null;
+    avg?: number | null;
+    rag: string | null;
+    mode?: 'actual' | 'projected';
+  } = {
     value,
     rag: rag as 'Green' | 'Amber' | 'Red' | null,
   };
   if (includeAvg) {
     m.avg = avg;
+  }
+  if (mode) {
+    m.mode = mode;
   }
   return m;
 }
@@ -58,13 +68,20 @@ function formatWorkstreamResponse(
     grossHours: number | null;
     computedAt: Date;
   },
-  includeRolling: boolean
+  includeRolling: boolean,
+  isCurrentSprint: boolean
 ) {
   return {
     workstreamId: s.workstreamId,
     workstreamName: s.workstream.name,
     metrics: {
-      velocity: toMetricWithRag(s.velocity, s.velocityAvg, s.velocityRag, includeRolling),
+      velocity: toMetricWithRag(
+        s.velocity,
+        s.velocityAvg,
+        s.velocityRag,
+        includeRolling,
+        isCurrentSprint ? 'projected' : 'actual'
+      ),
       overheadPercent: toMetricWithRag(
         s.overheadPercent,
         s.overheadPercentAvg,
@@ -92,6 +109,17 @@ function formatWorkstreamResponse(
       overheadHours: s.overheadHours,
       grossHours: s.grossHours,
     },
+    trends: {
+      sprints: [] as Array<{
+        sprintId: string;
+        sprintName: string;
+        velocity: number | null;
+        velocityRate: number | null;
+        activeBugs: number;
+        bugsClosed: number;
+        mode: 'actual';
+      }>,
+    },
   };
 }
 
@@ -104,6 +132,7 @@ export async function GET(request: Request) {
     const includeProgram = searchParams.get('includeProgram') !== 'false';
 
     let sprintId = sprintIdParam;
+    const now = new Date();
 
     if (!sprintId) {
       const latestWithSnapshot = await prisma.metricSnapshot.findFirst({
@@ -133,6 +162,14 @@ export async function GET(request: Request) {
       });
     }
 
+    const rollingSprints = await prisma.sprint.findMany({
+      orderBy: { startDate: 'desc' },
+      take: 5,
+      select: { id: true, name: true, startDate: true, endDate: true },
+    });
+
+    const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
+
     const where: { sprintId: string; workstreamId?: string } = { sprintId };
     if (workstreamIdParam) {
       where.workstreamId = workstreamIdParam;
@@ -152,6 +189,16 @@ export async function GET(request: Request) {
           startDate: sprint.startDate.toISOString(),
           endDate: sprint.endDate.toISOString(),
         },
+        rollingWindow: {
+          count: rollingSprints.length,
+          currentSprintId: rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+          sprints: rollingSprints.map((s) => ({
+            id: s.id,
+            name: s.name,
+            startDate: s.startDate.toISOString(),
+            endDate: s.endDate.toISOString(),
+          })),
+        },
         workstreams: [],
         computedAt: null,
       };
@@ -161,12 +208,52 @@ export async function GET(request: Request) {
       return NextResponse.json(payload);
     }
 
+    const currentRollingSprintId =
+      rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null;
+    const rollingSprintIds = rollingSprints.map((s) => s.id);
+    const trendSnapshots = await prisma.metricSnapshot.findMany({
+      where: {
+        sprintId: { in: rollingSprintIds },
+        ...(workstreamIdParam ? { workstreamId: workstreamIdParam } : {}),
+      },
+      select: {
+        sprintId: true,
+        workstreamId: true,
+        velocity: true,
+        grossHours: true,
+        overheadHours: true,
+      },
+    });
+    const trendBugs = await prisma.workItem.findMany({
+      where: {
+        type: 'Bug',
+        sprintId: { in: rollingSprintIds },
+        ...(workstreamIdParam ? { workstreamId: workstreamIdParam } : {}),
+      },
+      select: {
+        sprintId: true,
+        workstreamId: true,
+        state: true,
+      },
+    });
+
     const latestComputedAt = snapshots.reduce(
       (max, s) => (s.computedAt > max ? s.computedAt : max),
       snapshots[0]!.computedAt
     );
 
-    const workstreams = snapshots.map((s) => formatWorkstreamResponse(s, includeRolling));
+    const workstreams = snapshots.map((s) => {
+      const formatted = formatWorkstreamResponse(s, includeRolling, isCurrentSprint);
+      const trends = buildTrendSeries({
+        rollingSprintsDesc: rollingSprints,
+        currentSprintId: currentRollingSprintId,
+        snapshots: trendSnapshots,
+        bugItems: trendBugs,
+        workstreamId: s.workstreamId,
+      });
+      formatted.trends = { sprints: trends.sprints };
+      return formatted;
+    });
 
     let program: Record<string, unknown> | null = null;
     if (includeProgram && snapshots.length > 0) {
@@ -216,8 +303,19 @@ export async function GET(request: Request) {
 
       const prog = aggregateToProgram(wsMetrics, thresholds);
       if (prog) {
+        const programTrends = buildTrendSeries({
+          rollingSprintsDesc: rollingSprints,
+          currentSprintId: currentRollingSprintId,
+          snapshots: trendSnapshots,
+          bugItems: trendBugs,
+        });
         const toMetric = (m: MetricWithRag, inc: boolean) => {
-          const o: { value: number | null; avg?: number | null; rag: string | null } = {
+          const o: {
+            value: number | null;
+            avg?: number | null;
+            rag: string | null;
+            mode?: 'actual' | 'projected';
+          } = {
             value: m.value,
             rag: m.rag,
           };
@@ -226,12 +324,20 @@ export async function GET(request: Request) {
           }
           return o;
         };
+        const programVelocity = toMetric(prog.velocity, includeRolling);
+        programVelocity.mode = isCurrentSprint ? 'projected' : 'actual';
         program = {
           metrics: {
-            velocity: toMetric(prog.velocity, includeRolling),
+            velocity: programVelocity,
             overheadPercent: toMetric(prog.overheadPercent, includeRolling),
             predictability: toMetric(prog.predictability, includeRolling),
             carryOverRate: toMetric(prog.carryOverRate, includeRolling),
+          },
+          trends: {
+            sprints: programTrends.sprints,
+          },
+          prediction: {
+            sprint5: programTrends.prediction,
           },
         };
       }
@@ -243,6 +349,16 @@ export async function GET(request: Request) {
         name: sprint.name,
         startDate: sprint.startDate.toISOString(),
         endDate: sprint.endDate.toISOString(),
+      },
+      rollingWindow: {
+        count: rollingSprints.length,
+        currentSprintId: rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+        sprints: rollingSprints.map((s) => ({
+          id: s.id,
+          name: s.name,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate.toISOString(),
+        })),
       },
       workstreams,
       computedAt: latestComputedAt.toISOString(),

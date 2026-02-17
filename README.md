@@ -172,7 +172,7 @@ Transcript ──── CeremonyInsight
 
 The seed script (`pnpm run db:seed`) creates:
 
-- **4 Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services + UCM
+- **5 Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services, UCM
 - **5 Threshold Configs:** sprintPredictability, carryOverRate, overheadPercent, agingWipDays, scopeCreepIndex (with Green/Amber/Red ranges)
 - **6 Sprints:** 5 historical Q3 FY26 sprints + current Sprint 1 Q4 FY26
 
@@ -292,7 +292,7 @@ docker exec -it next-app-postgres psql -U postgres -d nextapp
 - **ADO Org/Project:** Operations-Innovation / Event Streaming Platform
 - **Team:** Yellow Boxers
 - **Sprint cadence:** 2-week, synchronized
-- **Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services + UCM
+- **Workstreams:** Streams, Pitch Tracker, Action Tracker, KPI Services, UCM
 
 ## Troubleshooting
 

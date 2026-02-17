@@ -47,7 +47,7 @@ This project uses PostgreSQL 16 with Prisma 6 ORM. The database runs in a Docker
    ```
 
    This creates:
-   - 4 workstreams (Streams, Pitch Tracker, Action Tracker, KPI Services + UCM)
+   - 5 workstreams (Streams, Pitch Tracker, Action Tracker, KPI Services, UCM)
    - 5 RAG threshold configs (sprintPredictability, carryOverRate, overheadPercent, agingWipDays, scopeCreepIndex)
    - 6 sprints (5 historical Q3 FY26 + current Sprint 1 Q4 FY26)
 
@@ -202,7 +202,8 @@ For development-only changes: `pnpm run db:push`
 | Streams | `Event Streaming Platform\App\LiveLink - Yellow Box\Streams` |
 | Pitch Tracker | `Event Streaming Platform\App\LiveLink - Yellow Box\Pitch Tracker` |
 | Action Tracker | `Event Streaming Platform\App\LiveLink - Yellow Box\Action Tracker` |
-| KPI Services + UCM | `Event Streaming Platform\App\LiveLink - Yellow Box\Tier Boards` |
+| KPI Services | `Event Streaming Platform\App\LiveLink - Yellow Box\Tier Boards` |
+| UCM | `Event Streaming Platform\App\LiveLink - Yellow Box\Unified Configuration Manager` |
 
 ### RAG Threshold Defaults
 

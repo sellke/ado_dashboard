@@ -190,4 +190,78 @@ describe('computeWorkstreamMetrics', () => {
       computeWorkstreamMetrics(sprintId, invalidWorkstreamId, sprintStart, prisma)
     ).rejects.toThrow(/Workstream not found/);
   });
+
+  it('should use projected velocity for the current sprint (exclude in-progress actual)', async () => {
+    const now = new Date();
+    const currentSprint = await prisma.sprint.create({
+      data: {
+        name: 'Current Sprint',
+        startDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await prisma.metricSnapshot.create({
+      data: {
+        sprintId,
+        workstreamId,
+        velocity: 20,
+        overheadPercent: 25,
+        predictability: 80,
+        carryOverRate: 10,
+        carryOverItems: 1,
+        carryOverPoints: 2,
+        plannedPoints: 30,
+        completedPoints: 20,
+        overheadHours: 10,
+        grossHours: 40,
+        velocityAvg: null,
+        overheadPercentAvg: null,
+        predictabilityAvg: null,
+        carryOverRateAvg: null,
+        velocityRag: 'Green',
+        overheadRag: 'Green',
+        predictabilityRag: 'Green',
+        carryOverRag: 'Green',
+      },
+    });
+
+    await prisma.workItem.createMany({
+      data: [
+        {
+          adoId: 9101,
+          type: 'UserStory',
+          title: 'Current US 1',
+          state: 'Done',
+          storyPoints: 5,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId,
+          sprintId: currentSprint.id,
+        },
+        {
+          adoId: 9102,
+          type: 'UserStory',
+          title: 'Current US 2',
+          state: 'Done',
+          storyPoints: 8,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId,
+          sprintId: currentSprint.id,
+        },
+      ],
+    });
+
+    await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+
+    const snapshot = await prisma.metricSnapshot.findUnique({
+      where: { sprintId_workstreamId: { sprintId: currentSprint.id, workstreamId } },
+    });
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.velocity).toBe(20);
+    expect(snapshot!.velocityAvg).toBe(20);
+    expect(snapshot!.velocityRag).toBeNull();
+  });
 });

@@ -91,7 +91,8 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 | Streams | 1 | `...\LiveLink - Yellow Box\Streams` | Real-time data ingestion from production lines |
 | Pitch Tracker | 1 | `...\LiveLink - Yellow Box\Pitch Tracker` | Pitch lifecycle management within shifts |
 | Action Tracker | 1 | `...\LiveLink - Yellow Box\Action Tracker` | Operational actions triggered by production data |
-| KPI Services + UCM | 2 | `...\LiveLink - Yellow Box\Tier Boards` | KPI aggregation + shared platform configuration |
+| KPI Services | 1 | `...\LiveLink - Yellow Box\Tier Boards` | KPI aggregation dashboards |
+| UCM | 1 | `...\LiveLink - Yellow Box\Unified Configuration Manager` | Shared platform configuration |
 
 ### Azure DevOps Structure
 

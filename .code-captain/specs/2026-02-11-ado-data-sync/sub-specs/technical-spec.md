@@ -59,7 +59,8 @@ Map by `System.AreaPath` prefix to seeded workstream records:
 - `...\\Streams`
 - `...\\Pitch Tracker`
 - `...\\Action Tracker`
-- `...\\Tier Boards` (for KPI Services + UCM)
+- `...\\Tier Boards` (KPI Services)
+- `...\\Unified Configuration Manager` (UCM)
 
 ## Work item type mapping
 

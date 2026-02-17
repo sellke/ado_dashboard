@@ -1,13 +1,14 @@
 # Program Dashboard UI - API Specification
 
 > Created: 2026-02-12
+> Updated: 2026-02-16 (Change Request)
 > Purpose: Frontend consumption contract for dashboard rendering
 
-## Endpoint Used
+## Endpoints Used
 
 ### GET /api/metrics
 
-Reads computed metric snapshots for the dashboard.
+Reads computed metric snapshots and trend-series values for the dashboard.
 
 ### POST /api/sync/ado
 
@@ -15,21 +16,21 @@ Triggers a full rolling-window ADO refresh from the dashboard action.
 
 **Dashboard usage contract:**
 
-- Call as a single-action "Sync Now" control.
+- Call as a single-action `Sync Now` control.
 - No confirmation step before submission.
 - Full refresh only (omit body or send `{ "syncType": "Full" }`).
 - On completion, immediately refetch `GET /api/metrics`.
 
-**Query Parameters (supported by existing backend):**
+## Query Parameters
 
 | Param | Type | Default | UI Usage |
 |---|---|---|---|
 | `sprintId` | string | latest snapshot sprint | Optional targeted sprint view |
-| `workstreamId` | string | all | Typically omitted for dashboard |
+| `workstreamId` | string | all | Usually omitted for full dashboard |
 | `includeRolling` | boolean | true | Keep true for context display |
 | `includeProgram` | boolean | true | Required for summary section |
 
-## Response Fields Required by UI
+## Required Response Fields (Baseline)
 
 - `sprint.id`
 - `sprint.name`
@@ -38,10 +39,39 @@ Triggers a full rolling-window ADO refresh from the dashboard action.
 - `workstreams[].workstreamId`
 - `workstreams[].workstreamName`
 - `workstreams[].metrics.*`
-- `workstreams[].detail.plannedPoints`
-- `workstreams[].detail.completedPoints`
-- `workstreams[].detail.carryOverItems`
-- `workstreams[].detail.carryOverPoints`
+- `workstreams[].detail.plannedPoints|completedPoints|carryOverItems|carryOverPoints`
+
+## Required Response Fields (New, Additive)
+
+- `program.trends.sprints[]` (Sprint 1-4)
+  - `sprintId`
+  - `sprintName`
+  - `velocity`
+  - `velocityRate`
+  - `activeBugs`
+  - `bugsClosed`
+  - `mode` (`actual`)
+- `program.prediction.sprint5`
+  - `velocity`
+  - `mode` (`predicted`)
+  - `formula` (human-readable string)
+- `workstreams[].trends.sprints[]` (Sprint 1-4)
+  - `sprintId`
+  - `sprintName`
+  - `velocity`
+  - `velocityRate`
+  - `activeBugs`
+  - `bugsClosed`
+  - `mode` (`actual`)
+
+## Formula and Counting Contract
+
+- `velocityRate = doneLikeStoryPoints / netCapacityHours`
+- `netCapacityHours = totalHours - overhead - bugHours - spikeHours - supportHours`
+- Sprint 5 predicted velocity:
+  - `averageVelocityRate * currentSprintNetCapacityHours`
+- `bugsClosed`: bug items in `Closed|Done|Resolved`, assigned to that sprint
+- `activeBugs`: bug items in non-done-like states, assigned to that sprint
 
 ## Null and Empty Handling Contract
 
@@ -50,10 +80,11 @@ Triggers a full rolling-window ADO refresh from the dashboard action.
   - `workstreams: []`
   - `program: null`
   - `computedAt: null`
-- UI must treat this as an empty state, not an error.
-
-- If metric values are null:
-  - UI should render placeholder (`N/A`) and keep card/tile layout stable.
+- UI treats this as empty state, not an error.
+- If trend values are partially unavailable:
+  - return nulls at field level
+  - keep series structure intact
+  - UI renders `N/A`
 
 ## Error Handling Contract
 
@@ -62,22 +93,5 @@ Triggers a full rolling-window ADO refresh from the dashboard action.
 - UI behavior:
   - Show non-blocking error panel
   - Offer retry action
-  - Avoid rendering partial malformed data
-  - For sync-trigger failures, preserve current metric view while surfacing sync-specific feedback
-
-## UI Adapter Output (Proposed)
-
-The dashboard adapter should produce:
-
-```ts
-type DashboardViewModel = {
-  state: "loading" | "success" | "empty" | "error";
-  sprintLabel: string | null;
-  computedAtLabel: string | null;
-  programMetrics: MetricTileViewModel[] | null;
-  workstreamCards: WorkstreamCardViewModel[];
-  errorMessage?: string;
-};
-```
-
-This adapter output decouples presentational components from backend response shape changes.
+  - Avoid rendering malformed partial data
+  - For sync failures, preserve current metric view while surfacing sync-specific feedback

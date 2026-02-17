@@ -20,7 +20,8 @@ Single operator (Scrum Master) runs the tool locally, produces reports consumed 
   - Streams — real-time data ingestion
   - Pitch Tracker — pitch lifecycle management
   - Action Tracker — operational actions from data
-  - KPI Services + UCM — KPI aggregation + shared config (area path: Tier Boards)
+  - KPI Services — KPI aggregation (area path: Tier Boards)
+  - UCM — Unified Configuration Manager (area path: Unified Configuration Manager)
 - **Sprint cadence:** 2-week, synchronized, Q4 FY26 Sprint 1 starting Feb 2026
 
 ## Key Differentiator

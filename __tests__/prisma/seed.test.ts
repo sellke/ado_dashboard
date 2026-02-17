@@ -23,13 +23,13 @@ describe('Seed Script', () => {
   describe('Workstreams', () => {
     it('should create 4 workstreams', async () => {
       const workstreams = await prisma.workstream.findMany({ orderBy: { name: 'asc' } });
-      expect(workstreams).toHaveLength(4);
+      expect(workstreams).toHaveLength(5);
     });
 
     it('should have correct workstream names', async () => {
       const workstreams = await prisma.workstream.findMany({ orderBy: { name: 'asc' } });
       const names = workstreams.map((ws) => ws.name);
-      expect(names).toEqual(['Action Tracker', 'KPI Services + UCM', 'Pitch Tracker', 'Streams']);
+      expect(names).toEqual(['Action Tracker', 'KPI Services', 'Pitch Tracker', 'Streams', 'UCM']);
     });
 
     it('should have correct ADO area paths', async () => {

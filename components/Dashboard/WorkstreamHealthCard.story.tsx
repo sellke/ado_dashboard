@@ -32,6 +32,24 @@ const fullDataCard: WorkstreamCardViewModel = {
     carryOverItems: '3',
     carryOverPoints: '6',
   },
+  trendSprints: [
+    {
+      sprintId: 's1',
+      sprintName: 'Sprint 1',
+      velocity: '40 pts',
+      velocityRate: '0.67 pts/hr',
+      activeBugs: '2',
+      bugsClosed: '5',
+    },
+    {
+      sprintId: 's2',
+      sprintName: 'Sprint 2',
+      velocity: '42 pts',
+      velocityRate: '0.70 pts/hr',
+      activeBugs: '3',
+      bugsClosed: '4',
+    },
+  ],
 };
 
 export const SingleWorkstream = () => <WorkstreamHealthCard card={fullDataCard} />;

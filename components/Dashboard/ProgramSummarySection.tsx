@@ -23,7 +23,14 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
     return null;
   }
 
-  const { sprintLabel, computedAtLabel, programMetrics } = viewModel;
+  const {
+    sprintLabel,
+    rollingWindowLabel,
+    computedAtLabel,
+    programMetrics,
+    programTrendSprints,
+    sprint5Prediction,
+  } = viewModel;
 
   return (
     <Stack gap="md">
@@ -32,6 +39,11 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
         {sprintLabel ?? '—'}
         {computedAtLabel ? ` • ${computedAtLabel}` : ''}
       </Text>
+      {rollingWindowLabel && (
+        <Text size="xs" c="dimmed">
+          {rollingWindowLabel}
+        </Text>
+      )}
       {programMetrics && programMetrics.length > 0 ? (
         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
           {programMetrics.map((m) => (
@@ -45,6 +57,7 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
                 </Group>
                 <Text fw={600} size="lg">
                   {m.value}
+                  {m.mode === 'projected' ? ' (Projected)' : ''}
                 </Text>
                 {m.avgLabel && (
                   <Text size="xs" c="dimmed">
@@ -59,6 +72,39 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
         <Text size="sm" c="dimmed">
           No program metrics available
         </Text>
+      )}
+
+      {programTrendSprints.length > 0 && (
+        <Card withBorder padding="md">
+          <Stack gap="xs">
+            <Text fw={600}>Sprint 1-4 Trend</Text>
+            {programTrendSprints.map((trend) => (
+              <Stack key={trend.sprintId} gap={2}>
+                <Text size="sm" fw={500}>
+                  {trend.sprintName}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Velocity: {trend.velocity} • Velocity rate: {trend.velocityRate}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Active bugs: {trend.activeBugs} • Bugs closed: {trend.bugsClosed}
+                </Text>
+              </Stack>
+            ))}
+          </Stack>
+        </Card>
+      )}
+
+      {sprint5Prediction && (
+        <Card withBorder padding="md">
+          <Stack gap={2}>
+            <Text fw={600}>Sprint 5 Predicted Velocity</Text>
+            <Text size="sm">
+              {sprint5Prediction.velocity}
+              {sprint5Prediction.isPredicted ? ' (Predicted)' : ''}
+            </Text>
+          </Stack>
+        </Card>
       )}
     </Stack>
   );

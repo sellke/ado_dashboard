@@ -96,6 +96,8 @@ export interface SyncOrchestratorResult {
   syncLogId: string;
   summary: {
     status: 'Success' | 'Failed';
+    /** Top-level orchestration errors (e.g., missing ADO config, iteration/capacity failures). */
+    errorMessage?: string | null;
     workstreams: PerWorkstreamSummary[];
     totals: {
       itemsFetched: number;

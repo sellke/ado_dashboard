@@ -20,8 +20,12 @@ export const workstreams = [
     adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Action Tracker',
   },
   {
-    name: 'KPI Services + UCM',
+    name: 'KPI Services',
     adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Tier Boards',
+  },
+  {
+    name: 'UCM',
+    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Unified Configuration Manager',
   },
 ];
 

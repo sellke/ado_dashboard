@@ -47,8 +47,12 @@ jest.mock('@/lib/prisma', () => ({
     },
     sprint: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     thresholdConfig: {
+      findMany: jest.fn(),
+    },
+    workItem: {
       findMany: jest.fn(),
     },
   },
@@ -64,6 +68,7 @@ const { computeAllMetrics } = require('@/lib/metrics/orchestrator');
 describe('GET /api/metrics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.workItem.findMany.mockResolvedValue([]);
   });
 
   it('should return formatted metrics on happy path', async () => {
@@ -71,6 +76,7 @@ describe('GET /api/metrics', () => {
       sprintId: mockSprint.id,
     });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -92,6 +98,7 @@ describe('GET /api/metrics', () => {
       value: 34,
       avg: 31.5,
       rag: 'Green',
+      mode: 'actual',
     });
     expect(data.workstreams[0].detail).toMatchObject({
       plannedPoints: 40,
@@ -101,7 +108,51 @@ describe('GET /api/metrics', () => {
       overheadHours: 22.8,
       grossHours: 80,
     });
+    expect(data.workstreams[0].trends).toBeDefined();
+    expect(Array.isArray(data.workstreams[0].trends.sprints)).toBe(true);
+    expect(data.program).toHaveProperty('trends.sprints');
+    expect(data.program).toHaveProperty('prediction.sprint5');
     expect(data.computedAt).toBe('2026-02-11T18:30:00.000Z');
+    expect(data.rollingWindow).toBeDefined();
+    expect(data.rollingWindow.count).toBe(1);
+  });
+
+  it('excludes bugs without sprint assignment from trend counts', async () => {
+    const rolling = [
+      mockSprint,
+      { ...mockSprint, id: 'sprint-0', name: 'Sprint 26.20', startDate: new Date('2025-12-23') },
+    ];
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue(rolling);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([mockSnapshot])
+      .mockResolvedValueOnce([
+        {
+          sprintId: 'sprint-0',
+          workstreamId: 'ws-1',
+          velocity: 20,
+          grossHours: 80,
+          overheadHours: 20,
+        },
+      ]);
+    prisma.workItem.findMany.mockResolvedValue([
+      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'Done' },
+      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'New' },
+      { sprintId: null, workstreamId: 'ws-1', state: 'Done' },
+    ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.workstreams[0].trends.sprints[0]).toMatchObject({
+      sprintId: 'sprint-0',
+      activeBugs: 1,
+      bugsClosed: 1,
+    });
   });
 
   it('should return empty data when no snapshots', async () => {
@@ -121,6 +172,7 @@ describe('GET /api/metrics', () => {
   it('should filter by sprintId when provided', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 'sprint-2' });
     prisma.sprint.findUnique.mockResolvedValue({ ...mockSprint, id: 'sprint-2' });
+    prisma.sprint.findMany.mockResolvedValue([{ ...mockSprint, id: 'sprint-2' }]);
     prisma.metricSnapshot.findMany.mockResolvedValue([]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -141,6 +193,7 @@ describe('GET /api/metrics', () => {
   it('should filter by workstreamId when provided', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -158,6 +211,7 @@ describe('GET /api/metrics', () => {
   it('should omit program when includeProgram=false', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
 
     const req = new Request('http://localhost/api/metrics?includeProgram=false');
@@ -171,6 +225,7 @@ describe('GET /api/metrics', () => {
   it('should omit avg when includeRolling=false', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 

@@ -49,11 +49,11 @@ export async function computeWorkstreamMetrics(
   db: PrismaClient = prisma
 ): Promise<void> {
   // Validate sprint and workstream exist (invalid IDs → throw)
-  const sprintExists = await db.sprint.findUnique({
+  const sprint = await db.sprint.findUnique({
     where: { id: sprintId },
-    select: { id: true },
+    select: { id: true, startDate: true, endDate: true },
   });
-  if (!sprintExists) {
+  if (!sprint) {
     throw new Error(`Sprint not found: ${sprintId}`);
   }
 
@@ -82,7 +82,7 @@ export async function computeWorkstreamMetrics(
   const wiInputs = workItems.map(toWorkItemInput);
 
   // 3–6. Run pure calculators
-  const velocity = calculateVelocity(wiInputs);
+  const actualVelocity = calculateVelocity(wiInputs);
   const overhead = calculateOverhead(wiInputs, swInput);
   const predictabilityResult = calculatePredictability(wiInputs);
   const carryOverResult = calculateCarryOver(wiInputs);
@@ -106,6 +106,9 @@ export async function computeWorkstreamMetrics(
   }));
 
   const rollingAvgs = calculateRollingAverages(priorInputs);
+  const now = new Date();
+  const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
+  const velocity = isCurrentSprint ? rollingAvgs.velocityAvg : actualVelocity;
 
   // 8. Thresholds for RAG
   const thresholdRows = await db.thresholdConfig.findMany();
@@ -118,7 +121,8 @@ export async function computeWorkstreamMetrics(
   }));
 
   // 9. RAG assignment
-  const velocityRag = assignVelocityRag(velocity, rollingAvgs.velocityAvg);
+  // Current sprint velocity is projected from prior sprints; avoid trend RAG on projections.
+  const velocityRag = isCurrentSprint ? null : assignVelocityRag(velocity, rollingAvgs.velocityAvg);
   const overheadRag = assignRag(overhead.overheadPercent, 'overheadPercent', thresholds);
   const predictabilityRag = assignRag(
     predictabilityResult?.predictability ?? null,
