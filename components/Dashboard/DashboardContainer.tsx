@@ -8,6 +8,7 @@ import {
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
 import type { ApiResponse, DashboardViewModel } from '@/lib/dashboard/types';
+import type { DashboardId } from '@/lib/dashboard/config';
 import type { ApiMilestone } from '@/lib/milestones/types';
 import { DashboardShell } from './DashboardShell';
 import { MilestonePanel } from './MilestonePanel';
@@ -15,7 +16,12 @@ import { SyncControl } from './SyncControl';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
 
-export function DashboardContainer() {
+export interface DashboardContainerProps {
+  dashboard?: DashboardId;
+  title?: string;
+}
+
+export function DashboardContainer({ dashboard, title = 'Dashboard' }: DashboardContainerProps) {
   const [viewModel, setViewModel] = useState<DashboardViewModel>(createLoadingViewModel());
   const [milestones, setMilestones] = useState<ApiMilestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
@@ -24,6 +30,8 @@ export function DashboardContainer() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncPartialSuccess, setSyncPartialSuccess] = useState(false);
 
+  const metricsUrl = dashboard ? `/api/metrics?dashboard=${dashboard}` : '/api/metrics';
+
   const fetchMetrics = useCallback(
     async (options?: { skipLoadingState?: boolean }) => {
       if (!options?.skipLoadingState) {
@@ -31,7 +39,7 @@ export function DashboardContainer() {
       }
 
       try {
-        const res = await fetch('/api/metrics');
+        const res = await fetch(metricsUrl);
         const data: ApiResponse | { error?: string } = await res.json();
 
         if (!res.ok) {
@@ -59,7 +67,7 @@ export function DashboardContainer() {
         setViewModel(createErrorViewModel(message));
       }
     },
-    []
+    [metricsUrl]
   );
 
   /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics. Handles in-flight state, sync failure, and partial success (sync OK, metrics refetch failed). */
@@ -138,7 +146,7 @@ export function DashboardContainer() {
   return (
     <Stack gap="xl">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
-        <Title order={1}>Dashboard</Title>
+        <Title order={1}>{title}</Title>
         <SyncControl
           onSync={handleSync}
           syncInProgress={syncInProgress}

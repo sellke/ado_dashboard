@@ -45,9 +45,9 @@ describe('Seed Script', () => {
   // Threshold Configs
   // -----------------------------------------------------------------------
   describe('ThresholdConfigs', () => {
-    it('should create 5 threshold configs', async () => {
+    it('should create 7 threshold configs', async () => {
       const configs = await prisma.thresholdConfig.findMany();
-      expect(configs).toHaveLength(5);
+      expect(configs).toHaveLength(7);
     });
 
     it('should have correct metric names', async () => {
@@ -56,6 +56,8 @@ describe('Seed Script', () => {
       expect(names).toEqual([
         'agingWipDays',
         'carryOverRate',
+        'milestoneMonthly',
+        'milestoneQuarterly',
         'overheadPercent',
         'scopeCreepIndex',
         'sprintPredictability',
@@ -130,8 +132,8 @@ describe('Seed Script', () => {
       const configs = await prisma.thresholdConfig.findMany();
       const sprints = await prisma.sprint.findMany();
 
-      expect(workstreams).toHaveLength(4);
-      expect(configs).toHaveLength(5);
+      expect(workstreams).toHaveLength(5);
+      expect(configs).toHaveLength(7);
       expect(sprints).toHaveLength(6);
     });
   });

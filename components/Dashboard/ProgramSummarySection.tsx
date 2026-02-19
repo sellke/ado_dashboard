@@ -1,23 +1,66 @@
 'use client';
 
 import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import type { DashboardViewModel } from '@/lib/dashboard/types';
+import { BarChart, LineChart } from '@mantine/charts';
+import type { DashboardViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import { RagBadge } from './RagBadge';
 
-/**
- * Props for the Program Summary section.
- */
 export interface ProgramSummarySectionProps {
-  /** View model with sprint label, computed-at label, and program metrics (velocity, overhead, predictability, carry-over). */
   viewModel: DashboardViewModel;
 }
 
-/**
- * Renders the program summary section: velocity, overhead, predictability, carry-over as card tiles, with RAG indicators.
- *
- * @param viewModel - Dashboard view model (state, sprintLabel, programMetrics, etc.)
- * @returns The section layout or null when state is not 'success'
- */
+function buildVelocityChartData(
+  sprints: TrendSprintViewModel[],
+  prediction: DashboardViewModel['sprint5Prediction']
+): Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> {
+  const data: Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> = sprints.map((s) => ({
+    sprint: s.sprintName,
+    'Completed Points': s.rawVelocity ?? 0,
+  }));
+
+  if (prediction && data.length > 0) {
+    const existingLabels = new Set(data.map((point) => point.sprint));
+    const basePredictionLabel = prediction.sprintLabel || 'Current Sprint';
+    let predictionLabel = basePredictionLabel;
+
+    if (existingLabels.has(predictionLabel)) {
+      predictionLabel = `${basePredictionLabel} (Forecasted)`;
+      let index = 2;
+      while (existingLabels.has(predictionLabel)) {
+        predictionLabel = `${basePredictionLabel} (Forecasted ${index})`;
+        index += 1;
+      }
+    }
+
+    const lastActual = data[data.length - 1]['Completed Points'];
+    if (typeof lastActual === 'number') {
+      data[data.length - 1].Predicted = lastActual;
+    }
+
+    const predictionPoint: { sprint: string; Predicted?: number } = { sprint: predictionLabel };
+    if (prediction.rawVelocity != null) {
+      predictionPoint.Predicted = prediction.rawVelocity;
+    }
+    data.push(predictionPoint);
+  }
+
+  return data;
+}
+
+function averageVelocity(sprints: TrendSprintViewModel[]): number | null {
+  const values = sprints.map((s) => s.rawVelocity).filter((v): v is number => v !== null);
+  if (values.length === 0) return null;
+  return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
+}
+
+function buildBugChartData(sprints: TrendSprintViewModel[]) {
+  return sprints.map((s) => ({
+    sprint: s.sprintName,
+    Open: s.rawActiveBugs,
+    Closed: s.rawBugsClosed,
+  }));
+}
+
 export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps) {
   if (viewModel.state !== 'success') {
     return null;
@@ -32,6 +75,8 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
     sprint5Prediction,
   } = viewModel;
 
+  const avgVelocity = averageVelocity(programTrendSprints);
+
   return (
     <Stack gap="md">
       <Title order={2}>Program Summary</Title>
@@ -45,7 +90,7 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
         </Text>
       )}
       {programMetrics && programMetrics.length > 0 ? (
-        <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
           {programMetrics.map((m) => (
             <Card key={m.label} withBorder padding="md">
               <Stack gap="xs">
@@ -57,11 +102,10 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
                 </Group>
                 <Text fw={600} size="lg">
                   {m.value}
-                  {m.mode === 'projected' ? ' (Projected)' : ''}
                 </Text>
                 {m.avgLabel && (
                   <Text size="xs" c="dimmed">
-                    Avg: {m.avgLabel}
+                    {m.avgLabel}
                   </Text>
                 )}
               </Stack>
@@ -75,37 +119,85 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
       )}
 
       {programTrendSprints.length > 0 && (
-        <Card withBorder padding="md">
-          <Stack gap="xs">
-            <Text fw={600}>Sprint 1-4 Trend</Text>
-            {programTrendSprints.map((trend) => (
-              <Stack key={trend.sprintId} gap={2}>
-                <Text size="sm" fw={500}>
-                  {trend.sprintName}
+        <Stack gap="md">
+          <Text fw={600}>Sprint Trend</Text>
+          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+            <Card withBorder padding="md" style={{ overflow: 'visible' }}>
+              <Stack gap="xs">
+                <Text size="sm" fw={500} c="dimmed">
+                  Velocity (Completed Points)
                 </Text>
-                <Text size="xs" c="dimmed">
-                  Velocity: {trend.velocity} • Velocity rate: {trend.velocityRate}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Active bugs: {trend.activeBugs} • Bugs closed: {trend.bugsClosed}
-                </Text>
+                <LineChart
+                  h={220}
+                  data={buildVelocityChartData(programTrendSprints, sprint5Prediction)}
+                  dataKey="sprint"
+                  withDots
+                  connectNulls={false}
+                  curveType="linear"
+                  series={[
+                    { name: 'Completed Points', color: 'blue.6' },
+                    { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
+                  ]}
+                  xAxisProps={{
+                    interval: 0,
+                    tickFormatter: (v: string) =>
+                      v
+                        .replace(/^Sprint\s*/i, '')
+                        .replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+                    angle: -20,
+                    textAnchor: 'end',
+                    height: 52,
+                    tickMargin: 10,
+                  }}
+                  yAxisProps={{ domain: [0, 'auto'] }}
+                  tooltipAnimationDuration={150}
+                  tooltipProps={{
+                    position: { y: -20 },
+                    offset: 10,
+                    isAnimationActive: false,
+                  }}
+                  referenceLines={
+                    avgVelocity !== null
+                      ? [{ y: avgVelocity, color: 'gray.5', label: `Avg: ${avgVelocity}` }]
+                      : []
+                  }
+                />
               </Stack>
-            ))}
-          </Stack>
-        </Card>
+            </Card>
+            <Card withBorder padding="md" style={{ overflow: 'visible' }}>
+              <Stack gap="xs">
+                <Text size="sm" fw={500} c="dimmed">
+                  Bug Burndown
+                </Text>
+                <BarChart
+                  h={220}
+                  data={buildBugChartData(programTrendSprints)}
+                  dataKey="sprint"
+                  type="stacked"
+                  withLegend
+                  legendProps={{ verticalAlign: 'bottom', height: 30 }}
+                  series={[
+                    { name: 'Closed', color: 'green.6' },
+                    { name: 'Open', color: 'red.6' },
+                  ]}
+                  xAxisProps={{
+                    interval: 0,
+                    tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
+                  }}
+                  yAxisProps={{ domain: [0, 'auto'] }}
+                  tooltipAnimationDuration={150}
+                  tooltipProps={{
+                    position: { y: -20 },
+                    offset: 10,
+                    isAnimationActive: false,
+                  }}
+                />
+              </Stack>
+            </Card>
+          </SimpleGrid>
+        </Stack>
       )}
 
-      {sprint5Prediction && (
-        <Card withBorder padding="md">
-          <Stack gap={2}>
-            <Text fw={600}>Sprint 5 Predicted Velocity</Text>
-            <Text size="sm">
-              {sprint5Prediction.velocity}
-              {sprint5Prediction.isPredicted ? ' (Predicted)' : ''}
-            </Text>
-          </Stack>
-        </Card>
-      )}
     </Stack>
   );
 }

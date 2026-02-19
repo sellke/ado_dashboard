@@ -6,3 +6,4 @@
 | [Dashboard Shell](dashboard-shell) | Complete | Data adapter, fetch lifecycle, shell container, and sync trigger ("Sync Now") for the Program Dashboard (loading/success/empty/error + sync in-flight/failure/partial-success states) |
 | [Milestones](milestones) | Complete | CRUD API and validation for feature-level monthly milestones per workstream |
 | [Dashboard Milestone Panel](dashboard-milestone-panel) | Complete | Dashboard panel grouping milestones by workstream with progress summary (counts + percent), status badges, target month display, CRUD via `/api/milestones`, and isolated loading/empty/error |
+| [Program Summary / Milestone Tiles](dashboard-shell#program-summary-milestone-tiles) | Complete | Five metric tiles (Velocity, Overhead %, Carry-Over %, Monthly Milestone %, Quarterly Milestone Progress) with milestone placeholders; null data shows "—", "No milestone data yet", gray badge; populated data uses RAG (Green ≥80%, Amber 60–79%, Red &lt;60%) |

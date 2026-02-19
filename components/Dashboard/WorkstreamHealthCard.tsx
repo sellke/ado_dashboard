@@ -10,7 +10,7 @@ export interface WorkstreamHealthCardProps {
 }
 
 /**
- * Renders a compact workstream health card with 4 core metrics, RAG status, and detail block.
+ * Renders a compact workstream health card with 3 core metrics, RAG status, and detail block.
  * Export-friendly for slide generation; handles null values gracefully.
  */
 export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {

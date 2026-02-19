@@ -53,25 +53,26 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 
 ### Core Features (MVP — Phase 1)
 
-- **ADO Data Sync:** Automated fetch of work items, iterations, and capacity data for all 4 Unified LiveLink workstreams via ADO MCP, scoped by area paths.
+- **ADO Data Sync:** Automated fetch of work items, iterations, and capacity data for all Unified LiveLink workstreams via ADO MCP, scoped by area paths.
 - **Metric Calculation Engine:** Computes velocity (story points completed), gross/net hours, overhead% (ceremony + bug + spike + support), sprint predictability (planned vs. actual), and carry-over rate.
-- **Program Dashboard:** Mantine-based UI with program-level summary and per-workstream health cards showing RAG status, key metrics, and trend indicators.
-- **Manual Milestone Entry:** Feature-level monthly milestones with progress tracking, displayed as milestone burnup per workstream.
-- **PowerPoint Export:** One-click export of dashboard views to `.pptx` slides for offline distribution.
+- **Program Summary:** Top-level dashboard section showing program-wide Average Velocity, Average Velocity Rate, Carry-over %, Overhead %, Monthly Milestone Completion %, and Quarterly Milestone Progress — all RAG-coded.
+- **Workstream Velocity:** Per-workstream velocity, velocity rate, and carry-over trends with rolling averages. Current in-progress sprint shows predicted velocity and carry-over based on historical averages and available hours.
+- **Workstream Overhead:** Per-workstream overhead % composition breakdown (ceremony, bug, support, spike hours) plus individual bug and support item listings with title, hours, and status.
+- **Workstream Milestones:** ADO Features tagged with monthly goal identifiers tracked by child story point completion (completed SP / total SP = % complete). Monthly targets with quarterly roll-up.
+- **PowerPoint Export:** One-click export of all 4 report sections to `.pptx` slides for offline distribution.
 
 ### Growth Features (Phase 2)
 
 - **Transcript Upload & LLM Processing:** Upload VTT files from Teams ceremonies (standups, scrum of scrums, sprint planning, backlog refinement). AI extracts risks, blockers, cross-team dependencies, recurring themes, and confidence/sentiment tone.
-- **Advanced Metrics:** Aging WIP (stale in-progress items), scope creep index (mid-sprint additions/removals), average velocity rate (points per net hour), cross-team dependency tracker.
-- **Historical Trend Charts:** Velocity, overhead%, predictability, and carry-over trends across sprints.
-- **Milestone Burnup Visualization:** Cumulative progress charts against Q4 scope per workstream.
+- **Advanced Metrics:** Aging WIP (stale in-progress items), scope creep index (mid-sprint additions/removals), cross-team dependency tracker.
+- **Ceremony Insight Display:** Qualitative insights integrated into workstream cards and program summary.
 
 ### Scale Features (Phase 3)
 
 - **Automated Transcript Pipeline:** Reduce manual VTT download/upload through integration or scheduled processing.
-- **ADO Milestone Tagging:** Tag Features in ADO as quarterly milestones, auto-syncing milestone progress from work item state.
 - **Cross-Team Dependency Graph:** Visual map of inter-workstream dependencies and their health.
-- **Customizable Report Templates:** Different slide layouts for PO-level vs. Director-level vs. Senior Director-level presentations.
+- **Stakeholder-Specific Views:** Different slide layouts for PO-level vs. Director-level vs. Senior Director-level presentations.
+- **Report Scheduling:** Automated weekly report generation trigger.
 
 ## Program Context
 
@@ -127,6 +128,15 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 | **Aging WIP** | Work items in Active/In Progress > X days | Is work getting stuck? |
 | **Scope Creep Index** | Items added/removed after sprint start ÷ Original sprint scope | Is planning stable? |
 | **Cross-Team Dependencies** | Items with predecessor/successor links across workstreams | Where are the coupling points? |
+
+### Monthly Milestone Metrics
+
+| Metric | Calculation | Insight |
+|---|---|---|
+| **Monthly Milestone Completion %** | Completed SP ÷ Total SP for current month's tagged Features | Are we hitting monthly goals? |
+| **Quarterly Milestone Progress** | Roll-up of all monthly milestones within the quarter | Is the quarter on track overall? |
+
+**Milestone model:** ADO Features tagged with monthly goal identifiers (e.g., `Feb-Goal`). Child User Stories and their story points are the unit of progress. Total SP is a living number — stories may be added mid-month. Target date is always end of the tagged month.
 
 ### Qualitative Insights (Phase 2)
 

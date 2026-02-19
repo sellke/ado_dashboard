@@ -34,8 +34,7 @@ export const SuccessFullData = () => {
         rag: 'Green',
       }),
       createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Green' }),
-      createMetric({ label: 'Predictability', value: '82%', rawValue: 82, rag: 'Green' }),
-      createMetric({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Green' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
     ],
     workstreamCards: [
       createWorkstreamCard({ workstreamId: 'ws-1', workstreamName: 'Platform' }),
@@ -52,8 +51,7 @@ export const SuccessMixedRag = () => {
     programMetrics: [
       createMetric({ label: 'Velocity', value: '128 pts', rag: 'Green' }),
       createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
-      createMetric({ label: 'Predictability', value: '72%', rag: 'Red' }),
-      createMetric({ label: 'Carry-over rate', value: '18%', rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '18%', rag: 'Red' }),
     ],
     workstreamCards: [
       createWorkstreamCard({
@@ -62,8 +60,7 @@ export const SuccessMixedRag = () => {
         metrics: [
           createMetric({ label: 'Velocity', value: '45 pts', rag: 'Green' }),
           createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
-          createMetric({ label: 'Predictability', value: '72%', rag: 'Red' }),
-          createMetric({ label: 'Carry-over rate', value: '18%', rag: 'Amber' }),
+          createMetric({ label: 'Carry-Over %', value: '18%', rag: 'Red' }),
         ],
       }),
       createWorkstreamCard({
@@ -72,8 +69,7 @@ export const SuccessMixedRag = () => {
         metrics: [
           createMetric({ label: 'Velocity', value: '32 pts', rag: 'Amber' }),
           createMetric({ label: 'Overhead %', value: '42%', rag: 'Red' }),
-          createMetric({ label: 'Predictability', value: '88%', rag: 'Green' }),
-          createMetric({ label: 'Carry-over rate', value: '5%', rag: 'Green' }),
+          createMetric({ label: 'Carry-Over %', value: '5%', rag: 'Green' }),
         ],
       }),
     ],
@@ -103,6 +99,10 @@ export const SuccessTrendRich = () => {
         velocityRate: '1.25 pts/hr',
         activeBugs: '13',
         bugsClosed: '17',
+        rawVelocity: 118,
+        rawVelocityRate: 1.25,
+        rawActiveBugs: 13,
+        rawBugsClosed: 17,
       },
       {
         sprintId: 's2',
@@ -111,6 +111,10 @@ export const SuccessTrendRich = () => {
         velocityRate: '1.30 pts/hr',
         activeBugs: '10',
         bugsClosed: '18',
+        rawVelocity: 122,
+        rawVelocityRate: 1.3,
+        rawActiveBugs: 10,
+        rawBugsClosed: 18,
       },
       {
         sprintId: 's3',
@@ -119,6 +123,10 @@ export const SuccessTrendRich = () => {
         velocityRate: '1.36 pts/hr',
         activeBugs: '9',
         bugsClosed: '19',
+        rawVelocity: 127,
+        rawVelocityRate: 1.36,
+        rawActiveBugs: 9,
+        rawBugsClosed: 19,
       },
       {
         sprintId: 's4',
@@ -127,10 +135,16 @@ export const SuccessTrendRich = () => {
         velocityRate: '1.41 pts/hr',
         activeBugs: '8',
         bugsClosed: '20',
+        rawVelocity: 131,
+        rawVelocityRate: 1.41,
+        rawActiveBugs: 8,
+        rawBugsClosed: 20,
       },
     ],
     sprint5Prediction: {
       velocity: '136 pts',
+      rawVelocity: 136,
+      sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
     workstreamCards: [
@@ -151,6 +165,10 @@ export const SuccessTrendPartialData = () => {
         velocityRate: 'N/A',
         activeBugs: 'N/A',
         bugsClosed: 'N/A',
+        rawVelocity: null,
+        rawVelocityRate: null,
+        rawActiveBugs: 0,
+        rawBugsClosed: 0,
       },
       {
         sprintId: 's2',
@@ -159,10 +177,16 @@ export const SuccessTrendPartialData = () => {
         velocityRate: '1.30 pts/hr',
         activeBugs: '10',
         bugsClosed: '18',
+        rawVelocity: 122,
+        rawVelocityRate: 1.3,
+        rawActiveBugs: 10,
+        rawBugsClosed: 18,
       },
     ],
     sprint5Prediction: {
       velocity: 'N/A',
+      rawVelocity: null,
+      sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
     workstreamCards: [
@@ -177,6 +201,10 @@ export const SuccessTrendPartialData = () => {
             velocityRate: 'N/A',
             activeBugs: 'N/A',
             bugsClosed: 'N/A',
+            rawVelocity: null,
+            rawVelocityRate: null,
+            rawActiveBugs: 0,
+            rawBugsClosed: 0,
           },
           {
             sprintId: 's2',
@@ -185,6 +213,10 @@ export const SuccessTrendPartialData = () => {
             velocityRate: '0.70 pts/hr',
             activeBugs: '3',
             bugsClosed: '4',
+            rawVelocity: 42,
+            rawVelocityRate: 0.7,
+            rawActiveBugs: 3,
+            rawBugsClosed: 4,
           },
         ],
       }),

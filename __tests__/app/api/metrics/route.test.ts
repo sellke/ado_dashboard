@@ -17,7 +17,7 @@ const mockSprint = {
 
 const mockSnapshot = {
   workstreamId: 'ws-1',
-  workstream: { name: 'Streams' },
+  workstream: { name: 'Action Tracker' },
   velocity: 34,
   overheadPercent: 28.5,
   predictability: 85,
@@ -55,6 +55,9 @@ jest.mock('@/lib/prisma', () => ({
     workItem: {
       findMany: jest.fn(),
     },
+    workstream: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -69,6 +72,7 @@ describe('GET /api/metrics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.workItem.findMany.mockResolvedValue([]);
+    prisma.workstream.findMany.mockResolvedValue([{ id: 'ws-1' }]);
   });
 
   it('should return formatted metrics on happy path', async () => {
@@ -93,7 +97,7 @@ describe('GET /api/metrics', () => {
     expect(data.sprint.endDate).toBeDefined();
     expect(data.workstreams).toHaveLength(1);
     expect(data.workstreams[0].workstreamId).toBe('ws-1');
-    expect(data.workstreams[0].workstreamName).toBe('Streams');
+    expect(data.workstreams[0].workstreamName).toBe('Action Tracker');
     expect(data.workstreams[0].metrics.velocity).toMatchObject({
       value: 34,
       avg: 31.5,
@@ -137,9 +141,9 @@ describe('GET /api/metrics', () => {
         },
       ]);
     prisma.workItem.findMany.mockResolvedValue([
-      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'Done' },
-      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'New' },
-      { sprintId: null, workstreamId: 'ws-1', state: 'Done' },
+      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'Done', adoChangedDate: new Date('2026-01-10') },
+      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'New', adoChangedDate: new Date('2026-01-11') },
+      { sprintId: null, workstreamId: 'ws-1', state: 'Done', adoChangedDate: new Date('2026-01-12') },
     ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -185,7 +189,7 @@ describe('GET /api/metrics', () => {
     });
     expect(prisma.metricSnapshot.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { sprintId: 'sprint-2' },
+        where: { sprintId: 'sprint-2', workstreamId: { in: ['ws-1'] } },
       })
     );
   });

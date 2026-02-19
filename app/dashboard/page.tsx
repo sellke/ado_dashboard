@@ -1,5 +1,5 @@
 /**
- * Dashboard page – program health metrics.
+ * Dashboard page – program health metrics (excludes Streams workstream).
  * Uses DashboardContainer for client-side fetch lifecycle.
  */
 
@@ -9,7 +9,7 @@ import { DashboardContainer } from '@/components/Dashboard/DashboardContainer';
 export default function DashboardPage() {
   return (
     <Container size="xl" py="xl">
-      <DashboardContainer />
+      <DashboardContainer dashboard="main" title="Dashboard" />
     </Container>
   );
 }

@@ -19,6 +19,7 @@ export interface TrendBugInput {
   sprintId: string | null;
   workstreamId: string | null;
   state: string;
+  changedDate?: Date | null;
 }
 
 export interface TrendSprintMetrics {
@@ -40,6 +41,18 @@ export interface SprintPrediction {
 export interface TrendSeriesResult {
   sprints: TrendSprintMetrics[];
   prediction: SprintPrediction;
+  averageVelocityRate: number | null;
+}
+
+function isDateWithinSprintWindow(
+  value: Date | null | undefined,
+  sprintStart: Date,
+  sprintEnd: Date
+): boolean {
+  if (!value) {
+    return false;
+  }
+  return value >= sprintStart && value <= sprintEnd;
 }
 
 function sumNullable(values: Array<number | null | undefined>): number | null {
@@ -115,10 +128,12 @@ export function buildTrendSeries(params: {
     const velocityRate = calculateVelocityRate(sprintVelocity, sprintNetCapacity);
 
     const sprintBugs = scopeBugs.filter((b) => b.sprintId === sprint.id);
-    const bugsClosed = sprintBugs.filter((b) =>
-      (DONE_STATES as readonly string[]).includes(b.state)
+    const bugsClosed = sprintBugs.filter(
+      (b) =>
+        (DONE_STATES as readonly string[]).includes(b.state) &&
+        isDateWithinSprintWindow(b.changedDate, sprint.startDate, sprint.endDate)
     ).length;
-    const activeBugs = sprintBugs.length - bugsClosed;
+    const activeBugs = Math.max(sprintBugs.length - bugsClosed, 0);
 
     return {
       sprintId: sprint.id,
@@ -153,5 +168,5 @@ export function buildTrendSeries(params: {
     formula: 'average velocity rate × current sprint net capacity hours',
   };
 
-  return { sprints, prediction };
+  return { sprints, prediction, averageVelocityRate };
 }

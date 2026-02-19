@@ -22,8 +22,7 @@ const fullDataCard: WorkstreamCardViewModel = {
   metrics: [
     createMetricTile({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
     createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
-    createMetricTile({ label: 'Predictability', value: '92%', rawValue: 92, rag: 'Green' }),
-    createMetricTile({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Green' }),
+    createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
   ],
   detail: {
     plannedPoints: '50',
@@ -39,6 +38,10 @@ const fullDataCard: WorkstreamCardViewModel = {
       velocityRate: '0.17 pts/hr',
       activeBugs: '2',
       bugsClosed: '4',
+      rawVelocity: 10,
+      rawVelocityRate: 0.17,
+      rawActiveBugs: 2,
+      rawBugsClosed: 4,
     },
     {
       sprintId: 's2',
@@ -47,6 +50,10 @@ const fullDataCard: WorkstreamCardViewModel = {
       velocityRate: '0.20 pts/hr',
       activeBugs: '1',
       bugsClosed: '5',
+      rawVelocity: 12,
+      rawVelocityRate: 0.2,
+      rawActiveBugs: 1,
+      rawBugsClosed: 5,
     },
   ],
 };
@@ -57,20 +64,20 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText('Platform')).toBeInTheDocument();
   });
 
-  it('renders all 4 metrics with values and RAG badges when full data', () => {
+  it('renders all 3 metrics with values and RAG badges when full data', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 
     expect(screen.getByText('Velocity')).toBeInTheDocument();
     expect(screen.getByText('45 pts')).toBeInTheDocument();
     expect(screen.getByText('Overhead %')).toBeInTheDocument();
     expect(screen.getByText('28%')).toBeInTheDocument();
-    expect(screen.getByText('Predictability')).toBeInTheDocument();
-    expect(screen.getByText('92%')).toBeInTheDocument();
-    expect(screen.getByText('Carry-over rate')).toBeInTheDocument();
+    expect(screen.getByText('Carry-Over %')).toBeInTheDocument();
     expect(screen.getByText('12%')).toBeInTheDocument();
 
+    expect(screen.queryByText('Predictability')).not.toBeInTheDocument();
+
     const gBadges = screen.getAllByText('G');
-    expect(gBadges.length).toBe(4);
+    expect(gBadges.length).toBe(3);
   });
 
   it('renders N/A for null metric values', () => {
@@ -79,8 +86,7 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
-        createMetricTile({ label: 'Predictability', value: 'N/A', rawValue: null, rag: null }),
-        createMetricTile({ label: 'Carry-over rate', value: 'N/A', rawValue: null, rag: null }),
+        createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
       ],
     };
 
@@ -88,7 +94,7 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText('Velocity')).toBeInTheDocument();
     const naElements = screen.getAllByText('N/A');
-    expect(naElements.length).toBeGreaterThanOrEqual(4);
+    expect(naElements.length).toBeGreaterThanOrEqual(3);
   });
 
   it('renders detail block with planned/completed points and carry-over info', () => {
@@ -134,8 +140,7 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', rag: 'Green' }),
         createMetricTile({ label: 'Overhead %', rag: 'Amber' }),
-        createMetricTile({ label: 'Predictability', rag: 'Red' }),
-        createMetricTile({ label: 'Carry-over rate', rag: null }),
+        createMetricTile({ label: 'Carry-Over %', rag: 'Red' }),
       ],
     };
 
@@ -177,16 +182,13 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: 'Amber' }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
-        createMetricTile({ label: 'Predictability', value: '85%', rawValue: 85, rag: 'Green' }),
-        createMetricTile({ label: 'Carry-over rate', value: 'N/A', rawValue: null, rag: 'Red' }),
+        createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: 'Red' }),
       ],
     };
 
     render(<WorkstreamHealthCard card={partialNullCard} />);
 
     expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getByText('G')).toBeInTheDocument();
     expect(screen.getByText('R')).toBeInTheDocument();
-    expect(screen.getByText('85%')).toBeInTheDocument();
   });
 });

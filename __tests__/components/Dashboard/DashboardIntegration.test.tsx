@@ -64,7 +64,7 @@ describe('DashboardContainer integration', () => {
     expect(screen.getByText('Apps')).toBeInTheDocument();
     expect(screen.getByText(/Program Summary/)).toBeInTheDocument();
     expect(screen.getByText(/Workstreams/)).toBeInTheDocument();
-    expect(screen.getByText(/128 pts/)).toBeInTheDocument();
+    expect(screen.getByText(/120\.5 pts/)).toBeInTheDocument();
   });
 
   it('renders milestone panel with mocked API when milestones exist', async () => {

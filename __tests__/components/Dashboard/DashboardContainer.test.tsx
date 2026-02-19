@@ -17,7 +17,7 @@ const mockSuccessResponse = {
   workstreams: [
     {
       workstreamId: 'ws-1',
-      workstreamName: 'Streams',
+      workstreamName: 'Action Tracker',
       metrics: {
         velocity: { value: 34, avg: 31.5, rag: 'Green' },
         overheadPercent: { value: 28.5, avg: 26.2, rag: 'Green' },
@@ -75,7 +75,7 @@ describe('DashboardContainer', () => {
     render(<DashboardContainer />);
 
     expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
-    expect(screen.getByText('Streams')).toBeInTheDocument();
+    expect(screen.getByText('Action Tracker')).toBeInTheDocument();
   });
 
   it('shows empty state when API returns empty payload', async () => {

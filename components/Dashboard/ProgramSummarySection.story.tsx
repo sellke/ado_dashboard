@@ -26,8 +26,23 @@ export const AllMetricsPopulated = () => {
         rag: 'Green',
       }),
       createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
-      createMetric({ label: 'Predictability', value: '82%', rawValue: 82, rag: 'Green' }),
-      createMetric({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Amber' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
     ],
     workstreamCards: [],
   });
@@ -41,8 +56,23 @@ export const MixedRag = () => {
     programMetrics: [
       createMetric({ label: 'Velocity', value: '128 pts', rag: 'Green' }),
       createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
-      createMetric({ label: 'Predictability', value: '72%', rag: 'Red' }),
-      createMetric({ label: 'Carry-over rate', value: '18%', rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '18%', rag: 'Red' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
     ],
     workstreamCards: [],
   });
@@ -63,14 +93,7 @@ export const NullValues = () => {
         avgLabel: null,
       }),
       createMetric({
-        label: 'Predictability',
-        value: '50%',
-        rawValue: 50,
-        rag: 'Red',
-        avgLabel: null,
-      }),
-      createMetric({
-        label: 'Carry-over rate',
+        label: 'Carry-Over %',
         value: 'N/A',
         rawValue: null,
         rag: null,
@@ -104,6 +127,10 @@ export const TrendRich = () => {
         velocityRate: '1.25 pts/hr',
         activeBugs: '13',
         bugsClosed: '17',
+        rawVelocity: 118,
+        rawVelocityRate: 1.25,
+        rawActiveBugs: 13,
+        rawBugsClosed: 17,
       },
       {
         sprintId: 's2',
@@ -112,6 +139,10 @@ export const TrendRich = () => {
         velocityRate: '1.30 pts/hr',
         activeBugs: '10',
         bugsClosed: '18',
+        rawVelocity: 122,
+        rawVelocityRate: 1.3,
+        rawActiveBugs: 10,
+        rawBugsClosed: 18,
       },
       {
         sprintId: 's3',
@@ -120,6 +151,10 @@ export const TrendRich = () => {
         velocityRate: '1.36 pts/hr',
         activeBugs: '9',
         bugsClosed: '19',
+        rawVelocity: 127,
+        rawVelocityRate: 1.36,
+        rawActiveBugs: 9,
+        rawBugsClosed: 19,
       },
       {
         sprintId: 's4',
@@ -128,12 +163,162 @@ export const TrendRich = () => {
         velocityRate: '1.41 pts/hr',
         activeBugs: '8',
         bugsClosed: '20',
+        rawVelocity: 131,
+        rawVelocityRate: 1.41,
+        rawActiveBugs: 8,
+        rawBugsClosed: 20,
       },
     ],
     sprint5Prediction: {
       velocity: '136 pts',
+      rawVelocity: 136,
+      sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
+  });
+  return <ProgramSummarySection viewModel={viewModel} />;
+};
+
+export const MilestoneEmptyState = () => {
+  const viewModel = createDashboardViewModel('success', {
+    sprintLabel: 'Sprint 26.21',
+    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    programMetrics: [
+      createMetric({
+        label: 'Velocity',
+        value: '128 pts',
+        rawValue: 128,
+        avgLabel: '120.5 pts',
+        rag: 'Green',
+      }),
+      createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Amber' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '\u2014',
+        rawValue: null,
+        unit: '%',
+        rag: null,
+        avgLabel: 'No milestone data yet',
+      }),
+    ],
+    workstreamCards: [],
+  });
+  return <ProgramSummarySection viewModel={viewModel} />;
+};
+
+export const MilestonePopulatedGreen = () => {
+  const viewModel = createDashboardViewModel('success', {
+    sprintLabel: 'Sprint 26.21',
+    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    programMetrics: [
+      createMetric({
+        label: 'Velocity',
+        value: '128 pts',
+        rawValue: 128,
+        avgLabel: '120.5 pts',
+        rag: 'Green',
+      }),
+      createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '90%',
+        rawValue: 90,
+        unit: '%',
+        rag: 'Green',
+        avgLabel: null,
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '88%',
+        rawValue: 88,
+        unit: '%',
+        rag: 'Green',
+        avgLabel: null,
+      }),
+    ],
+    workstreamCards: [],
+  });
+  return <ProgramSummarySection viewModel={viewModel} />;
+};
+
+export const MilestonePopulatedAmber = () => {
+  const viewModel = createDashboardViewModel('success', {
+    sprintLabel: 'Sprint 26.21',
+    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    programMetrics: [
+      createMetric({
+        label: 'Velocity',
+        value: '128 pts',
+        rawValue: 128,
+        avgLabel: '120.5 pts',
+        rag: 'Green',
+      }),
+      createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '75%',
+        rawValue: 75,
+        unit: '%',
+        rag: 'Amber',
+        avgLabel: null,
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '68%',
+        rawValue: 68,
+        unit: '%',
+        rag: 'Amber',
+        avgLabel: null,
+      }),
+    ],
+    workstreamCards: [],
+  });
+  return <ProgramSummarySection viewModel={viewModel} />;
+};
+
+export const MilestonePopulatedRed = () => {
+  const viewModel = createDashboardViewModel('success', {
+    sprintLabel: 'Sprint 26.21',
+    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    programMetrics: [
+      createMetric({
+        label: 'Velocity',
+        value: '128 pts',
+        rawValue: 128,
+        avgLabel: '120.5 pts',
+        rag: 'Green',
+      }),
+      createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
+      createMetric({
+        label: 'Monthly Milestone %',
+        value: '45%',
+        rawValue: 45,
+        unit: '%',
+        rag: 'Red',
+        avgLabel: null,
+      }),
+      createMetric({
+        label: 'Quarterly Milestone Progress',
+        value: '52%',
+        rawValue: 52,
+        unit: '%',
+        rag: 'Red',
+        avgLabel: null,
+      }),
+    ],
+    workstreamCards: [],
   });
   return <ProgramSummarySection viewModel={viewModel} />;
 };
@@ -150,6 +335,10 @@ export const TrendPartialData = () => {
         velocityRate: 'N/A',
         activeBugs: 'N/A',
         bugsClosed: 'N/A',
+        rawVelocity: null,
+        rawVelocityRate: null,
+        rawActiveBugs: 0,
+        rawBugsClosed: 0,
       },
       {
         sprintId: 's2',
@@ -158,10 +347,16 @@ export const TrendPartialData = () => {
         velocityRate: '1.32 pts/hr',
         activeBugs: '10',
         bugsClosed: '18',
+        rawVelocity: 121,
+        rawVelocityRate: 1.32,
+        rawActiveBugs: 10,
+        rawBugsClosed: 18,
       },
     ],
     sprint5Prediction: {
       velocity: 'N/A',
+      rawVelocity: null,
+      sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
   });

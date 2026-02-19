@@ -6,11 +6,13 @@
 
 import type {
   ApiMetric,
+  ApiMilestoneMetric,
   ApiResponse,
   ApiTrendSprint,
   DashboardViewModel,
   MetricTileViewModel,
   RagStatus,
+  TrendSprintViewModel,
   WorkstreamCardViewModel,
 } from './types';
 
@@ -81,7 +83,7 @@ function formatVelocityRate(value: number | null | undefined): string {
   return `${value.toFixed(2)} pts/hr`;
 }
 
-function mapTrendSprint(sprint: ApiTrendSprint) {
+function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
   return {
     sprintId: sprint.sprintId,
     sprintName: sprint.sprintName,
@@ -89,6 +91,35 @@ function mapTrendSprint(sprint: ApiTrendSprint) {
     velocityRate: formatVelocityRate(sprint.velocityRate),
     activeBugs: formatNumber(sprint.activeBugs),
     bugsClosed: formatNumber(sprint.bugsClosed),
+    rawVelocity: sprint.velocity,
+    rawVelocityRate: sprint.velocityRate,
+    rawActiveBugs: sprint.activeBugs,
+    rawBugsClosed: sprint.bugsClosed,
+  };
+}
+
+/** Map a milestone API metric to MetricTileViewModel with empty-state handling */
+function mapMilestoneTile(
+  metric: ApiMilestoneMetric | null | undefined,
+  label: string
+): MetricTileViewModel {
+  if (!metric || metric.value === null || metric.value === undefined) {
+    return {
+      label,
+      value: '\u2014',
+      rawValue: null,
+      unit: '%',
+      rag: null,
+      avgLabel: 'No milestone data yet',
+    };
+  }
+  return {
+    label,
+    value: formatPercent(metric.value),
+    rawValue: metric.value,
+    unit: '%',
+    rag: toRagStatus(metric.rag ?? null),
+    avgLabel: null,
   };
 }
 
@@ -100,8 +131,7 @@ const METRIC_LABELS: Array<{
 }> = [
   { key: 'velocity', label: 'Velocity', unit: 'pts', isPercent: false },
   { key: 'overheadPercent', label: 'Overhead %', unit: '%', isPercent: true },
-  { key: 'predictability', label: 'Predictability', unit: '%', isPercent: true },
-  { key: 'carryOverRate', label: 'Carry-over rate', unit: '%', isPercent: true },
+  { key: 'carryOverRate', label: 'Carry-Over %', unit: '%', isPercent: true },
 ];
 
 /** Format nullable number for detail display */
@@ -147,9 +177,47 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
   let programMetrics: MetricTileViewModel[] | null = null;
   if (response.program?.metrics) {
     const m = response.program.metrics;
-    programMetrics = METRIC_LABELS.map(({ key, label, unit, isPercent }) =>
-      mapApiMetricToTile(m[key], label, unit, isPercent)
-    );
+    const avgVelocityRate = m.averageVelocityRate ?? null;
+    const rawCarryOver = m.carryOverRate?.avg ?? null;
+    const roundedCarryOver = rawCarryOver !== null
+      ? Math.round(rawCarryOver * 100) / 100
+      : null;
+    programMetrics = [
+      {
+        label: 'Avg Total Velocity',
+        value: formatMetricValue(m.velocity?.avg ?? null, 'pts'),
+        rawValue: m.velocity?.avg ?? null,
+        unit: 'pts',
+        rag: toRagStatus(m.velocity?.rag ?? null),
+        avgLabel: null,
+      },
+      {
+        label: 'Avg Total Velocity Rate',
+        value: avgVelocityRate !== null
+          ? `${avgVelocityRate.toFixed(2)} pts/hr`
+          : 'N/A',
+        rawValue: avgVelocityRate,
+        unit: 'pts/hr',
+        rag: null,
+        avgLabel: null,
+      },
+      {
+        label: 'Avg Total Overhead %',
+        value: formatPercent(m.overheadPercent?.avg ?? null),
+        rawValue: m.overheadPercent?.avg ?? null,
+        unit: '%',
+        rag: toRagStatus(m.overheadPercent?.rag ?? null),
+        avgLabel: null,
+      },
+      {
+        label: 'Avg Total Carry-Over %',
+        value: roundedCarryOver !== null ? `${roundedCarryOver.toFixed(2)}%` : 'N/A',
+        rawValue: roundedCarryOver,
+        unit: '%',
+        rag: toRagStatus(m.carryOverRate?.rag ?? null),
+        avgLabel: null,
+      },
+    ];
   }
 
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
@@ -173,10 +241,13 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
 
   const programTrendSprints = (response.program?.trends?.sprints ?? []).map(mapTrendSprint);
   const sprint5PredictionValue = response.program?.prediction?.sprint5?.velocity ?? null;
+  const currentSprintName = response.sprint?.name ?? 'Current Sprint';
   const sprint5Prediction =
     response.program?.prediction?.sprint5 !== undefined
       ? {
           velocity: formatMetricValue(sprint5PredictionValue, 'pts'),
+          rawVelocity: sprint5PredictionValue,
+          sprintLabel: currentSprintName,
           isPredicted: true,
         }
       : null;

@@ -24,7 +24,7 @@ describe('dashboard adapter', () => {
     workstreams: [
       {
         workstreamId: 'ws-1',
-        workstreamName: 'Streams',
+        workstreamName: 'Action Tracker',
         metrics: {
           velocity: { value: 34, avg: 31.5, rag: 'Green' },
           overheadPercent: { value: 28.5, avg: 26.2, rag: 'Green' },
@@ -60,6 +60,8 @@ describe('dashboard adapter', () => {
         overheadPercent: { value: 31.2, avg: 29, rag: 'Amber' },
         predictability: { value: 82, avg: 80.5, rag: 'Green' },
         carryOverRate: { value: 12, avg: 13.5, rag: 'Amber' },
+        milestoneMonthly: { value: null, rag: null },
+        milestoneQuarterly: { value: null, rag: null },
       },
       trends: {
         sprints: [
@@ -108,13 +110,31 @@ describe('dashboard adapter', () => {
       expect(vm.programMetrics).toHaveLength(4);
       expect(vm.workstreamCards).toHaveLength(1);
 
-      const programVelocity = vm.programMetrics?.find((m) => m.label === 'Velocity');
-      expect(programVelocity?.value).toBe('128 pts');
+      const programVelocity = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity');
+      expect(programVelocity?.value).toBe('120.5 pts');
+      expect(programVelocity?.rawValue).toBe(120.5);
       expect(programVelocity?.rag).toBe('Green');
       expect(programVelocity?.unit).toBe('pts');
+      expect(programVelocity?.avgLabel).toBeNull();
+
+      const programVelocityRate = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity Rate');
+      expect(programVelocityRate?.value).toBe('N/A');
+      expect(programVelocityRate?.rawValue).toBeNull();
+      expect(programVelocityRate?.unit).toBe('pts/hr');
+      expect(programVelocityRate?.rag).toBeNull();
+
+      const programOverhead = vm.programMetrics?.find((m) => m.label === 'Avg Total Overhead %');
+      expect(programOverhead?.value).toBe('29%');
+      expect(programOverhead?.rawValue).toBe(29);
+      expect(programOverhead?.rag).toBe('Amber');
+
+      const programCarryOver = vm.programMetrics?.find((m) => m.label === 'Avg Total Carry-Over %');
+      expect(programCarryOver?.value).toBe('13.50%');
+      expect(programCarryOver?.rawValue).toBe(13.5);
+      expect(programCarryOver?.rag).toBe('Amber');
 
       const ws = vm.workstreamCards[0];
-      expect(ws.workstreamName).toBe('Streams');
+      expect(ws.workstreamName).toBe('Action Tracker');
       expect(ws.detail.plannedPoints).toBe('40');
       expect(ws.detail.completedPoints).toBe('34');
       expect(ws.trendSprints).toHaveLength(1);
@@ -124,14 +144,24 @@ describe('dashboard adapter', () => {
         velocityRate: '0.50 pts/hr',
         activeBugs: '2',
         bugsClosed: '3',
+        rawVelocity: 30,
+        rawVelocityRate: 0.5,
+        rawActiveBugs: 2,
+        rawBugsClosed: 3,
       });
       expect(vm.programTrendSprints).toHaveLength(1);
       expect(vm.programTrendSprints[0]).toMatchObject({
         sprintId: 'sprint-a',
         velocity: '120 pts',
+        rawVelocity: 120,
+        rawVelocityRate: 1.2,
+        rawActiveBugs: 11,
+        rawBugsClosed: 16,
       });
       expect(vm.sprint5Prediction).toMatchObject({
         velocity: '130 pts',
+        rawVelocity: 130,
+        sprintLabel: 'Sprint 26.21',
         isPredicted: true,
       });
     });
@@ -192,6 +222,30 @@ describe('dashboard adapter', () => {
       expect(ws.detail.completedPoints).toBe('N/A');
     });
 
+    it('shows average velocity rate as its own tile when available', () => {
+      const responseWithRate: ApiResponse = {
+        ...fullApiResponse,
+        program: {
+          ...fullApiResponse.program!,
+          metrics: {
+            ...fullApiResponse.program!.metrics,
+            averageVelocityRate: 0.85,
+          },
+        },
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(responseWithRate);
+
+      const velocityTile = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity');
+      expect(velocityTile?.avgLabel).toBeNull();
+
+      const rateTile = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity Rate');
+      expect(rateTile?.value).toBe('0.85 pts/hr');
+      expect(rateTile?.rawValue).toBe(0.85);
+      expect(rateTile?.unit).toBe('pts/hr');
+      expect(rateTile?.rag).toBeNull();
+    });
+
     it('handles mixed RAG values correctly', () => {
       const mixedRagResponse: ApiResponse = {
         ...fullApiResponse,
@@ -213,13 +267,12 @@ describe('dashboard adapter', () => {
       const ws = vm.workstreamCards[0];
       const velocity = ws.metrics.find((m) => m.label === 'Velocity');
       const overhead = ws.metrics.find((m) => m.label === 'Overhead %');
-      const predictability = ws.metrics.find((m) => m.label === 'Predictability');
-      const carryOver = ws.metrics.find((m) => m.label === 'Carry-over rate');
+      const carryOver = ws.metrics.find((m) => m.label === 'Carry-Over %');
 
       expect(velocity?.rag).toBe('Green');
       expect(overhead?.rag).toBe('Amber');
-      expect(predictability?.rag).toBe('Red');
       expect(carryOver?.rag).toBeNull();
+      expect(ws.metrics.find((m) => m.label === 'Predictability')).toBeUndefined();
     });
   });
 

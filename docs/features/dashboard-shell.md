@@ -1,6 +1,6 @@
 # Dashboard Shell
 
-> **Status:** Implemented (Story 1, Story 5)
+> **Status:** Implemented (Story 1, Story 5, Story 9); End-to-end metric validation complete (Story 10)
 > **Depends on:** Metric Engine API (`GET /api/metrics`), Sync API (`POST /api/sync/ado`)
 
 ## Overview
@@ -53,7 +53,7 @@ graph TB
 | `DashboardContainer` | `components/Dashboard/DashboardContainer.tsx` | Client component managing fetch lifecycle and sync trigger; retry logic; wires SyncControl |
 | `DashboardShell` | `components/Dashboard/DashboardShell.tsx` | Routes view model state to loading, success, empty, or error UI |
 | `SyncControl` | `components/Dashboard/SyncControl.tsx` | "Sync Now" button with in-flight feedback; non-blocking error and partial-success alerts |
-| `ProgramSummarySection` | `components/Dashboard/ProgramSummarySection.tsx` | Renders program metrics as card tiles with RAG indicators |
+| `ProgramSummarySection` | `components/Dashboard/ProgramSummarySection.tsx` | Renders five program metric tiles (Velocity, Overhead %, Carry-Over %, Monthly Milestone %, Quarterly Milestone Progress) with RAG indicators; milestone tiles support null/placeholder state (Story 9) |
 | `RagBadge` | `components/Dashboard/RagBadge.tsx` | RAG status badge (Green/Amber/Red) — used by metric tiles |
 | `WorkstreamCardsGrid` | (inline in DashboardShell) | Placeholder for Story 3 — renders workstream health cards |
 | `MilestonePanel` | `components/Dashboard/MilestonePanel.tsx` | Below shell; milestones grouped by workstream — see [Dashboard Milestone Panel](dashboard-milestone-panel.md) |
@@ -156,6 +156,24 @@ interface DashboardViewModel {
 
 Each metric is mapped to a `MetricTileViewModel` with formatted display values and null-safe "N/A" placeholders.
 
+## Program Summary Milestone Tiles {#program-summary-milestone-tiles}
+
+> **Story 9.** The Program Summary section displays five metric tiles:
+
+| Tile | Description |
+|------|--------------|
+| Velocity | Sprint velocity (existing) |
+| Overhead % | Overhead percentage (existing) |
+| Carry-Over % | Carry-over percentage (existing) |
+| Monthly Milestone % | Placeholder; Phase 1E will provide real data |
+| Quarterly Milestone Progress | Placeholder; Phase 1E will provide real data |
+
+**Milestone tile empty state (null data):** Value shows "—", subtext shows "No milestone data yet", and a neutral gray indicator badge is displayed (no "Avg:" prefix on subtext).
+
+**Milestone tile populated state:** When data is available, tiles show the percentage with RAG color coding: Green ≥80%, Amber 60–79%, Red &lt;60%.
+
+Data contract: `ApiMilestoneMetric` in `lib/dashboard/types.ts`; `mapMilestoneTile()` in `lib/dashboard/adapter.ts`. API returns null milestone fields until Phase 1E.
+
 ## Null Handling
 
 - All metric values can be null from the API
@@ -170,12 +188,14 @@ Each metric is mapped to a `MetricTileViewModel` with formatted display values a
 | `lib/dashboard/types.ts` | API response types and UI view model types |
 | `lib/dashboard/adapter.ts` | Data adapter — maps API response to view models |
 | `components/Dashboard/DashboardShell.tsx` | Shell component with state routing |
-| `components/Dashboard/ProgramSummarySection.tsx` | Program summary section with metric tiles (Story 2) |
+| `components/Dashboard/ProgramSummarySection.tsx` | Program summary section with five metric tiles including milestone placeholders (Story 2, Story 9) |
 | `components/Dashboard/RagBadge.tsx` | RAG indicator badge for metric tiles |
 | `components/Dashboard/DashboardContainer.tsx` | Fetch lifecycle and sync trigger container |
 | `components/Dashboard/SyncControl.tsx` | Sync Now button and sync state alerts |
 | `app/dashboard/page.tsx` | Dashboard page route |
 | `__tests__/lib/dashboard/adapter.test.ts` | Adapter unit tests (12 tests) |
+| `__tests__/validation/metric-validation.test.ts` | Metric calculator validation with known I/O (Story 10) |
+| `__tests__/validation/trend-validation.test.ts` | Trend & prediction formula validation (Story 10) |
 | `__tests__/components/Dashboard/DashboardShell.test.tsx` | Shell component tests (6 tests) |
 | `__tests__/components/Dashboard/DashboardContainer.test.tsx` | Container integration tests (5 tests) |
 | `__tests__/components/Dashboard/DashboardIntegration.test.tsx` | Sync Now flow, in-flight locking, success auto-refresh, failure paths (Story 5) |

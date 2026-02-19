@@ -23,8 +23,7 @@ const fullDataCard: WorkstreamCardViewModel = {
   metrics: [
     createMetric({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
     createMetric({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
-    createMetric({ label: 'Predictability', value: '92%', rawValue: 92, rag: 'Green' }),
-    createMetric({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Green' }),
+    createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
   ],
   detail: {
     plannedPoints: '50',
@@ -40,6 +39,10 @@ const fullDataCard: WorkstreamCardViewModel = {
       velocityRate: '0.67 pts/hr',
       activeBugs: '2',
       bugsClosed: '5',
+      rawVelocity: 40,
+      rawVelocityRate: 0.67,
+      rawActiveBugs: 2,
+      rawBugsClosed: 5,
     },
     {
       sprintId: 's2',
@@ -48,6 +51,10 @@ const fullDataCard: WorkstreamCardViewModel = {
       velocityRate: '0.70 pts/hr',
       activeBugs: '3',
       bugsClosed: '4',
+      rawVelocity: 42,
+      rawVelocityRate: 0.7,
+      rawActiveBugs: 3,
+      rawBugsClosed: 4,
     },
   ],
 };
@@ -103,8 +110,7 @@ export const MixedRag = () => {
       metrics: [
         createMetric({ label: 'Velocity', value: '45 pts', rag: 'Green' }),
         createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
-        createMetric({ label: 'Predictability', value: '72%', rag: 'Red' }),
-        createMetric({ label: 'Carry-over rate', value: '18%', rag: 'Amber' }),
+        createMetric({ label: 'Carry-Over %', value: '18%', rag: 'Red' }),
       ],
     },
     {
@@ -114,8 +120,7 @@ export const MixedRag = () => {
       metrics: [
         createMetric({ label: 'Velocity', value: '32 pts', rag: 'Amber' }),
         createMetric({ label: 'Overhead %', value: '42%', rag: 'Red' }),
-        createMetric({ label: 'Predictability', value: '88%', rag: 'Green' }),
-        createMetric({ label: 'Carry-over rate', value: '5%', rag: 'Green' }),
+        createMetric({ label: 'Carry-Over %', value: '5%', rag: 'Green' }),
       ],
     },
   ];
@@ -130,8 +135,7 @@ export const NullData = () => {
     metrics: [
       createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
       createMetric({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
-      createMetric({ label: 'Predictability', value: 'N/A', rawValue: null, rag: null }),
-      createMetric({ label: 'Carry-over rate', value: 'N/A', rawValue: null, rag: null }),
+      createMetric({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
     ],
     detail: {
       plannedPoints: 'N/A',
@@ -151,8 +155,7 @@ export const PartialData = () => {
     metrics: [
       createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
       createMetric({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
-      createMetric({ label: 'Predictability', value: 'N/A', rawValue: null, rag: null }),
-      createMetric({ label: 'Carry-over rate', value: '12%', rawValue: 12, rag: 'Amber' }),
+      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Amber' }),
     ],
     detail: {
       plannedPoints: '50',
@@ -174,8 +177,7 @@ export const GridWithAllVariants = () => {
       metrics: [
         createMetric({ label: 'Velocity', value: '32 pts', rag: 'Amber' }),
         createMetric({ label: 'Overhead %', value: '42%', rag: 'Red' }),
-        createMetric({ label: 'Predictability', value: '88%', rag: 'Green' }),
-        createMetric({ label: 'Carry-over rate', value: '5%', rag: 'Green' }),
+        createMetric({ label: 'Carry-Over %', value: '5%', rag: 'Green' }),
       ],
     },
     {
@@ -185,8 +187,7 @@ export const GridWithAllVariants = () => {
       metrics: [
         createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
         createMetric({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
-        createMetric({ label: 'Predictability', value: 'N/A', rawValue: null, rag: null }),
-        createMetric({ label: 'Carry-over rate', value: 'N/A', rawValue: null, rag: null }),
+        createMetric({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
       ],
       detail: {
         plannedPoints: 'N/A',

@@ -75,6 +75,24 @@ export const thresholdConfigs = [
     redMin: 20.01,
     redMax: 100,
   },
+  {
+    metricName: 'milestoneMonthly',
+    greenMin: 80,
+    greenMax: 100,
+    amberMin: 60,
+    amberMax: 79.99,
+    redMin: 0,
+    redMax: 59.99,
+  },
+  {
+    metricName: 'milestoneQuarterly',
+    greenMin: 80,
+    greenMax: 100,
+    amberMin: 60,
+    amberMax: 79.99,
+    redMin: 0,
+    redMax: 59.99,
+  },
 ];
 
 const ADO_ITER_BASE = 'Event Streaming Platform\\App\\LiveLink - Yellow Box';

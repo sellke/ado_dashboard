@@ -165,3 +165,110 @@ Ceremonies captured: standups, scrum of scrums, sprint planning, and backlog ref
 - If Teams API access becomes available → automate transcript retrieval
 - If transcript volume makes manual upload painful → build batch upload or watch folder
 - If data governance policy changes → reassess LLM provider choice
+
+---
+
+## 2026-02-18: Report UI Structure — 4 Section Architecture
+
+**ID:** DEC-005
+**Status:** Accepted
+**Category:** Product
+**Stakeholders:** Product Owner (Operator), POs, Directors, Senior Directors
+
+### Decision
+
+Organize the dashboard UI into 4 distinct report sections plus PowerPoint export:
+
+1. **Program Summary** — Program-wide KPIs (avg velocity, avg velocity rate, carry-over %, overhead %, monthly milestone completion %, quarterly milestone progress)
+2. **Workstream Velocity** — Per-workstream velocity, velocity rate, carry-over with trend visualization and current-sprint prediction
+3. **Workstream Overhead** — Per-workstream overhead % composition breakdown plus individual bug and support item listings
+4. **Workstream Milestones** — Per-workstream monthly goal tracking from tagged ADO Features, with program-level roll-up
+5. **PowerPoint Export** — All 4 sections exported to `.pptx`
+
+### Context
+
+The backend (ADO sync, metric engine, APIs) is complete. The remaining MVP work is the dashboard UI and slide export. Rather than a generic "health cards" approach, the operator defined 4 specific report sections that map to how stakeholders consume program health data: summary first, then drill into velocity, overhead, and milestone progress per workstream.
+
+### Rationale
+
+- **Stakeholder-aligned structure**: Directors want a summary; POs want workstream detail. The 4-section layout serves both with a natural drill-down flow.
+- **Current-sprint prediction** in the velocity section gives a forward-looking view, not just historical reporting.
+- **Item-level bug/support detail** in the overhead section answers "what's eating our capacity" — a frequent stakeholder question that raw overhead % alone doesn't answer.
+- **Monthly milestones** provide more granular goal tracking than quarterly-only, giving earlier signal on whether the quarter is on track.
+
+### Alternatives Considered
+
+1. **Single-page health card grid** (one card per workstream, all metrics inline)
+   - Pros: Simpler layout, everything visible at once
+   - Cons: Too dense for stakeholder consumption; conflates velocity, overhead, and milestones into one view; harder to export to meaningful slides
+   - Why rejected: Doesn't match how stakeholders actually review health data
+
+2. **Per-workstream pages** (each workstream gets its own page with all metrics)
+   - Pros: Complete per-workstream view
+   - Cons: Loses program-level summary; harder to compare across workstreams; more navigation
+   - Why rejected: Cross-workstream comparison is essential for Director-level consumers
+
+### Consequences
+
+**Positive:**
+- Clear information hierarchy (program → workstream → item detail)
+- Each section maps naturally to a PowerPoint slide group
+- Sections can be built and validated incrementally (1B → 1C → 1D → 1E → 1F)
+
+**Negative:**
+- More UI components to build than a single-page layout
+- Current-sprint prediction logic adds complexity beyond pure historical reporting
+- Item-level queries for bug/support listings may need additional API endpoints
+
+---
+
+## 2026-02-18: Monthly Goal Milestone Model
+
+**ID:** DEC-006
+**Status:** Accepted
+**Category:** Product
+
+### Decision
+
+Track milestones as ADO Features tagged with monthly goal identifiers. Progress is measured by child User Story point completion (completed SP / total SP = % complete). Target date is always end of the tagged month. Program-level roll-up shows both current month completion % and quarterly aggregate progress.
+
+### Context
+
+The original plan called for "manual milestone entry" with a custom UI form. The operator refined this to leverage existing ADO Features as the milestone container, with monthly tags identifying which Features are quarterly goals. This keeps the source of truth in ADO rather than creating a parallel tracking system.
+
+### Rationale
+
+- **ADO as source of truth**: Features and their child stories already exist in ADO with story points. Tagging rather than duplicating avoids data drift.
+- **Monthly granularity**: More frequent goal checkpoints than quarterly-only. Gives earlier signal on whether the quarter is on track.
+- **Living scope**: Total SP for a Feature can grow as stories are added. This reflects reality (scope clarification during execution) rather than treating initial scope as fixed.
+- **Simple % complete**: Completed SP / Total SP is unambiguous and automatically calculated from ADO work item states.
+
+### Alternatives Considered
+
+1. **Manual milestone entry in the app** (original plan)
+   - Pros: Full control, no ADO dependency for milestone data
+   - Cons: Parallel tracking system, data drift risk, manual entry overhead
+   - Why rejected: Adds operator burden; ADO already has the Feature → Story hierarchy
+
+2. **Quarterly-only milestones**
+   - Pros: Simpler, fewer data points
+   - Cons: No early warning signal within the quarter; milestone completion is binary (done or not done at quarter end)
+   - Why rejected: Monthly checkpoints provide actionable mid-quarter course correction
+
+### Consequences
+
+**Positive:**
+- No manual milestone data entry — progress is automatically calculated from ADO
+- Monthly targets give early warning if quarterly goals are at risk
+- Living scope (stories added mid-month) reflects real execution dynamics
+
+**Negative:**
+- Requires discipline in ADO Feature tagging (operator must tag Features correctly)
+- ADO sync must be enhanced to fetch Feature-level data with monthly goal tags and child story relationships
+- "% complete" can be misleading if stories are unevenly sized (a 13-point story finishing flips the % dramatically)
+
+### Review Trigger
+
+- If tagging discipline becomes burdensome → consider a custom field or ADO query-based approach
+- If % complete proves misleading → add story count alongside SP-based %
+- If Features span multiple months → define a convention for multi-month goals

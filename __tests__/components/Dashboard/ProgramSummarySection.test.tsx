@@ -1,10 +1,25 @@
 /**
  * Tests for ProgramSummarySection component.
- * Verifies populated state, null values, RAG indicators, sprint metadata, and empty states.
+ * Verifies populated state, null values, RAG indicators, sprint metadata,
+ * trend chart rendering, and empty states.
  */
 import { ProgramSummarySection } from '@/components/Dashboard/ProgramSummarySection';
 import type { DashboardViewModel, MetricTileViewModel } from '@/lib/dashboard/types';
 import { render, screen } from '@/test-utils';
+
+jest.mock('@mantine/charts', () => ({
+  LineChart: (props: Record<string, unknown>) => (
+    <div
+      data-testid="line-chart"
+      data-series={JSON.stringify(props.series)}
+      data-points={JSON.stringify(props.data)}
+      data-with-legend={String(!!props.withLegend)}
+    />
+  ),
+  BarChart: (props: Record<string, unknown>) => (
+    <div data-testid="bar-chart" data-series={JSON.stringify(props.series)} data-type={props.type as string} />
+  ),
+}));
 
 describe('ProgramSummarySection', () => {
   const populatedViewModel: DashboardViewModel = {
@@ -14,34 +29,34 @@ describe('ProgramSummarySection', () => {
     computedAtLabel: '2/11/2026, 6:30:00 PM',
     programMetrics: [
       {
-        label: 'Velocity',
-        value: '128 pts',
-        rawValue: 128,
+        label: 'Avg Total Velocity',
+        value: '120.5 pts',
+        rawValue: 120.5,
         unit: 'pts',
         rag: 'Green',
-        avgLabel: '120.5 pts',
+        avgLabel: null,
       },
       {
-        label: 'Overhead %',
-        value: '31.2%',
-        rawValue: 31.2,
+        label: 'Avg Total Velocity Rate',
+        value: '0.85 pts/hr',
+        rawValue: 0.85,
+        unit: 'pts/hr',
+        rag: null,
+        avgLabel: null,
+      },
+      {
+        label: 'Avg Total Overhead %',
+        value: '29%',
+        rawValue: 29,
         unit: '%',
         rag: 'Amber',
         avgLabel: null,
       },
       {
-        label: 'Predictability',
-        value: '87%',
-        rawValue: 87,
+        label: 'Avg Total Carry-Over %',
+        value: '13.50%',
+        rawValue: 13.5,
         unit: '%',
-        rag: 'Red',
-        avgLabel: '82%',
-      },
-      {
-        label: 'Carry-over Rate',
-        value: '0.15',
-        rawValue: 0.15,
-        unit: '',
         rag: 'Green',
         avgLabel: null,
       },
@@ -54,6 +69,10 @@ describe('ProgramSummarySection', () => {
         velocityRate: '1.40 pts/hr',
         activeBugs: '10',
         bugsClosed: '14',
+        rawVelocity: 120,
+        rawVelocityRate: 1.4,
+        rawActiveBugs: 10,
+        rawBugsClosed: 14,
       },
       {
         sprintId: 's2',
@@ -62,53 +81,149 @@ describe('ProgramSummarySection', () => {
         velocityRate: '1.55 pts/hr',
         activeBugs: '8',
         bugsClosed: '15',
+        rawVelocity: 126,
+        rawVelocityRate: 1.55,
+        rawActiveBugs: 8,
+        rawBugsClosed: 15,
       },
     ],
     sprint5Prediction: {
       velocity: '132 pts',
+      rawVelocity: 132,
+      sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
     workstreamCards: [],
   };
 
-  it('renders all 4 metrics with values and RAG indicators when populated', () => {
+  it('renders 4 avg metrics with values, RAG indicators', () => {
     render(<ProgramSummarySection viewModel={populatedViewModel} />);
 
     expect(screen.getByText('Program Summary')).toBeInTheDocument();
     expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
     expect(screen.getByText(/2\/11\/2026/)).toBeInTheDocument();
 
-    expect(screen.getByText('Velocity')).toBeInTheDocument();
-    expect(screen.getByText('128 pts')).toBeInTheDocument();
-    expect(screen.getByText(/Avg: 120\.5 pts/)).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Velocity')).toBeInTheDocument();
+    expect(screen.getByText('120.5 pts')).toBeInTheDocument();
 
-    expect(screen.getByText('Overhead %')).toBeInTheDocument();
-    expect(screen.getByText('31.2%')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Velocity Rate')).toBeInTheDocument();
+    expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
 
-    expect(screen.getByText('Predictability')).toBeInTheDocument();
-    expect(screen.getByText('87%')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Overhead %')).toBeInTheDocument();
+    expect(screen.getByText('29%')).toBeInTheDocument();
 
-    expect(screen.getByText('Carry-over Rate')).toBeInTheDocument();
-    expect(screen.getByText('0.15')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Carry-Over %')).toBeInTheDocument();
+    expect(screen.getByText('13.50%')).toBeInTheDocument();
 
-    // RAG badges present (short labels G, A, R)
+    expect(screen.queryByText('Predictability')).not.toBeInTheDocument();
+    expect(screen.queryByText('Monthly Milestone %')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quarterly Milestone Progress')).not.toBeInTheDocument();
+
     expect(screen.getAllByText('G').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getByText('R')).toBeInTheDocument();
   });
 
-  it('renders Sprint 1-4 trend rows and Sprint 5 predicted velocity', () => {
+  it('renders velocity chart with predicted sprint and bug burndown', () => {
     render(<ProgramSummarySection viewModel={populatedViewModel} />);
 
-    expect(screen.getByText('Sprint 1-4 Trend')).toBeInTheDocument();
-    expect(screen.getByText('Sprint 1')).toBeInTheDocument();
-    expect(screen.getByText(/Velocity: 120 pts/)).toBeInTheDocument();
-    expect(screen.getByText(/Velocity rate: 1.40 pts\/hr/)).toBeInTheDocument();
-    expect(screen.getByText(/Active bugs: 10/)).toBeInTheDocument();
-    expect(screen.getByText(/Bugs closed: 14/)).toBeInTheDocument();
+    expect(screen.getByText('Sprint Trend')).toBeInTheDocument();
+    expect(screen.getByText('Velocity (Completed Points)')).toBeInTheDocument();
+    expect(screen.getByText('Bug Burndown')).toBeInTheDocument();
 
-    expect(screen.getByText('Sprint 5 Predicted Velocity')).toBeInTheDocument();
-    expect(screen.getByText('132 pts (Predicted)')).toBeInTheDocument();
+    const lineCharts = screen.getAllByTestId('line-chart');
+    expect(lineCharts).toHaveLength(1);
+
+    expect(lineCharts[0].getAttribute('data-with-legend')).toBe('false');
+
+    const velocitySeries = JSON.parse(lineCharts[0].getAttribute('data-series')!);
+    expect(velocitySeries).toEqual([
+      { name: 'Completed Points', color: 'blue.6' },
+      { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
+    ]);
+    const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
+    expect(velocityPoints).toHaveLength(3);
+
+    const barCharts = screen.getAllByTestId('bar-chart');
+    expect(barCharts).toHaveLength(1);
+    expect(barCharts[0].getAttribute('data-type')).toBe('stacked');
+
+    const bugSeries = JSON.parse(barCharts[0].getAttribute('data-series')!);
+    expect(bugSeries).toEqual([
+      { name: 'Closed', color: 'green.6' },
+      { name: 'Open', color: 'red.6' },
+    ]);
+
+    expect(screen.queryByText('Sprint 5 Predicted Velocity')).not.toBeInTheDocument();
+  });
+
+  it('keeps prediction as a distinct fifth category when sprint labels collide', () => {
+    const vmDuplicateSprintLabel: DashboardViewModel = {
+      ...populatedViewModel,
+      programTrendSprints: [
+        {
+          sprintId: 's1',
+          sprintName: 'Sprint 26.18',
+          velocity: '31 pts',
+          velocityRate: '1.10 pts/hr',
+          activeBugs: '9',
+          bugsClosed: '7',
+          rawVelocity: 31,
+          rawVelocityRate: 1.1,
+          rawActiveBugs: 9,
+          rawBugsClosed: 7,
+        },
+        {
+          sprintId: 's2',
+          sprintName: 'Sprint 26.19',
+          velocity: '61 pts',
+          velocityRate: '1.20 pts/hr',
+          activeBugs: '8',
+          bugsClosed: '6',
+          rawVelocity: 61,
+          rawVelocityRate: 1.2,
+          rawActiveBugs: 8,
+          rawBugsClosed: 6,
+        },
+        {
+          sprintId: 's3',
+          sprintName: 'Sprint 26.20',
+          velocity: '90 pts',
+          velocityRate: '1.30 pts/hr',
+          activeBugs: '7',
+          bugsClosed: '5',
+          rawVelocity: 90,
+          rawVelocityRate: 1.3,
+          rawActiveBugs: 7,
+          rawBugsClosed: 5,
+        },
+        {
+          sprintId: 's4',
+          sprintName: 'Sprint 26.21',
+          velocity: '54 pts',
+          velocityRate: '1.40 pts/hr',
+          activeBugs: '6',
+          bugsClosed: '4',
+          rawVelocity: 54,
+          rawVelocityRate: 1.4,
+          rawActiveBugs: 6,
+          rawBugsClosed: 4,
+        },
+      ],
+      sprint5Prediction: {
+        velocity: '58 pts',
+        rawVelocity: 58,
+        sprintLabel: 'Sprint 26.21',
+        isPredicted: true,
+      },
+    };
+
+    render(<ProgramSummarySection viewModel={vmDuplicateSprintLabel} />);
+
+    const lineChart = screen.getAllByTestId('line-chart')[0];
+    const velocityPoints = JSON.parse(lineChart.getAttribute('data-points')!);
+    expect(velocityPoints).toHaveLength(5);
+    expect(velocityPoints[4].sprint).toBe('Sprint 26.21 (Forecasted)');
+    expect(velocityPoints[4].Predicted).toBe(58);
   });
 
   it('renders N/A for metrics with null values with stable layout', () => {
@@ -116,7 +231,7 @@ describe('ProgramSummarySection', () => {
       ...populatedViewModel,
       programMetrics: [
         {
-          label: 'Velocity',
+          label: 'Avg Total Velocity',
           value: 'N/A',
           rawValue: null,
           unit: 'pts',
@@ -124,7 +239,7 @@ describe('ProgramSummarySection', () => {
           avgLabel: null,
         },
         {
-          label: 'Overhead %',
+          label: 'Avg Total Overhead %',
           value: 'N/A',
           rawValue: null,
           unit: '%',
@@ -136,9 +251,9 @@ describe('ProgramSummarySection', () => {
 
     render(<ProgramSummarySection viewModel={vmWithNulls} />);
 
-    expect(screen.getByText('Velocity')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Velocity')).toBeInTheDocument();
     expect(screen.getAllByText('N/A').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Overhead %')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Overhead %')).toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
   });
 
@@ -147,11 +262,9 @@ describe('ProgramSummarySection', () => {
 
     const gBadges = screen.getAllByText('G');
     const aBadges = screen.getAllByText('A');
-    const rBadges = screen.getAllByText('R');
 
     expect(gBadges.length).toBeGreaterThanOrEqual(1);
     expect(aBadges.length).toBe(1);
-    expect(rBadges.length).toBe(1);
   });
 
   it('renders sprint label and computedAt freshness', () => {
@@ -173,7 +286,7 @@ describe('ProgramSummarySection', () => {
     render(<ProgramSummarySection viewModel={vmNullMetadata} />);
 
     expect(screen.getByText('Program Summary')).toBeInTheDocument();
-    expect(screen.getByText('Velocity')).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Velocity')).toBeInTheDocument();
   });
 
   it('shows placeholder when programMetrics is null', () => {
@@ -194,11 +307,11 @@ describe('ProgramSummarySection', () => {
     expect(screen.getByText('No program metrics available')).toBeInTheDocument();
   });
 
-  it('displays avgLabel when provided', () => {
+  it('displays velocity rate as its own tile', () => {
     render(<ProgramSummarySection viewModel={populatedViewModel} />);
 
-    expect(screen.getByText(/Avg: 120\.5 pts/)).toBeInTheDocument();
-    expect(screen.getByText(/Avg: 82%/)).toBeInTheDocument();
+    expect(screen.getByText('Avg Total Velocity Rate')).toBeInTheDocument();
+    expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
   });
 
   it('returns null when viewModel.state is not success', () => {
@@ -229,12 +342,11 @@ describe('ProgramSummarySection', () => {
 
     render(<ProgramSummarySection viewModel={vmNoTrend} />);
 
-    expect(screen.queryByText('Sprint 1-4 Trend')).not.toBeInTheDocument();
-    expect(screen.queryByText('Sprint 5 Predicted Velocity')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sprint Trend')).not.toBeInTheDocument();
   });
 
-  it('renders N/A placeholders for partial trend data without layout breakage', () => {
-    const vmPartialTrend: DashboardViewModel = {
+  it('renders charts even with null raw values gracefully', () => {
+    const vmNullTrend: DashboardViewModel = {
       ...populatedViewModel,
       programTrendSprints: [
         {
@@ -244,16 +356,23 @@ describe('ProgramSummarySection', () => {
           velocityRate: 'N/A',
           activeBugs: 'N/A',
           bugsClosed: 'N/A',
+          rawVelocity: null,
+          rawVelocityRate: null,
+          rawActiveBugs: 0,
+          rawBugsClosed: 0,
         },
       ],
-      sprint5Prediction: { velocity: 'N/A', isPredicted: true },
+      sprint5Prediction: { velocity: 'N/A', rawVelocity: null, sprintLabel: 'Sprint 26.21', isPredicted: true },
     };
 
-    render(<ProgramSummarySection viewModel={vmPartialTrend} />);
+    render(<ProgramSummarySection viewModel={vmNullTrend} />);
 
-    expect(screen.getByText('Sprint 1-4 Trend')).toBeInTheDocument();
-    expect(screen.getByText(/Velocity: N\/A/)).toBeInTheDocument();
-    expect(screen.getByText('Sprint 5 Predicted Velocity')).toBeInTheDocument();
-    expect(screen.getByText('N/A (Predicted)')).toBeInTheDocument();
+    expect(screen.getByText('Sprint Trend')).toBeInTheDocument();
+    const lineCharts = screen.getAllByTestId('line-chart');
+    expect(lineCharts).toHaveLength(1);
+    const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
+    expect(velocityPoints).toHaveLength(2);
+    expect(velocityPoints[1].sprint).toBe('Sprint 26.21');
+    expect(screen.getAllByTestId('bar-chart')).toHaveLength(1);
   });
 });

@@ -39,7 +39,7 @@ describe('DashboardShell', () => {
     workstreamCards: [
       {
         workstreamId: 'ws-1',
-        workstreamName: 'Streams',
+        workstreamName: 'Action Tracker',
         metrics: [],
         detail: {
           plannedPoints: '40',
@@ -93,7 +93,7 @@ describe('DashboardShell', () => {
     render(<DashboardShell viewModel={successViewModel} onRetry={onRetry} />);
 
     expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
-    expect(screen.getByText('Streams')).toBeInTheDocument();
+    expect(screen.getByText('Action Tracker')).toBeInTheDocument();
     expect(screen.getByText(/Planned: 40/)).toBeInTheDocument();
     expect(screen.getByText(/Completed: 34/)).toBeInTheDocument();
   });
@@ -133,7 +133,7 @@ describe('DashboardShell', () => {
       workstreamCards: [
         {
           workstreamId: 'ws-1',
-          workstreamName: 'Streams',
+          workstreamName: 'Action Tracker',
           metrics: [
             {
               label: 'Velocity',
@@ -159,7 +159,7 @@ describe('DashboardShell', () => {
       render(<DashboardShell viewModel={vmWithNulls} onRetry={onRetry} />);
     }).not.toThrow();
 
-    expect(screen.getByText('Streams')).toBeInTheDocument();
+    expect(screen.getByText('Action Tracker')).toBeInTheDocument();
     expect(screen.getByText(/Planned: N\/A/)).toBeInTheDocument();
   });
 });

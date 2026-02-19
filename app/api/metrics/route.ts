@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { resolveDashboard } from '@/lib/dashboard/config';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
 import { buildTrendSeries } from '@/lib/metrics/trend-service';
 import type { MetricWithRag, ThresholdConfigInput, WorkstreamMetrics } from '@/lib/metrics/types';
@@ -130,6 +131,7 @@ export async function GET(request: Request) {
     const workstreamIdParam = searchParams.get('workstreamId');
     const includeRolling = searchParams.get('includeRolling') !== 'false';
     const includeProgram = searchParams.get('includeProgram') !== 'false';
+    const dashboardConfig = resolveDashboard(searchParams.get('dashboard'));
 
     let sprintId = sprintIdParam;
     const now = new Date();
@@ -170,9 +172,17 @@ export async function GET(request: Request) {
 
     const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
 
-    const where: { sprintId: string; workstreamId?: string } = { sprintId };
+    const allowedWorkstreams = await prisma.workstream.findMany({
+      where: { name: { in: dashboardConfig.workstreamNames } },
+      select: { id: true },
+    });
+    const allowedWsIds = allowedWorkstreams.map((w) => w.id);
+
+    const where: { sprintId: string; workstreamId?: string | { in: string[] } } = { sprintId };
     if (workstreamIdParam) {
       where.workstreamId = workstreamIdParam;
+    } else {
+      where.workstreamId = { in: allowedWsIds };
     }
 
     const snapshots = await prisma.metricSnapshot.findMany({
@@ -211,10 +221,14 @@ export async function GET(request: Request) {
     const currentRollingSprintId =
       rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null;
     const rollingSprintIds = rollingSprints.map((s) => s.id);
+    const wsFilter = workstreamIdParam
+      ? { workstreamId: workstreamIdParam }
+      : { workstreamId: { in: allowedWsIds } };
+
     const trendSnapshots = await prisma.metricSnapshot.findMany({
       where: {
         sprintId: { in: rollingSprintIds },
-        ...(workstreamIdParam ? { workstreamId: workstreamIdParam } : {}),
+        ...wsFilter,
       },
       select: {
         sprintId: true,
@@ -228,14 +242,21 @@ export async function GET(request: Request) {
       where: {
         type: 'Bug',
         sprintId: { in: rollingSprintIds },
-        ...(workstreamIdParam ? { workstreamId: workstreamIdParam } : {}),
+        ...wsFilter,
       },
       select: {
         sprintId: true,
         workstreamId: true,
         state: true,
+        adoChangedDate: true,
       },
     });
+    const trendBugInputs = trendBugs.map((bug) => ({
+      sprintId: bug.sprintId,
+      workstreamId: bug.workstreamId,
+      state: bug.state,
+      changedDate: bug.adoChangedDate,
+    }));
 
     const latestComputedAt = snapshots.reduce(
       (max, s) => (s.computedAt > max ? s.computedAt : max),
@@ -248,7 +269,7 @@ export async function GET(request: Request) {
         rollingSprintsDesc: rollingSprints,
         currentSprintId: currentRollingSprintId,
         snapshots: trendSnapshots,
-        bugItems: trendBugs,
+        bugItems: trendBugInputs,
         workstreamId: s.workstreamId,
       });
       formatted.trends = { sprints: trends.sprints };
@@ -307,7 +328,7 @@ export async function GET(request: Request) {
           rollingSprintsDesc: rollingSprints,
           currentSprintId: currentRollingSprintId,
           snapshots: trendSnapshots,
-          bugItems: trendBugs,
+          bugItems: trendBugInputs,
         });
         const toMetric = (m: MetricWithRag, inc: boolean) => {
           const o: {
@@ -332,6 +353,9 @@ export async function GET(request: Request) {
             overheadPercent: toMetric(prog.overheadPercent, includeRolling),
             predictability: toMetric(prog.predictability, includeRolling),
             carryOverRate: toMetric(prog.carryOverRate, includeRolling),
+            averageVelocityRate: programTrends.averageVelocityRate,
+            milestoneMonthly: { value: null, rag: null },
+            milestoneQuarterly: { value: null, rag: null },
           },
           trends: {
             sprints: programTrends.sprints,

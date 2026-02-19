@@ -44,6 +44,11 @@ export interface ApiWorkstream {
   };
 }
 
+export interface ApiMilestoneMetric {
+  value: number | null;
+  rag: RagStatus;
+}
+
 export interface ApiResponse {
   sprint: { id: string; name: string; startDate: string; endDate: string } | null;
   workstreams: ApiWorkstream[];
@@ -53,6 +58,9 @@ export interface ApiResponse {
       overheadPercent: ApiMetric;
       predictability: ApiMetric;
       carryOverRate: ApiMetric;
+      averageVelocityRate?: number | null;
+      milestoneMonthly?: ApiMilestoneMetric | null;
+      milestoneQuarterly?: ApiMilestoneMetric | null;
     };
     trends?: {
       sprints: ApiTrendSprint[];
@@ -95,14 +103,20 @@ export interface WorkstreamCardViewModel {
     carryOverItems: string;
     carryOverPoints: string;
   };
-  trendSprints: Array<{
-    sprintId: string;
-    sprintName: string;
-    velocity: string;
-    velocityRate: string;
-    activeBugs: string;
-    bugsClosed: string;
-  }>;
+  trendSprints: TrendSprintViewModel[];
+}
+
+export interface TrendSprintViewModel {
+  sprintId: string;
+  sprintName: string;
+  velocity: string;
+  velocityRate: string;
+  activeBugs: string;
+  bugsClosed: string;
+  rawVelocity: number | null;
+  rawVelocityRate: number | null;
+  rawActiveBugs: number;
+  rawBugsClosed: number;
 }
 
 export interface DashboardViewModel {
@@ -111,16 +125,11 @@ export interface DashboardViewModel {
   rollingWindowLabel: string | null;
   computedAtLabel: string | null;
   programMetrics: MetricTileViewModel[] | null;
-  programTrendSprints: Array<{
-    sprintId: string;
-    sprintName: string;
-    velocity: string;
-    velocityRate: string;
-    activeBugs: string;
-    bugsClosed: string;
-  }>;
+  programTrendSprints: TrendSprintViewModel[];
   sprint5Prediction: {
     velocity: string;
+    rawVelocity: number | null;
+    sprintLabel: string;
     isPredicted: boolean;
   } | null;
   workstreamCards: WorkstreamCardViewModel[];
