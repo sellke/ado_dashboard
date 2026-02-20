@@ -48,6 +48,7 @@ describe('DashboardShell', () => {
           carryOverPoints: '6',
         },
         trendSprints: [],
+        prediction: null,
       },
     ],
   };
@@ -151,6 +152,7 @@ describe('DashboardShell', () => {
             carryOverPoints: 'N/A',
           },
           trendSprints: [],
+          prediction: null,
         },
       ],
     };

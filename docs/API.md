@@ -179,6 +179,29 @@ Fetch computed metrics for a sprint.
         "carryOverPoints": 6,
         "overheadHours": 22.8,
         "grossHours": 80.0
+      },
+      "trends": {
+        "sprints": [
+          {
+            "sprintId": "clx...",
+            "sprintName": "Sprint 26.19",
+            "velocity": 32,
+            "velocityRate": 0.85,
+            "activeBugs": 2,
+            "bugsClosed": 1,
+            "mode": "actual",
+            "bugs": [
+              { "adoId": 12001, "title": "Login timeout on slow networks", "state": "Closed" },
+              { "adoId": 12045, "title": "Export button misaligned on mobile", "state": "Active" }
+            ]
+          }
+        ]
+      },
+      "prediction": {
+        "velocity": 14.2,
+        "velocityRate": 0.88,
+        "mode": "predicted",
+        "formula": "average velocity rate × current sprint net capacity hours"
       }
     }
   ],
@@ -193,6 +216,13 @@ Fetch computed metrics for a sprint.
   "computedAt": "2026-02-11T18:30:00Z"
 }
 ```
+
+**Per-workstream extended fields (Story 1 — API Data Contract Extension)**
+
+| Field | Location | Type | Description |
+|-------|----------|------|-------------|
+| `prediction` | Per workstream | `{ velocity, velocityRate, mode, formula }` | Predicted velocity for current sprint; `velocity`/`velocityRate` may be null when no completed sprints have valid rates |
+| `bugs` | Per trend sprint in `trends.sprints` | `Array<{ adoId, title, state }>` | Bug work items for the sprint, sorted by `adoId` ascending; empty array when no bugs |
 
 **Response (200 — no data)**
 

@@ -17,6 +17,7 @@ const createCard = (overrides: Partial<WorkstreamCardViewModel> = {}): Workstrea
     carryOverPoints: '6',
   },
   trendSprints: [],
+  prediction: null,
   ...overrides,
 });
 

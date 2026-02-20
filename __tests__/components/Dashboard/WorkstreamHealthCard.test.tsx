@@ -1,10 +1,25 @@
 /**
  * Tests for WorkstreamHealthCard component.
  * Verifies full-data, partial-data, and null-data workstream payloads.
+ * Integration tests for VelocityTrendChart and SprintBugList.
  */
+
+jest.mock('@mantine/charts', () => ({
+  LineChart: (props: Record<string, unknown>) => (
+    <div
+      data-testid="velocity-line-chart"
+      data-series={JSON.stringify(props.series)}
+      data-points={JSON.stringify(props.data)}
+      data-reference-lines={JSON.stringify(props.referenceLines)}
+      data-h={String(props.h)}
+    />
+  ),
+}));
+
 import { WorkstreamHealthCard } from '@/components/Dashboard/WorkstreamHealthCard';
 import type { MetricTileViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { render, screen } from '@/test-utils';
+import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
 
 const createMetricTile = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel => ({
   label: 'Velocity',
@@ -16,20 +31,15 @@ const createMetricTile = (overrides: Partial<MetricTileViewModel> = {}): MetricT
   ...overrides,
 });
 
-const fullDataCard: WorkstreamCardViewModel = {
+const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
   workstreamId: 'ws-1',
   workstreamName: 'Platform',
   metrics: [
     createMetricTile({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
+    createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
     createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
     createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
   ],
-  detail: {
-    plannedPoints: '50',
-    completedPoints: '45',
-    carryOverItems: '3',
-    carryOverPoints: '6',
-  },
   trendSprints: [
     {
       sprintId: 's1',
@@ -42,6 +52,7 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawVelocityRate: 0.17,
       rawActiveBugs: 2,
       rawBugsClosed: 4,
+      bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true }],
     },
     {
       sprintId: 's2',
@@ -54,9 +65,18 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawVelocityRate: 0.2,
       rawActiveBugs: 1,
       rawBugsClosed: 5,
+      bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false }],
     },
   ],
-};
+  prediction: {
+    velocity: '48 pts',
+    rawVelocity: 48,
+    velocityRate: '0.85 pts/hr',
+    rawVelocityRate: 0.85,
+    sprintLabel: 'Sprint 26.21',
+    isPredicted: true,
+  },
+});
 
 describe('WorkstreamHealthCard', () => {
   it('renders workstream name', () => {
@@ -64,11 +84,13 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText('Platform')).toBeInTheDocument();
   });
 
-  it('renders all 3 metrics with values and RAG badges when full data', () => {
+  it('renders all 4 metrics with values and RAG badges when full data', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 
     expect(screen.getByText('Velocity')).toBeInTheDocument();
     expect(screen.getByText('45 pts')).toBeInTheDocument();
+    expect(screen.getByText('Velocity Rate')).toBeInTheDocument();
+    expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
     expect(screen.getByText('Overhead %')).toBeInTheDocument();
     expect(screen.getByText('28%')).toBeInTheDocument();
     expect(screen.getByText('Carry-Over %')).toBeInTheDocument();
@@ -76,6 +98,7 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.queryByText('Predictability')).not.toBeInTheDocument();
 
+    // Velocity Rate has rag: null so no badge; 3 G badges from Velocity, Overhead %, Carry-Over %
     const gBadges = screen.getAllByText('G');
     expect(gBadges.length).toBe(3);
   });
@@ -85,6 +108,7 @@ describe('WorkstreamHealthCard', () => {
       ...fullDataCard,
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
+        createMetricTile({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
       ],
@@ -94,7 +118,7 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText('Velocity')).toBeInTheDocument();
     const naElements = screen.getAllByText('N/A');
-    expect(naElements.length).toBeGreaterThanOrEqual(3);
+    expect(naElements.length).toBeGreaterThanOrEqual(4);
   });
 
   it('renders detail block with planned/completed points and carry-over info', () => {
@@ -105,15 +129,30 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText(/Carry-over: 3 items, 6 pts/)).toBeInTheDocument();
   });
 
-  it('renders trend rows for Sprint 1-4 metrics', () => {
+  it('renders VelocityTrendChart when trend data is present', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 
-    expect(screen.getByText('Sprint Trend (1-4)')).toBeInTheDocument();
+    expect(screen.getByTestId('velocity-line-chart')).toBeInTheDocument();
+    expect(screen.queryByText('No trend data available')).not.toBeInTheDocument();
+  });
+
+  it('renders SprintBugList below chart when trend sprints have bug data', () => {
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    expect(screen.getByTestId('sprint-bug-list')).toBeInTheDocument();
     expect(screen.getByText('Sprint 1')).toBeInTheDocument();
-    expect(screen.getByText(/Velocity: 10 pts/)).toBeInTheDocument();
-    expect(screen.getByText(/Velocity rate: 0.17 pts\/hr/)).toBeInTheDocument();
-    expect(screen.getByText(/Active bugs: 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Bugs closed: 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Login crash/)).toBeInTheDocument();
+    expect(screen.getByText(/Slow query/)).toBeInTheDocument();
+  });
+
+  it('passes prediction data to VelocityTrendChart', () => {
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    const chart = screen.getByTestId('velocity-line-chart');
+    const points = JSON.parse(chart.getAttribute('data-points')!);
+    expect(points).toHaveLength(3); // 2 sprints + 1 prediction
+    expect(points[2].sprint).toContain('(Forecasted)');
+    expect(points[2].Predicted).toBe(48);
   });
 
   it('renders N/A for null detail values', () => {
@@ -139,6 +178,7 @@ describe('WorkstreamHealthCard', () => {
       ...fullDataCard,
       metrics: [
         createMetricTile({ label: 'Velocity', rag: 'Green' }),
+        createMetricTile({ label: 'Velocity Rate', rag: null }),
         createMetricTile({ label: 'Overhead %', rag: 'Amber' }),
         createMetricTile({ label: 'Carry-Over %', rag: 'Red' }),
       ],
@@ -165,7 +205,7 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
   });
 
-  it('does not render trend section when trendSprints is empty', () => {
+  it('shows chart empty state and hides bug list when trendSprints is empty', () => {
     const noTrendsCard: WorkstreamCardViewModel = {
       ...fullDataCard,
       trendSprints: [],
@@ -173,7 +213,103 @@ describe('WorkstreamHealthCard', () => {
 
     render(<WorkstreamHealthCard card={noTrendsCard} />);
 
-    expect(screen.queryByText('Sprint Trend (1-4)')).not.toBeInTheDocument();
+    expect(screen.getByText('No trend data available')).toBeInTheDocument();
+    expect(screen.queryByTestId('velocity-line-chart')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sprint-bug-list')).not.toBeInTheDocument();
+  });
+
+  it('shows "(Projected)" suffix on velocity and velocity rate tiles when mode is projected', () => {
+    const projectedCard: WorkstreamCardViewModel = createWorkstreamCard({
+      metrics: [
+        createMetricTile({ label: 'Velocity', value: '48 pts', mode: 'projected', rag: 'Green' }),
+        createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', mode: 'projected', rag: null }),
+        createMetricTile({ label: 'Overhead %', value: '28%', rag: 'Green' }),
+        createMetricTile({ label: 'Carry-Over %', value: '12%', rag: 'Green' }),
+      ],
+    });
+
+    render(<WorkstreamHealthCard card={projectedCard} />);
+
+    const projectedLabels = screen.getAllByText(/(Projected)/);
+    expect(projectedLabels.length).toBe(2);
+    expect(screen.getByText('48 pts (Projected)')).toBeInTheDocument();
+    expect(screen.getByText('0.85 pts/hr (Projected)')).toBeInTheDocument();
+  });
+
+  it('each card displays its own velocity chart and bug data when multiple cards render', () => {
+    const card1 = createWorkstreamCard({
+      workstreamId: 'ws-1',
+      workstreamName: 'Platform',
+      trendSprints: [
+        {
+          sprintId: 's1',
+          sprintName: 'Sprint 1',
+          velocity: '40 pts',
+          velocityRate: '0.67 pts/hr',
+          activeBugs: '2',
+          bugsClosed: '5',
+          rawVelocity: 40,
+          rawVelocityRate: 0.67,
+          rawActiveBugs: 2,
+          rawBugsClosed: 5,
+          bugs: [{ adoId: '1', title: 'Platform bug', isClosed: false }],
+        },
+      ],
+    });
+    const card2 = createWorkstreamCard({
+      workstreamId: 'ws-2',
+      workstreamName: 'Apps',
+      trendSprints: [
+        {
+          sprintId: 's2',
+          sprintName: 'Sprint 2',
+          velocity: '32 pts',
+          velocityRate: '0.50 pts/hr',
+          activeBugs: '1',
+          bugsClosed: '3',
+          rawVelocity: 32,
+          rawVelocityRate: 0.5,
+          rawActiveBugs: 1,
+          rawBugsClosed: 3,
+          bugs: [{ adoId: '2', title: 'Apps bug', isClosed: true }],
+        },
+      ],
+    });
+
+    render(
+      <>
+        <WorkstreamHealthCard card={card1} />
+        <WorkstreamHealthCard card={card2} />
+      </>
+    );
+
+    const charts = screen.getAllByTestId('velocity-line-chart');
+    expect(charts).toHaveLength(2);
+
+    const bugLists = screen.getAllByTestId('sprint-bug-list');
+    expect(bugLists).toHaveLength(2);
+
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('Apps')).toBeInTheDocument();
+    expect(screen.getByText(/Platform bug/)).toBeInTheDocument();
+    expect(screen.getByText(/Apps bug/)).toBeInTheDocument();
+  });
+
+  it('chart and bug list stack vertically in card layout', () => {
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    const chart = screen.getByTestId('velocity-line-chart');
+    const bugList = screen.getByTestId('sprint-bug-list');
+
+    expect(chart).toBeInTheDocument();
+    expect(bugList).toBeInTheDocument();
+
+    // Chart should appear before bug list in DOM order (vertical stack)
+    const ordered = document.querySelectorAll(
+      '[data-testid="velocity-line-chart"], [data-testid="sprint-bug-list"]'
+    );
+    expect(ordered[0]).toHaveAttribute('data-testid', 'velocity-line-chart');
+    expect(ordered[1]).toHaveAttribute('data-testid', 'sprint-bug-list');
   });
 
   it('RAG display does not break when metric values are null', () => {
@@ -181,6 +317,7 @@ describe('WorkstreamHealthCard', () => {
       ...fullDataCard,
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: 'Amber' }),
+        createMetricTile({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: 'Red' }),
       ],

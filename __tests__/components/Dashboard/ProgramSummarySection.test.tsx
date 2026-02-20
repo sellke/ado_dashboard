@@ -73,6 +73,7 @@ describe('ProgramSummarySection', () => {
         rawVelocityRate: 1.4,
         rawActiveBugs: 10,
         rawBugsClosed: 14,
+        bugs: [],
       },
       {
         sprintId: 's2',
@@ -85,6 +86,7 @@ describe('ProgramSummarySection', () => {
         rawVelocityRate: 1.55,
         rawActiveBugs: 8,
         rawBugsClosed: 15,
+        bugs: [],
       },
     ],
     sprint5Prediction: {
@@ -171,6 +173,7 @@ describe('ProgramSummarySection', () => {
           rawVelocityRate: 1.1,
           rawActiveBugs: 9,
           rawBugsClosed: 7,
+          bugs: [],
         },
         {
           sprintId: 's2',
@@ -183,6 +186,7 @@ describe('ProgramSummarySection', () => {
           rawVelocityRate: 1.2,
           rawActiveBugs: 8,
           rawBugsClosed: 6,
+          bugs: [],
         },
         {
           sprintId: 's3',
@@ -195,6 +199,7 @@ describe('ProgramSummarySection', () => {
           rawVelocityRate: 1.3,
           rawActiveBugs: 7,
           rawBugsClosed: 5,
+          bugs: [],
         },
         {
           sprintId: 's4',
@@ -207,6 +212,7 @@ describe('ProgramSummarySection', () => {
           rawVelocityRate: 1.4,
           rawActiveBugs: 6,
           rawBugsClosed: 4,
+          bugs: [],
         },
       ],
       sprint5Prediction: {
@@ -360,6 +366,7 @@ describe('ProgramSummarySection', () => {
           rawVelocityRate: null,
           rawActiveBugs: 0,
           rawBugsClosed: 0,
+          bugs: [],
         },
       ],
       sprint5Prediction: { velocity: 'N/A', rawVelocity: null, sprintLabel: 'Sprint 26.21', isPredicted: true },

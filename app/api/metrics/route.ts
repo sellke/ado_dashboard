@@ -119,8 +119,15 @@ function formatWorkstreamResponse(
         activeBugs: number;
         bugsClosed: number;
         mode: 'actual';
+        bugs: Array<{ adoId: number; title: string; state: string }>;
       }>,
     },
+    prediction: null as {
+      velocity: number | null;
+      velocityRate: number | null;
+      mode: 'predicted';
+      formula: string;
+    } | null,
   };
 }
 
@@ -249,7 +256,10 @@ export async function GET(request: Request) {
         workstreamId: true,
         state: true,
         adoChangedDate: true,
+        adoId: true,
+        title: true,
       },
+      orderBy: { adoId: 'asc' },
     });
     const trendBugInputs = trendBugs.map((bug) => ({
       sprintId: bug.sprintId,
@@ -272,7 +282,21 @@ export async function GET(request: Request) {
         bugItems: trendBugInputs,
         workstreamId: s.workstreamId,
       });
-      formatted.trends = { sprints: trends.sprints };
+      formatted.trends = {
+        sprints: trends.sprints.map((sprint) => ({
+          ...sprint,
+          bugs: trendBugs
+            .filter((b) => b.sprintId === sprint.sprintId && b.workstreamId === s.workstreamId)
+            .sort((a, b) => a.adoId - b.adoId)
+            .map((b) => ({ adoId: b.adoId, title: b.title, state: b.state })),
+        })),
+      };
+      formatted.prediction = {
+        velocity: trends.prediction.velocity,
+        velocityRate: trends.averageVelocityRate,
+        mode: 'predicted' as const,
+        formula: trends.prediction.formula,
+      };
       return formatted;
     });
 

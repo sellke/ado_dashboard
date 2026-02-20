@@ -3,6 +3,8 @@
 import { Card, Group, Stack, Text } from '@mantine/core';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { RagBadge } from './RagBadge';
+import { VelocityTrendChart } from './VelocityTrendChart';
+import { SprintBugList } from './SprintBugList';
 
 export interface WorkstreamHealthCardProps {
   /** Workstream card view model with metrics and detail */
@@ -10,11 +12,12 @@ export interface WorkstreamHealthCardProps {
 }
 
 /**
- * Renders a compact workstream health card with 3 core metrics, RAG status, and detail block.
+ * Renders a compact workstream health card with 4 core metrics (Velocity, Velocity Rate,
+ * Overhead %, Carry-Over %), RAG status, detail block, velocity trend chart, and bug list.
  * Export-friendly for slide generation; handles null values gracefully.
  */
 export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
-  const { workstreamName, metrics, detail, trendSprints = [] } = card;
+  const { workstreamName, metrics, detail, trendSprints = [], prediction } = card;
 
   return (
     <Card withBorder padding="md" shadow="sm">
@@ -52,31 +55,15 @@ export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
           </Text>
         </Stack>
 
-        {trendSprints.length > 0 && (
-          <Stack
-            gap="xs"
-            mt="xs"
-            pt="xs"
-            style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
-          >
-            <Text size="xs" fw={600}>
-              Sprint Trend (1-4)
-            </Text>
-            {trendSprints.map((trend) => (
-              <Stack key={trend.sprintId} gap={2}>
-                <Text size="xs" fw={500}>
-                  {trend.sprintName}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Velocity: {trend.velocity} • Velocity rate: {trend.velocityRate}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  Active bugs: {trend.activeBugs} • Bugs closed: {trend.bugsClosed}
-                </Text>
-              </Stack>
-            ))}
-          </Stack>
-        )}
+        <Stack
+          gap="xs"
+          mt="xs"
+          pt="xs"
+          style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+        >
+          <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
+          {trendSprints.length > 0 && <SprintBugList trendSprints={trendSprints} />}
+        </Stack>
       </Stack>
     </Card>
   );

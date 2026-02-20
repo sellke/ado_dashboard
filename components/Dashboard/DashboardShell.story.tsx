@@ -103,6 +103,7 @@ export const SuccessTrendRich = () => {
         rawVelocityRate: 1.25,
         rawActiveBugs: 13,
         rawBugsClosed: 17,
+        bugs: [],
       },
       {
         sprintId: 's2',
@@ -115,6 +116,7 @@ export const SuccessTrendRich = () => {
         rawVelocityRate: 1.3,
         rawActiveBugs: 10,
         rawBugsClosed: 18,
+        bugs: [],
       },
       {
         sprintId: 's3',
@@ -127,6 +129,7 @@ export const SuccessTrendRich = () => {
         rawVelocityRate: 1.36,
         rawActiveBugs: 9,
         rawBugsClosed: 19,
+        bugs: [],
       },
       {
         sprintId: 's4',
@@ -139,6 +142,7 @@ export const SuccessTrendRich = () => {
         rawVelocityRate: 1.41,
         rawActiveBugs: 8,
         rawBugsClosed: 20,
+        bugs: [],
       },
     ],
     sprint5Prediction: {
@@ -169,6 +173,7 @@ export const SuccessTrendPartialData = () => {
         rawVelocityRate: null,
         rawActiveBugs: 0,
         rawBugsClosed: 0,
+        bugs: [],
       },
       {
         sprintId: 's2',
@@ -181,6 +186,7 @@ export const SuccessTrendPartialData = () => {
         rawVelocityRate: 1.3,
         rawActiveBugs: 10,
         rawBugsClosed: 18,
+        bugs: [],
       },
     ],
     sprint5Prediction: {
@@ -205,6 +211,7 @@ export const SuccessTrendPartialData = () => {
             rawVelocityRate: null,
             rawActiveBugs: 0,
             rawBugsClosed: 0,
+            bugs: [],
           },
           {
             sprintId: 's2',
@@ -217,6 +224,7 @@ export const SuccessTrendPartialData = () => {
             rawVelocityRate: 0.7,
             rawActiveBugs: 3,
             rawBugsClosed: 4,
+            bugs: [],
           },
         ],
       }),

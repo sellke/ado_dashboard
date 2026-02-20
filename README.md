@@ -4,9 +4,11 @@ Automated health reporting tool for the Unified LiveLink program. Built with [Ne
 
 ## Features
 
-- **Workstream & Sprint Management** — Track 4 workstreams with ADO area paths, sprint definitions, and capacity data
+- **Workstream & Sprint Management** — Track workstreams with ADO area paths, sprint definitions, and capacity data
 - **Azure DevOps Integration** — Store raw ADO work items (Epics, Features, User Stories, Tasks, Bugs, Spikes, Support); **Iteration sync** fetches team iterations, selects rolling 5-sprint window, and upserts Sprint records by ADO iteration path
 - **Metric Engine** — Compute velocity, overhead, predictability, and carry-over after sync; persist per-workstream snapshots and expose `GET /api/metrics` + `POST /api/metrics/compute`
+- **Velocity Dashboard** — Program-level and per-workstream health cards with 4 metric tiles (Velocity, Velocity Rate, Overhead %, Carry-Over %), velocity trend line chart, per-sprint bug listings, and rolling average reference line
+- **Per-Workstream Velocity Prediction** — Forecasted sprint velocity (avg velocity rate × current sprint capacity) shown as a dashed extension on the trend chart
 - **ADP Milestone Tracking** — Monitor Annual Development Plan commitments linked to ADO Features with status progression and target months
 - **Configurable RAG Thresholds** — Auto-calculated health status (Green/Amber/Red) from configurable per-metric thresholds
 - **Sync Audit Trail** — Full audit logging for all ADO data synchronization operations
@@ -14,10 +16,15 @@ Automated health reporting tool for the Unified LiveLink program. Built with [Ne
 
 ## Current Story Progress
 
-- **Metric Engine Spec:** 24/24 tasks complete (100%)
-- **Story 1:** Completed (7/7)
-- **Story 2:** Completed (8/8)
-- **Story 3:** Completed (9/9) — 83 tests passing
+**Phase 1C — Workstream Velocity Section: 35/35 tasks complete (100%)**
+
+| Story | Title | Status |
+|-------|-------|--------|
+| 1 | API Data Contract Extension | Completed ✅ |
+| 2 | Dashboard Types and Adapter | Completed ✅ |
+| 3 | Velocity Trend Chart Component | Completed ✅ |
+| 4 | Sprint Bug List Component | Completed ✅ |
+| 5 | Card Integration and Testing | Completed ✅ |
 
 ### Tech Stack
 
@@ -270,14 +277,24 @@ docker exec -it next-app-postgres psql -U postgres -d nextapp
 │   ├── layout.tsx          # Root layout
 │   └── page.tsx            # Home page
 ├── components/             # Reusable components
+│   └── Dashboard/          # Dashboard UI components
+│       ├── DashboardShell.tsx         # Top-level dashboard container
+│       ├── WorkstreamHealthCard.tsx   # Per-workstream card (4 metrics + chart + bugs)
+│       ├── VelocityTrendChart.tsx     # Mantine LineChart with prediction extension
+│       └── SprintBugList.tsx          # Per-sprint bug listing with strikethrough
 ├── lib/                    # Utility libraries
-│   └── prisma.ts           # Prisma client instance
+│   ├── prisma.ts           # Prisma client instance
+│   └── dashboard/          # Dashboard data layer
+│       ├── types.ts        # API response + view model types
+│       └── adapter.ts      # Maps API response to view models
 ├── prisma/                 # Database schema and migrations
-│   ├── schema.prisma       # Database schema (9 models, 7 enums)
+│   ├── schema.prisma       # Database schema (10 models, 7 enums)
 │   ├── migrations/         # Database migrations
 │   └── seed.ts             # Seed script (workstreams, thresholds, sprints)
 ├── __tests__/              # Test suites
-│   └── prisma/             # Prisma model tests (15 test files)
+│   ├── components/         # React component tests (102 tests)
+│   ├── lib/                # Library unit tests
+│   └── prisma/             # Prisma model tests
 ├── docker/                 # Docker configuration
 ├── docs/                   # Documentation
 │   ├── API.md              # Sync + metrics API contracts and schemas

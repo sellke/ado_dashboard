@@ -22,6 +22,7 @@ const fullDataCard: WorkstreamCardViewModel = {
   workstreamName: 'Platform',
   metrics: [
     createMetric({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
+    createMetric({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
     createMetric({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
     createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
   ],
@@ -43,6 +44,10 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawVelocityRate: 0.67,
       rawActiveBugs: 2,
       rawBugsClosed: 5,
+      bugs: [
+        { adoId: '12345', title: 'Login crash', isClosed: true },
+        { adoId: '67890', title: 'Slow query', isClosed: false },
+      ],
     },
     {
       sprintId: 's2',
@@ -55,8 +60,17 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawVelocityRate: 0.7,
       rawActiveBugs: 3,
       rawBugsClosed: 4,
+      bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
     },
   ],
+  prediction: {
+    velocity: '48 pts',
+    rawVelocity: 48,
+    velocityRate: '0.85 pts/hr',
+    rawVelocityRate: 0.85,
+    sprintLabel: 'Sprint 26.21',
+    isPredicted: true,
+  },
 };
 
 export const SingleWorkstream = () => <WorkstreamHealthCard card={fullDataCard} />;
@@ -109,6 +123,7 @@ export const MixedRag = () => {
       workstreamName: 'Platform',
       metrics: [
         createMetric({ label: 'Velocity', value: '45 pts', rag: 'Green' }),
+        createMetric({ label: 'Velocity Rate', value: '0.85 pts/hr', rag: null }),
         createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
         createMetric({ label: 'Carry-Over %', value: '18%', rag: 'Red' }),
       ],
@@ -119,6 +134,7 @@ export const MixedRag = () => {
       workstreamName: 'Apps',
       metrics: [
         createMetric({ label: 'Velocity', value: '32 pts', rag: 'Amber' }),
+        createMetric({ label: 'Velocity Rate', value: '0.50 pts/hr', rag: null }),
         createMetric({ label: 'Overhead %', value: '42%', rag: 'Red' }),
         createMetric({ label: 'Carry-Over %', value: '5%', rag: 'Green' }),
       ],
@@ -134,6 +150,7 @@ export const NullData = () => {
     workstreamName: 'Platform (No Data)',
     metrics: [
       createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
+      createMetric({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
       createMetric({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
       createMetric({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
     ],
@@ -154,6 +171,7 @@ export const PartialData = () => {
     workstreamName: 'Platform (Partial)',
     metrics: [
       createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
+      createMetric({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
       createMetric({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
       createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Amber' }),
     ],
@@ -176,6 +194,7 @@ export const GridWithAllVariants = () => {
       workstreamName: 'Apps',
       metrics: [
         createMetric({ label: 'Velocity', value: '32 pts', rag: 'Amber' }),
+        createMetric({ label: 'Velocity Rate', value: '0.50 pts/hr', rag: null }),
         createMetric({ label: 'Overhead %', value: '42%', rag: 'Red' }),
         createMetric({ label: 'Carry-Over %', value: '5%', rag: 'Green' }),
       ],
@@ -186,6 +205,7 @@ export const GridWithAllVariants = () => {
       workstreamName: 'Infrastructure',
       metrics: [
         createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
+        createMetric({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
         createMetric({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
         createMetric({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
       ],

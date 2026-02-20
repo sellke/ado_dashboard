@@ -20,6 +20,7 @@ export interface ApiTrendSprint {
   activeBugs: number;
   bugsClosed: number;
   mode: 'actual';
+  bugs?: Array<{ adoId: number; title: string; state: string }>;
 }
 
 export interface ApiWorkstream {
@@ -41,6 +42,12 @@ export interface ApiWorkstream {
   };
   trends?: {
     sprints: ApiTrendSprint[];
+  };
+  prediction?: {
+    velocity: number | null;
+    velocityRate: number | null;
+    mode: 'predicted';
+    formula: string;
   };
 }
 
@@ -104,6 +111,20 @@ export interface WorkstreamCardViewModel {
     carryOverPoints: string;
   };
   trendSprints: TrendSprintViewModel[];
+  prediction: {
+    velocity: string;
+    rawVelocity: number | null;
+    velocityRate: string;
+    rawVelocityRate: number | null;
+    sprintLabel: string;
+    isPredicted: boolean;
+  } | null;
+}
+
+export interface TrendBugViewModel {
+  adoId: string;
+  title: string;
+  isClosed: boolean;
 }
 
 export interface TrendSprintViewModel {
@@ -117,6 +138,7 @@ export interface TrendSprintViewModel {
   rawVelocityRate: number | null;
   rawActiveBugs: number;
   rawBugsClosed: number;
+  bugs: TrendBugViewModel[];
 }
 
 export interface DashboardViewModel {

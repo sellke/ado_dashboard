@@ -44,6 +44,13 @@ export function createWorkstreamCard(
         rag: 'Green',
       }),
       createMetricTile({
+        label: 'Velocity Rate',
+        value: '0.85 pts/hr',
+        rawValue: 0.85,
+        unit: 'pts/hr',
+        rag: null,
+      }),
+      createMetricTile({
         label: 'Overhead %',
         value: '28%',
         rawValue: 28,
@@ -76,6 +83,10 @@ export function createWorkstreamCard(
         rawVelocityRate: 0.67,
         rawActiveBugs: 2,
         rawBugsClosed: 5,
+        bugs: [
+          { adoId: '12345', title: 'Login crash', isClosed: true },
+          { adoId: '67890', title: 'Slow query', isClosed: false },
+        ],
       },
       {
         sprintId: 's2',
@@ -88,8 +99,17 @@ export function createWorkstreamCard(
         rawVelocityRate: 0.7,
         rawActiveBugs: 3,
         rawBugsClosed: 4,
+        bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
       },
     ],
+    prediction: {
+      velocity: '48 pts',
+      rawVelocity: 48,
+      velocityRate: '0.85 pts/hr',
+      rawVelocityRate: 0.85,
+      sprintLabel: 'Sprint 26.21',
+      isPredicted: true,
+    },
     ...overrides,
   };
 }
@@ -156,6 +176,7 @@ export function createDashboardViewModel(
           rawVelocityRate: 1.2,
           rawActiveBugs: 11,
           rawBugsClosed: 16,
+          bugs: [],
         },
         {
           sprintId: 's2',
@@ -168,6 +189,7 @@ export function createDashboardViewModel(
           rawVelocityRate: 1.25,
           rawActiveBugs: 9,
           rawBugsClosed: 18,
+          bugs: [],
         },
       ],
       sprint5Prediction: { velocity: '124 pts', rawVelocity: 124, sprintLabel: 'Sprint 26.21', isPredicted: true },

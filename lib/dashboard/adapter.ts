@@ -4,6 +4,7 @@
  * No metric math - only formatting and mapping.
  */
 
+import { DONE_STATES } from '../metrics/types';
 import type {
   ApiMetric,
   ApiMilestoneMetric,
@@ -12,6 +13,7 @@ import type {
   DashboardViewModel,
   MetricTileViewModel,
   RagStatus,
+  TrendBugViewModel,
   TrendSprintViewModel,
   WorkstreamCardViewModel,
 } from './types';
@@ -83,6 +85,14 @@ function formatVelocityRate(value: number | null | undefined): string {
   return `${value.toFixed(2)} pts/hr`;
 }
 
+function mapBugToViewModel(bug: { adoId: number; title: string; state: string }): TrendBugViewModel {
+  return {
+    adoId: String(bug.adoId),
+    title: bug.title,
+    isClosed: (DONE_STATES as readonly string[]).includes(bug.state),
+  };
+}
+
 function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
   return {
     sprintId: sprint.sprintId,
@@ -95,6 +105,7 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     rawVelocityRate: sprint.velocityRate,
     rawActiveBugs: sprint.activeBugs,
     rawBugsClosed: sprint.bugsClosed,
+    bugs: (sprint.bugs ?? []).map(mapBugToViewModel),
   };
 }
 
@@ -220,11 +231,25 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
     ];
   }
 
+  const currentSprintName = response.sprint?.name ?? 'Current Sprint';
+
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
     const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent }) =>
       mapApiMetricToTile(ws.metrics[key], label, unit, isPercent)
     );
+
+    const velocityRateValue = ws.prediction?.velocityRate ?? null;
+    metrics.splice(1, 0, {
+      label: 'Velocity Rate',
+      value: formatVelocityRate(velocityRateValue),
+      rawValue: velocityRateValue,
+      unit: 'pts/hr',
+      rag: null,
+      avgLabel: null,
+    });
+
     const d = ws.detail ?? {};
+    const wsPrediction = ws.prediction;
     return {
       workstreamId: ws.workstreamId,
       workstreamName: ws.workstreamName ?? 'Unknown',
@@ -236,12 +261,21 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
         carryOverPoints: formatDetailValue(d.carryOverPoints),
       },
       trendSprints: (ws.trends?.sprints ?? []).map(mapTrendSprint),
+      prediction: wsPrediction
+        ? {
+            velocity: formatMetricValue(wsPrediction.velocity, 'pts'),
+            rawVelocity: wsPrediction.velocity,
+            velocityRate: formatVelocityRate(wsPrediction.velocityRate),
+            rawVelocityRate: wsPrediction.velocityRate,
+            sprintLabel: currentSprintName,
+            isPredicted: true,
+          }
+        : null,
     };
   });
 
   const programTrendSprints = (response.program?.trends?.sprints ?? []).map(mapTrendSprint);
   const sprint5PredictionValue = response.program?.prediction?.sprint5?.velocity ?? null;
-  const currentSprintName = response.sprint?.name ?? 'Current Sprint';
   const sprint5Prediction =
     response.program?.prediction?.sprint5 !== undefined
       ? {
