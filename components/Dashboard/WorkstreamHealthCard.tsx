@@ -2,9 +2,10 @@
 
 import { Card, Group, Stack, Text } from '@mantine/core';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
-import { VelocityTrendChart } from './VelocityTrendChart';
 import { SprintBugList } from './SprintBugList';
+import { VelocityTrendChart } from './VelocityTrendChart';
 
 export interface WorkstreamHealthCardProps {
   /** Workstream card view model with metrics and detail */
@@ -17,7 +18,21 @@ export interface WorkstreamHealthCardProps {
  * Export-friendly for slide generation; handles null values gracefully.
  */
 export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
-  const { workstreamName, metrics, detail, trendSprints = [], prediction } = card;
+  const {
+    workstreamName,
+    metrics,
+    detail,
+    trendSprints = [],
+    prediction,
+    overheadComposition = [],
+    currentSprintBugItems = [],
+    currentSprintSupportItems = [],
+  } = card;
+
+  const showOverheadPanel =
+    overheadComposition.length > 0 ||
+    currentSprintBugItems.length > 0 ||
+    currentSprintSupportItems.length > 0;
 
   return (
     <Card withBorder padding="md" shadow="sm">
@@ -64,6 +79,14 @@ export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
           <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
           {trendSprints.length > 0 && <SprintBugList trendSprints={trendSprints} />}
         </Stack>
+
+        {showOverheadPanel && (
+          <OverheadBreakdownPanel
+            composition={overheadComposition}
+            bugItems={currentSprintBugItems}
+            supportItems={currentSprintSupportItems}
+          />
+        )}
       </Stack>
     </Card>
   );
