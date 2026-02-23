@@ -3,13 +3,68 @@
  * API response shapes and UI view model types for the dashboard shell.
  */
 
+import type { ApiBurnupPoint } from '../milestones/types';
+
 export type RagStatus = 'Green' | 'Amber' | 'Red' | null;
+
+/** Re-export for adapter use */
+export type { ApiBurnupPoint, ApiProgramMilestoneRollup } from '../milestones/types';
+export type { ApiMilestoneWithProgress as ApiMilestoneProgress } from '../milestones/types';
+
+/** View model for a single milestone goal with formatted display values */
+export interface MilestoneGoalViewModel {
+  id: string;
+  title: string;
+  workstreamId: string;
+  targetMonth: string;
+  monthLabel: string;
+  isCurrentMonth: boolean;
+  adoFeatureId: string | null;
+  percentComplete: string;
+  completedPoints: number;
+  totalPoints: number;
+  burnupData: ApiBurnupPoint[];
+  status: string;
+}
+
+/** Group of milestones for a single month, ordered current → future → past */
+export interface MilestoneMonthGroup {
+  monthLabel: string;
+  isCurrentMonth: boolean;
+  milestones: MilestoneGoalViewModel[];
+  groupCompletionPercent: string;
+}
 
 export interface ApiMetric {
   value: number | null;
   avg?: number | null;
   rag: string | null;
   mode?: 'actual' | 'projected';
+}
+
+export interface ApiOverheadComposition {
+  ceremonyHours: number | null;
+  bugHours: number | null;
+  spikeHours: number | null;
+  supportHours: number | null;
+  totalOverheadHours: number | null;
+  overheadPercent: number | null;
+}
+
+export interface ApiOverheadItem {
+  adoId: number;
+  title: string;
+  state: string;
+  hours: number | null;
+}
+
+/** Overhead category type for breakdown chart (Meetings, Spikes, Bugs, Support). */
+export type OverheadCategory = 'Meetings' | 'Spikes' | 'Bugs' | 'Support';
+
+/** Per-category overhead hours for a single sprint. */
+export interface OverheadBreakdownItem {
+  category: OverheadCategory;
+  hours: number;
 }
 
 export interface ApiTrendSprint {
@@ -21,6 +76,9 @@ export interface ApiTrendSprint {
   bugsClosed: number;
   mode: 'actual';
   bugs?: Array<{ adoId: number; title: string; state: string }>;
+  overheadComposition?: ApiOverheadComposition;
+  /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
+  overheadBreakdown?: OverheadBreakdownItem[];
 }
 
 export interface ApiWorkstream {
@@ -48,6 +106,10 @@ export interface ApiWorkstream {
     velocityRate: number | null;
     mode: 'predicted';
     formula: string;
+  };
+  currentSprintOverheadItems?: {
+    bugs: ApiOverheadItem[];
+    support: ApiOverheadItem[];
   };
 }
 
@@ -100,6 +162,23 @@ export interface MetricTileViewModel {
   mode?: 'actual' | 'projected';
 }
 
+export interface OverheadCompositionViewModel {
+  sprintName: string;
+  ceremonyHours: number;
+  bugHours: number;
+  spikeHours: number;
+  supportHours: number;
+  overheadPercent: string;
+}
+
+export interface OverheadItemViewModel {
+  adoId: string;
+  title: string;
+  state: string;
+  hours: string;
+  isClosed: boolean;
+}
+
 export interface WorkstreamCardViewModel {
   workstreamId: string;
   workstreamName: string;
@@ -119,6 +198,10 @@ export interface WorkstreamCardViewModel {
     sprintLabel: string;
     isPredicted: boolean;
   } | null;
+  overheadComposition: OverheadCompositionViewModel[];
+  currentSprintBugItems: OverheadItemViewModel[];
+  currentSprintSupportItems: OverheadItemViewModel[];
+  milestoneGroups: MilestoneMonthGroup[];
 }
 
 export interface TrendBugViewModel {
@@ -139,6 +222,8 @@ export interface TrendSprintViewModel {
   rawActiveBugs: number;
   rawBugsClosed: number;
   bugs: TrendBugViewModel[];
+  /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
+  overheadBreakdown: OverheadBreakdownItem[];
 }
 
 export interface DashboardViewModel {

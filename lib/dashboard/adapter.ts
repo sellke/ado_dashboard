@@ -5,18 +5,172 @@
  */
 
 import { DONE_STATES } from '../metrics/types';
+import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '../milestones/types';
 import type {
   ApiMetric,
   ApiMilestoneMetric,
+  ApiOverheadItem,
   ApiResponse,
   ApiTrendSprint,
   DashboardViewModel,
   MetricTileViewModel,
+  MilestoneGoalViewModel,
+  MilestoneMonthGroup,
+  OverheadBreakdownItem,
+  OverheadCategory,
+  OverheadCompositionViewModel,
+  OverheadItemViewModel,
   RagStatus,
   TrendBugViewModel,
   TrendSprintViewModel,
   WorkstreamCardViewModel,
 } from './types';
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function formatMonthLabel(isoDate: string): string {
+  const d = new Date(isoDate);
+  return `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+function isCurrentMonthFn(isoDate: string, today: Date): boolean {
+  const d = new Date(isoDate);
+  return (
+    d.getUTCFullYear() === today.getUTCFullYear() &&
+    d.getUTCMonth() === today.getUTCMonth()
+  );
+}
+
+/** Map ApiMilestoneWithProgress to MilestoneGoalViewModel with formatted display values */
+export function mapMilestoneToGoalViewModel(
+  milestone: ApiMilestoneWithProgress,
+  today: Date = new Date()
+): MilestoneGoalViewModel {
+  return {
+    id: milestone.id,
+    title: milestone.title,
+    workstreamId: milestone.workstreamId,
+    targetMonth: milestone.targetMonth,
+    monthLabel: formatMonthLabel(milestone.targetMonth),
+    isCurrentMonth: isCurrentMonthFn(milestone.targetMonth, today),
+    adoFeatureId: milestone.adoFeatureId != null ? `#${milestone.adoFeatureId}` : null,
+    percentComplete:
+      milestone.percentComplete != null
+        ? `${Math.round(milestone.percentComplete)}%`
+        : 'N/A',
+    completedPoints: milestone.completedPoints,
+    totalPoints: milestone.totalPoints,
+    burnupData: milestone.burnupData,
+    status: milestone.status,
+  };
+}
+
+/** Group milestones by month: current first, future ascending, past descending */
+export function groupMilestonesByMonth(
+  milestones: MilestoneGoalViewModel[],
+  today: Date = new Date()
+): MilestoneMonthGroup[] {
+  const groupMap = new Map<string, MilestoneGoalViewModel[]>();
+  for (const m of milestones) {
+    const key = m.targetMonth;
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(m);
+  }
+
+  const groups: (MilestoneMonthGroup & { _date: Date })[] = [];
+  for (const [, msList] of groupMap) {
+    const key = msList[0].targetMonth;
+    const d = new Date(key);
+    const isCurrentMonth = msList[0].isCurrentMonth;
+    const totalPoints = msList.reduce((sum, m) => sum + m.totalPoints, 0);
+    const completedPoints = msList.reduce((sum, m) => sum + m.completedPoints, 0);
+    const groupCompletionPercent =
+      totalPoints > 0
+        ? `${Math.round((completedPoints / totalPoints) * 100)}%`
+        : 'N/A';
+
+    groups.push({
+      monthLabel: msList[0].monthLabel,
+      isCurrentMonth,
+      milestones: msList,
+      groupCompletionPercent,
+      _date: d,
+    });
+  }
+
+  const todayTime = new Date(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    1
+  ).getTime();
+
+  groups.sort((a, b) => {
+    const aTime = new Date(
+      a._date.getUTCFullYear(),
+      a._date.getUTCMonth(),
+      1
+    ).getTime();
+    const bTime = new Date(
+      b._date.getUTCFullYear(),
+      b._date.getUTCMonth(),
+      1
+    ).getTime();
+    const aIsCurrent = aTime === todayTime;
+    const bIsCurrent = bTime === todayTime;
+    if (aIsCurrent) return -1;
+    if (bIsCurrent) return 1;
+    const aIsFuture = aTime > todayTime;
+    const bIsFuture = bTime > todayTime;
+    if (aIsFuture && bIsFuture) return aTime - bTime;
+    if (!aIsFuture && !bIsFuture) return bTime - aTime;
+    return aIsFuture ? -1 : 1;
+  });
+
+  return groups.map(({ _date: _d, ...g }) => g);
+}
+
+export interface ProgramMilestoneRollupViewModel {
+  currentMonth: string;
+  currentMonthCompletionPercent: string;
+  currentMonthTotalSP: number;
+  currentMonthCompletedSP: number;
+  quarterlyTotal: number;
+  quarterlyComplete: number;
+  quarterlyInProgress: number;
+  quarterlyNotStarted: number;
+}
+
+/** Map ApiProgramMilestoneRollup to ProgramMilestoneRollupViewModel */
+export function mapProgramMilestoneRollup(
+  rollup: ApiProgramMilestoneRollup
+): ProgramMilestoneRollupViewModel {
+  return {
+    currentMonth: rollup.currentMonth,
+    currentMonthCompletionPercent:
+      rollup.currentMonthCompletionPercent != null
+        ? `${Math.round(rollup.currentMonthCompletionPercent)}%`
+        : 'N/A',
+    currentMonthTotalSP: rollup.currentMonthTotalSP,
+    currentMonthCompletedSP: rollup.currentMonthCompletedSP,
+    quarterlyTotal: rollup.quarterlyMilestones.total,
+    quarterlyComplete: rollup.quarterlyMilestones.complete,
+    quarterlyInProgress: rollup.quarterlyMilestones.inProgress,
+    quarterlyNotStarted: rollup.quarterlyMilestones.notStarted,
+  };
+}
 
 /** Format metric value with unit; null -> "N/A" */
 export function formatMetricValue(value: number | null, unit: string): string {
@@ -85,7 +239,47 @@ function formatVelocityRate(value: number | null | undefined): string {
   return `${value.toFixed(2)} pts/hr`;
 }
 
-function mapBugToViewModel(bug: { adoId: number; title: string; state: string }): TrendBugViewModel {
+/** Format hours value; null -> "N/A", number -> "X hrs" */
+export function formatHours(value: number | null): string {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  return `${value} hrs`;
+}
+
+/** Map an ApiOverheadItem to OverheadItemViewModel */
+export function mapOverheadItem(item: ApiOverheadItem): OverheadItemViewModel {
+  return {
+    adoId: `#${item.adoId}`,
+    title: item.title,
+    state: item.state,
+    hours: formatHours(item.hours),
+    isClosed: (DONE_STATES as readonly string[]).includes(item.state),
+  };
+}
+
+/** Map trend sprints with overheadComposition to OverheadCompositionViewModel[] */
+export function mapOverheadComposition(sprints: ApiTrendSprint[]): OverheadCompositionViewModel[] {
+  return sprints
+    .filter((s) => s.overheadComposition !== undefined)
+    .map((s) => {
+      const c = s.overheadComposition!;
+      return {
+        sprintName: s.sprintName,
+        ceremonyHours: c.ceremonyHours ?? 0,
+        bugHours: c.bugHours ?? 0,
+        spikeHours: c.spikeHours ?? 0,
+        supportHours: c.supportHours ?? 0,
+        overheadPercent: formatPercent(c.overheadPercent),
+      };
+    });
+}
+
+function mapBugToViewModel(bug: {
+  adoId: number;
+  title: string;
+  state: string;
+}): TrendBugViewModel {
   return {
     adoId: String(bug.adoId),
     title: bug.title,
@@ -93,7 +287,16 @@ function mapBugToViewModel(bug: { adoId: number; title: string; state: string })
   };
 }
 
+/** All 4 overhead categories in display order. */
+const OVERHEAD_CATEGORIES: OverheadCategory[] = ['Meetings', 'Spikes', 'Bugs', 'Support'];
+
 function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
+  const apiBreakdown = sprint.overheadBreakdown ?? [];
+  const overheadBreakdown: OverheadBreakdownItem[] = OVERHEAD_CATEGORIES.map((category) => {
+    const found = apiBreakdown.find((item) => item.category === category);
+    return { category, hours: found?.hours ?? 0 };
+  });
+
   return {
     sprintId: sprint.sprintId,
     sprintName: sprint.sprintName,
@@ -106,10 +309,12 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     rawActiveBugs: sprint.activeBugs,
     rawBugsClosed: sprint.bugsClosed,
     bugs: (sprint.bugs ?? []).map(mapBugToViewModel),
+    overheadBreakdown,
   };
 }
 
 /** Map a milestone API metric to MetricTileViewModel with empty-state handling */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function mapMilestoneTile(
   metric: ApiMilestoneMetric | null | undefined,
   label: string
@@ -134,6 +339,14 @@ function mapMilestoneTile(
   };
 }
 
+/** Format carry-over rate with 2 decimal places (e.g. "12.34%"); null → "N/A". */
+function formatCarryOverRate(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  return `${value.toFixed(2)}%`;
+}
+
 const METRIC_LABELS: Array<{
   key: keyof ApiResponse['workstreams'][0]['metrics'];
   label: string;
@@ -154,7 +367,11 @@ function formatDetailValue(value: number | null): string {
 }
 
 /** Map API response to full DashboardViewModel (success or empty) */
-export function mapApiResponseToDashboardViewModel(response: ApiResponse): DashboardViewModel {
+export function mapApiResponseToDashboardViewModel(
+  response: ApiResponse,
+  milestones: ApiMilestoneWithProgress[] = [],
+  today: Date = new Date()
+): DashboardViewModel {
   const isEmpty =
     response.sprint === null &&
     response.workstreams.length === 0 &&
@@ -190,9 +407,7 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
     const m = response.program.metrics;
     const avgVelocityRate = m.averageVelocityRate ?? null;
     const rawCarryOver = m.carryOverRate?.avg ?? null;
-    const roundedCarryOver = rawCarryOver !== null
-      ? Math.round(rawCarryOver * 100) / 100
-      : null;
+    const roundedCarryOver = rawCarryOver !== null ? Math.round(rawCarryOver * 100) / 100 : null;
     programMetrics = [
       {
         label: 'Avg Total Velocity',
@@ -204,9 +419,7 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
       },
       {
         label: 'Avg Total Velocity Rate',
-        value: avgVelocityRate !== null
-          ? `${avgVelocityRate.toFixed(2)} pts/hr`
-          : 'N/A',
+        value: avgVelocityRate !== null ? `${avgVelocityRate.toFixed(2)} pts/hr` : 'N/A',
         rawValue: avgVelocityRate,
         unit: 'pts/hr',
         rag: null,
@@ -248,8 +461,28 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
       avgLabel: null,
     });
 
+    // Apply 2-decimal-place formatting to carry-over % tile (more precise than default formatPercent).
+    const carryOverIdx = metrics.findIndex((m) => m.label === 'Carry-Over %');
+    if (carryOverIdx >= 0) {
+      const rawVal = metrics[carryOverIdx]!.rawValue;
+      const avgRaw = ws.metrics.carryOverRate?.avg ?? null;
+      metrics[carryOverIdx] = {
+        ...metrics[carryOverIdx]!,
+        value: formatCarryOverRate(rawVal),
+        avgLabel:
+          avgRaw !== null && ws.metrics.carryOverRate?.mode !== 'projected'
+            ? formatCarryOverRate(avgRaw)
+            : null,
+      };
+    }
+
     const d = ws.detail ?? {};
     const wsPrediction = ws.prediction;
+    const wsMilestones = milestones
+      .filter((m) => m.workstreamId === ws.workstreamId)
+      .map((m) => mapMilestoneToGoalViewModel(m, today));
+    const milestoneGroups = groupMilestonesByMonth(wsMilestones, today);
+
     return {
       workstreamId: ws.workstreamId,
       workstreamName: ws.workstreamName ?? 'Unknown',
@@ -271,6 +504,12 @@ export function mapApiResponseToDashboardViewModel(response: ApiResponse): Dashb
             isPredicted: true,
           }
         : null,
+      overheadComposition: mapOverheadComposition(ws.trends?.sprints ?? []),
+      currentSprintBugItems: (ws.currentSprintOverheadItems?.bugs ?? []).map(mapOverheadItem),
+      currentSprintSupportItems: (ws.currentSprintOverheadItems?.support ?? []).map(
+        mapOverheadItem
+      ),
+      milestoneGroups,
     };
   });
 

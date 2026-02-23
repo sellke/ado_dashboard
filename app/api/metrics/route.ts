@@ -18,6 +18,9 @@ import { buildTrendSeries } from '@/lib/metrics/trend-service';
 import type { MetricWithRag, ThresholdConfigInput, WorkstreamMetrics } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
 
+/** Hours of meeting/ceremony overhead per team member per sprint (Story 6). */
+const MEETING_HOURS_PER_MEMBER_PER_SPRINT = 10.25;
+
 /** Build API metric shape: value, optional avg, rag. */
 function toMetricWithRag(
   value: number | null,
@@ -25,7 +28,12 @@ function toMetricWithRag(
   rag: string | null,
   includeAvg: boolean,
   mode?: 'actual' | 'projected'
-): { value: number | null; avg?: number | null; rag: string | null; mode?: 'actual' | 'projected' } {
+): {
+  value: number | null;
+  avg?: number | null;
+  rag: string | null;
+  mode?: 'actual' | 'projected';
+} {
   const m: {
     value: number | null;
     avg?: number | null;
@@ -119,7 +127,16 @@ function formatWorkstreamResponse(
         activeBugs: number;
         bugsClosed: number;
         mode: 'actual';
+        overheadComposition: {
+          ceremonyHours: number | null;
+          bugHours: number | null;
+          spikeHours: number | null;
+          supportHours: number | null;
+          totalOverheadHours: number | null;
+          overheadPercent: number | null;
+        };
         bugs: Array<{ adoId: number; title: string; state: string }>;
+        overheadBreakdown: Array<{ category: string; hours: number }>;
       }>,
     },
     prediction: null as {
@@ -128,6 +145,10 @@ function formatWorkstreamResponse(
       mode: 'predicted';
       formula: string;
     } | null,
+    currentSprintOverheadItems: {
+      bugs: [] as Array<{ adoId: number; title: string; state: string; hours: number | null }>,
+      support: [] as Array<{ adoId: number; title: string; state: string; hours: number | null }>,
+    },
   };
 }
 
@@ -208,7 +229,8 @@ export async function GET(request: Request) {
         },
         rollingWindow: {
           count: rollingSprints.length,
-          currentSprintId: rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+          currentSprintId:
+            rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
           sprints: rollingSprints.map((s) => ({
             id: s.id,
             name: s.name,
@@ -243,6 +265,11 @@ export async function GET(request: Request) {
         velocity: true,
         grossHours: true,
         overheadHours: true,
+        overheadPercent: true,
+        ceremonyHours: true,
+        bugHours: true,
+        spikeHours: true,
+        supportHours: true,
       },
     });
     const trendBugs = await prisma.workItem.findMany({
@@ -258,8 +285,53 @@ export async function GET(request: Request) {
         adoChangedDate: true,
         adoId: true,
         title: true,
+        completedWork: true,
+        originalEstimate: true,
       },
       orderBy: { adoId: 'asc' },
+    });
+    const trendSupport = await prisma.workItem.findMany({
+      where: {
+        type: 'Support',
+        sprintId: { in: rollingSprintIds },
+        ...wsFilter,
+      },
+      select: {
+        sprintId: true,
+        workstreamId: true,
+        adoId: true,
+        title: true,
+        state: true,
+        completedWork: true,
+        originalEstimate: true,
+      },
+      orderBy: { adoId: 'asc' },
+    });
+    const trendSpikes = await prisma.workItem.findMany({
+      where: {
+        type: 'Spike',
+        sprintId: { in: rollingSprintIds },
+        ...wsFilter,
+      },
+      select: {
+        sprintId: true,
+        workstreamId: true,
+        storyPoints: true,
+      },
+    });
+    const wsFilterForSW = workstreamIdParam
+      ? { workstreamId: workstreamIdParam }
+      : { workstreamId: { in: allowedWsIds } };
+    const trendSprintWorkstreams = await prisma.sprintWorkstream.findMany({
+      where: {
+        sprintId: { in: rollingSprintIds },
+        ...wsFilterForSW,
+      },
+      select: {
+        sprintId: true,
+        workstreamId: true,
+        fteCount: true,
+      },
     });
     const trendBugInputs = trendBugs.map((bug) => ({
       sprintId: bug.sprintId,
@@ -283,19 +355,76 @@ export async function GET(request: Request) {
         workstreamId: s.workstreamId,
       });
       formatted.trends = {
-        sprints: trends.sprints.map((sprint) => ({
-          ...sprint,
-          bugs: trendBugs
-            .filter((b) => b.sprintId === sprint.sprintId && b.workstreamId === s.workstreamId)
-            .sort((a, b) => a.adoId - b.adoId)
-            .map((b) => ({ adoId: b.adoId, title: b.title, state: b.state })),
-        })),
+        sprints: trends.sprints.map((sprint) => {
+          const snap = trendSnapshots.find(
+            (ts) => ts.sprintId === sprint.sprintId && ts.workstreamId === s.workstreamId
+          );
+          const wsId = s.workstreamId;
+          const sprintId = sprint.sprintId;
+
+          const meetingFteCount =
+            trendSprintWorkstreams.find(
+              (sw) => sw.sprintId === sprintId && sw.workstreamId === wsId
+            )?.fteCount ?? 0;
+          const meetingHours = MEETING_HOURS_PER_MEMBER_PER_SPRINT * meetingFteCount;
+          const spikeHours = trendSpikes
+            .filter((sp) => sp.sprintId === sprintId && sp.workstreamId === wsId)
+            .reduce((sum, sp) => sum + (sp.storyPoints ?? 0), 0);
+          const bugHoursBreakdown = trendBugs
+            .filter((b) => b.sprintId === sprintId && b.workstreamId === wsId)
+            .reduce((sum, b) => sum + (b.completedWork ?? b.originalEstimate ?? 0), 0);
+          const supportHoursBreakdown = trendSupport
+            .filter((sv) => sv.sprintId === sprintId && sv.workstreamId === wsId)
+            .reduce((sum, sv) => sum + (sv.completedWork ?? sv.originalEstimate ?? 0), 0);
+
+          return {
+            ...sprint,
+            overheadComposition: {
+              ceremonyHours: snap?.ceremonyHours ?? null,
+              bugHours: snap?.bugHours ?? null,
+              spikeHours: snap?.spikeHours ?? null,
+              supportHours: snap?.supportHours ?? null,
+              totalOverheadHours: snap?.overheadHours ?? null,
+              overheadPercent: snap?.overheadPercent ?? null,
+            },
+            bugs: trendBugs
+              .filter((b) => b.sprintId === sprintId && b.workstreamId === wsId)
+              .sort((a, b) => a.adoId - b.adoId)
+              .map((b) => ({ adoId: b.adoId, title: b.title, state: b.state })),
+            overheadBreakdown: [
+              { category: 'Meetings', hours: meetingHours },
+              { category: 'Spikes', hours: spikeHours },
+              { category: 'Bugs', hours: bugHoursBreakdown },
+              { category: 'Support', hours: supportHoursBreakdown },
+            ],
+          };
+        }),
       };
       formatted.prediction = {
         velocity: trends.prediction.velocity,
         velocityRate: trends.averageVelocityRate,
         mode: 'predicted' as const,
         formula: trends.prediction.formula,
+      };
+      formatted.currentSprintOverheadItems = {
+        bugs: trendBugs
+          .filter((b) => b.sprintId === sprintId && b.workstreamId === s.workstreamId)
+          .sort((a, b) => a.adoId - b.adoId)
+          .map((b) => ({
+            adoId: b.adoId,
+            title: b.title,
+            state: b.state,
+            hours: b.completedWork ?? b.originalEstimate ?? null,
+          })),
+        support: trendSupport
+          .filter((sv) => sv.sprintId === sprintId && sv.workstreamId === s.workstreamId)
+          .sort((a, b) => a.adoId - b.adoId)
+          .map((sv) => ({
+            adoId: sv.adoId,
+            title: sv.title,
+            state: sv.state,
+            hours: sv.completedWork ?? sv.originalEstimate ?? null,
+          })),
       };
       return formatted;
     });
@@ -400,7 +529,8 @@ export async function GET(request: Request) {
       },
       rollingWindow: {
         count: rollingSprints.length,
-        currentSprintId: rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+        currentSprintId:
+          rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
         sprints: rollingSprints.map((s) => ({
           id: s.id,
           name: s.name,
