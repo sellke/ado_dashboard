@@ -129,21 +129,40 @@ describe('GET /api/metrics', () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
     prisma.sprint.findMany.mockResolvedValue(rolling);
-    prisma.metricSnapshot.findMany
-      .mockResolvedValueOnce([mockSnapshot])
-      .mockResolvedValueOnce([
-        {
-          sprintId: 'sprint-0',
-          workstreamId: 'ws-1',
-          velocity: 20,
-          grossHours: 80,
-          overheadHours: 20,
-        },
-      ]);
+    prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
+      {
+        sprintId: 'sprint-0',
+        workstreamId: 'ws-1',
+        velocity: 20,
+        grossHours: 80,
+        overheadHours: 20,
+      },
+    ]);
     prisma.workItem.findMany.mockResolvedValue([
-      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'Done', adoChangedDate: new Date('2026-01-10'), adoId: 1001, title: 'Bug 1' },
-      { sprintId: 'sprint-0', workstreamId: 'ws-1', state: 'New', adoChangedDate: new Date('2026-01-11'), adoId: 1002, title: 'Bug 2' },
-      { sprintId: null, workstreamId: 'ws-1', state: 'Done', adoChangedDate: new Date('2026-01-12'), adoId: 1003, title: 'Bug 3' },
+      {
+        sprintId: 'sprint-0',
+        workstreamId: 'ws-1',
+        state: 'Done',
+        adoChangedDate: new Date('2026-01-10'),
+        adoId: 1001,
+        title: 'Bug 1',
+      },
+      {
+        sprintId: 'sprint-0',
+        workstreamId: 'ws-1',
+        state: 'New',
+        adoChangedDate: new Date('2026-01-11'),
+        adoId: 1002,
+        title: 'Bug 2',
+      },
+      {
+        sprintId: null,
+        workstreamId: 'ws-1',
+        state: 'Done',
+        adoChangedDate: new Date('2026-01-12'),
+        adoId: 1003,
+        title: 'Bug 3',
+      },
     ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -245,9 +264,24 @@ describe('GET /api/metrics', () => {
 
   it('includes prediction field per workstream with velocity, velocityRate, mode, and formula', async () => {
     const rollingSprints = [
-      { id: 's3', name: 'Sprint 3', startDate: new Date('2026-01-20'), endDate: new Date('2026-02-02') },
-      { id: 's2', name: 'Sprint 2', startDate: new Date('2026-01-06'), endDate: new Date('2026-01-19') },
-      { id: 's1', name: 'Sprint 1', startDate: new Date('2025-12-23'), endDate: new Date('2026-01-05') },
+      {
+        id: 's3',
+        name: 'Sprint 3',
+        startDate: new Date('2026-01-20'),
+        endDate: new Date('2026-02-02'),
+      },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
     ];
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
@@ -279,9 +313,24 @@ describe('GET /api/metrics', () => {
 
   it('includes bugs array per trend sprint with adoId, title, state sorted by adoId', async () => {
     const rollingSprints = [
-      { id: 's3', name: 'Sprint 3', startDate: new Date('2026-01-20'), endDate: new Date('2026-02-02') },
-      { id: 's2', name: 'Sprint 2', startDate: new Date('2026-01-06'), endDate: new Date('2026-01-19') },
-      { id: 's1', name: 'Sprint 1', startDate: new Date('2025-12-23'), endDate: new Date('2026-01-05') },
+      {
+        id: 's3',
+        name: 'Sprint 3',
+        startDate: new Date('2026-01-20'),
+        endDate: new Date('2026-02-02'),
+      },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
     ];
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
@@ -295,9 +344,30 @@ describe('GET /api/metrics', () => {
         { sprintId: 's3', workstreamId: 'ws-1', velocity: null, grossHours: 80, overheadHours: 20 },
       ]);
     prisma.workItem.findMany.mockResolvedValue([
-      { sprintId: 's1', workstreamId: 'ws-1', state: 'Active', adoChangedDate: new Date('2025-12-28'), adoId: 102, title: 'Bug B' },
-      { sprintId: 's1', workstreamId: 'ws-1', state: 'Closed', adoChangedDate: new Date('2025-12-30'), adoId: 101, title: 'Bug A' },
-      { sprintId: 's2', workstreamId: 'ws-1', state: 'New', adoChangedDate: new Date('2026-01-10'), adoId: 201, title: 'Bug C' },
+      {
+        sprintId: 's1',
+        workstreamId: 'ws-1',
+        state: 'Active',
+        adoChangedDate: new Date('2025-12-28'),
+        adoId: 102,
+        title: 'Bug B',
+      },
+      {
+        sprintId: 's1',
+        workstreamId: 'ws-1',
+        state: 'Closed',
+        adoChangedDate: new Date('2025-12-30'),
+        adoId: 101,
+        title: 'Bug A',
+      },
+      {
+        sprintId: 's2',
+        workstreamId: 'ws-1',
+        state: 'New',
+        adoChangedDate: new Date('2026-01-10'),
+        adoId: 201,
+        title: 'Bug C',
+      },
     ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -316,15 +386,23 @@ describe('GET /api/metrics', () => {
     ]);
 
     const s2 = sprints.find((s: { sprintId: string }) => s.sprintId === 's2');
-    expect(s2.bugs).toEqual([
-      { adoId: 201, title: 'Bug C', state: 'New' },
-    ]);
+    expect(s2.bugs).toEqual([{ adoId: 201, title: 'Bug C', state: 'New' }]);
   });
 
   it('returns empty bugs array when sprint has no bug work items', async () => {
     const rollingSprints = [
-      { id: 's2', name: 'Sprint 2', startDate: new Date('2026-01-06'), endDate: new Date('2026-01-19') },
-      { id: 's1', name: 'Sprint 1', startDate: new Date('2025-12-23'), endDate: new Date('2026-01-05') },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
     ];
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
@@ -347,6 +425,446 @@ describe('GET /api/metrics', () => {
     expect(sprints).toHaveLength(1);
     expect(sprints[0].sprintId).toBe('s1');
     expect(sprints[0].bugs).toEqual([]);
+  });
+
+  it('includes overheadComposition on each trend sprint with all breakdown fields', async () => {
+    const rollingSprints = [
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
+    ];
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
+    prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2', workstreamId: 'ws-1' }])
+      .mockResolvedValueOnce([
+        {
+          sprintId: 's1',
+          workstreamId: 'ws-1',
+          velocity: 30,
+          grossHours: 80,
+          overheadHours: 22,
+          overheadPercent: 27.5,
+          ceremonyHours: 10.25,
+          bugHours: 8,
+          spikeHours: 2,
+          supportHours: 1.75,
+        },
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          velocity: 34,
+          grossHours: 80,
+          overheadHours: 24,
+          overheadPercent: 30,
+          ceremonyHours: 10.25,
+          bugHours: 10,
+          spikeHours: 2,
+          supportHours: 1.75,
+        },
+      ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const sprints = data.workstreams[0].trends.sprints;
+    const s1 = sprints.find((s: { sprintId: string }) => s.sprintId === 's1');
+    expect(s1.overheadComposition).toEqual({
+      ceremonyHours: 10.25,
+      bugHours: 8,
+      spikeHours: 2,
+      supportHours: 1.75,
+      totalOverheadHours: 22,
+      overheadPercent: 27.5,
+    });
+  });
+
+  it('includes currentSprintOverheadItems with bugs and support arrays on each workstream', async () => {
+    const rollingSprints = [
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
+    ];
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
+    prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2', workstreamId: 'ws-1' }])
+      .mockResolvedValueOnce([
+        {
+          sprintId: 's1',
+          workstreamId: 'ws-1',
+          velocity: 30,
+          grossHours: 80,
+          overheadHours: 20,
+          overheadPercent: 25,
+          ceremonyHours: 10,
+          bugHours: 5,
+          spikeHours: 3,
+          supportHours: 2,
+        },
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          velocity: 34,
+          grossHours: 80,
+          overheadHours: 20,
+          overheadPercent: 25,
+          ceremonyHours: 10,
+          bugHours: 5,
+          spikeHours: 3,
+          supportHours: 2,
+        },
+      ]);
+    prisma.workItem.findMany
+      .mockResolvedValueOnce([
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          adoId: 202,
+          title: 'Bug B',
+          state: 'Active',
+          adoChangedDate: new Date(),
+          completedWork: 4,
+          originalEstimate: 3,
+        },
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          adoId: 201,
+          title: 'Bug A',
+          state: 'Done',
+          adoChangedDate: new Date(),
+          completedWork: null,
+          originalEstimate: 2,
+        },
+        {
+          sprintId: 's1',
+          workstreamId: 'ws-1',
+          adoId: 101,
+          title: 'Old Bug',
+          state: 'Done',
+          adoChangedDate: new Date(),
+          completedWork: 1,
+          originalEstimate: 1,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          adoId: 301,
+          title: 'Support A',
+          state: 'Active',
+          completedWork: null,
+          originalEstimate: 5,
+        },
+        {
+          sprintId: 's1',
+          workstreamId: 'ws-1',
+          adoId: 302,
+          title: 'Old Support',
+          state: 'Done',
+          completedWork: 3,
+          originalEstimate: 3,
+        },
+      ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const ws = data.workstreams[0];
+    expect(ws.currentSprintOverheadItems).toBeDefined();
+    expect(ws.currentSprintOverheadItems.bugs).toEqual([
+      { adoId: 201, title: 'Bug A', state: 'Done', hours: 2 },
+      { adoId: 202, title: 'Bug B', state: 'Active', hours: 4 },
+    ]);
+    expect(ws.currentSprintOverheadItems.support).toEqual([
+      { adoId: 301, title: 'Support A', state: 'Active', hours: 5 },
+    ]);
+  });
+
+  it('returns empty bugs and support arrays when workstream has no overhead items in selected sprint', async () => {
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
+      {
+        sprintId: mockSprint.id,
+        workstreamId: 'ws-1',
+        velocity: 34,
+        grossHours: 80,
+        overheadHours: 20,
+        overheadPercent: 25,
+        ceremonyHours: 10,
+        bugHours: 5,
+        spikeHours: 3,
+        supportHours: 2,
+      },
+    ]);
+    prisma.workItem.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const ws = data.workstreams[0];
+    expect(ws.currentSprintOverheadItems.bugs).toEqual([]);
+    expect(ws.currentSprintOverheadItems.support).toEqual([]);
+  });
+
+  it('uses completedWork for hours when present, falls back to originalEstimate, then null', async () => {
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
+      {
+        sprintId: mockSprint.id,
+        workstreamId: 'ws-1',
+        velocity: 34,
+        grossHours: 80,
+        overheadHours: 20,
+        overheadPercent: 25,
+        ceremonyHours: 10,
+        bugHours: 5,
+        spikeHours: 3,
+        supportHours: 2,
+      },
+    ]);
+    prisma.workItem.findMany
+      .mockResolvedValueOnce([
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 10,
+          title: 'Has completedWork',
+          state: 'Done',
+          adoChangedDate: new Date(),
+          completedWork: 6,
+          originalEstimate: 4,
+        },
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 11,
+          title: 'No completedWork',
+          state: 'Active',
+          adoChangedDate: new Date(),
+          completedWork: null,
+          originalEstimate: 3,
+        },
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 12,
+          title: 'No hours at all',
+          state: 'New',
+          adoChangedDate: new Date(),
+          completedWork: null,
+          originalEstimate: null,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const bugs = data.workstreams[0].currentSprintOverheadItems.bugs;
+    expect(bugs).toEqual([
+      { adoId: 10, title: 'Has completedWork', state: 'Done', hours: 6 },
+      { adoId: 11, title: 'No completedWork', state: 'Active', hours: 3 },
+      { adoId: 12, title: 'No hours at all', state: 'New', hours: null },
+    ]);
+  });
+
+  it('items within currentSprintOverheadItems arrays are ordered by adoId ascending', async () => {
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
+      {
+        sprintId: mockSprint.id,
+        workstreamId: 'ws-1',
+        velocity: 34,
+        grossHours: 80,
+        overheadHours: 20,
+        overheadPercent: 25,
+        ceremonyHours: 10,
+        bugHours: 5,
+        spikeHours: 3,
+        supportHours: 2,
+      },
+    ]);
+    prisma.workItem.findMany
+      .mockResolvedValueOnce([
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 300,
+          title: 'Bug Z',
+          state: 'New',
+          adoChangedDate: new Date(),
+          completedWork: 1,
+          originalEstimate: 1,
+        },
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 100,
+          title: 'Bug A',
+          state: 'Done',
+          adoChangedDate: new Date(),
+          completedWork: 2,
+          originalEstimate: 2,
+        },
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 200,
+          title: 'Bug M',
+          state: 'Active',
+          adoChangedDate: new Date(),
+          completedWork: 3,
+          originalEstimate: 3,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 502,
+          title: 'Support B',
+          state: 'Active',
+          completedWork: 2,
+          originalEstimate: 2,
+        },
+        {
+          sprintId: mockSprint.id,
+          workstreamId: 'ws-1',
+          adoId: 501,
+          title: 'Support A',
+          state: 'Done',
+          completedWork: 1,
+          originalEstimate: 1,
+        },
+      ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const items = data.workstreams[0].currentSprintOverheadItems;
+    expect(items.bugs.map((b: { adoId: number }) => b.adoId)).toEqual([100, 200, 300]);
+    expect(items.support.map((s: { adoId: number }) => s.adoId)).toEqual([501, 502]);
+  });
+
+  it('returns non-null velocityRate on trend sprints when grossHours and overheadHours are populated', async () => {
+    const rollingSprints = [
+      {
+        id: 's3',
+        name: 'Sprint 3',
+        startDate: new Date('2026-01-20'),
+        endDate: new Date('2026-02-02'),
+      },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2025-12-23'),
+        endDate: new Date('2026-01-05'),
+      },
+    ];
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
+    prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's3' }])
+      .mockResolvedValueOnce([
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 30, grossHours: 300, overheadHours: 60 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 40, grossHours: 350, overheadHours: 70 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: null, grossHours: 320, overheadHours: 64 },
+      ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const sprints = data.workstreams[0].trends.sprints;
+    const s1 = sprints.find((s: { sprintId: string }) => s.sprintId === 's1');
+    const s2 = sprints.find((s: { sprintId: string }) => s.sprintId === 's2');
+
+    // velocityRate = velocity / (grossHours - overheadHours)
+    // s1: 30 / (300 - 60) = 30/240 ≈ 0.125
+    expect(s1.velocityRate).not.toBeNull();
+    expect(s1.velocityRate).toBeCloseTo(30 / 240, 4);
+    // s2: 40 / (350 - 70) = 40/280 ≈ 0.1429
+    expect(s2.velocityRate).not.toBeNull();
+    expect(s2.velocityRate).toBeCloseTo(40 / 280, 4);
+  });
+
+  it('returns non-null overheadPercent on workstream metrics when grossHours is populated', async () => {
+    const snapshotWithGrossHours = {
+      ...mockSnapshot,
+      grossHours: 280,
+      overheadHours: 42,
+      overheadPercent: 15,
+    };
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany.mockResolvedValue([snapshotWithGrossHours]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.workstreams[0].metrics.overheadPercent.value).not.toBeNull();
+    expect(data.workstreams[0].metrics.overheadPercent.value).toBe(15);
   });
 });
 

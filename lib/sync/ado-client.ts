@@ -179,28 +179,24 @@ export async function fetchWorkItemsBatch(
 
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     const batch = ids.slice(i, i + BATCH_SIZE);
-    try {
-      const res = await fetch(baseUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ ids: batch, fields }),
-      });
-      if (!res.ok) {
-        throw await buildAdoError(res, 'ADO workitems batch request');
-      }
+    const res = await fetch(baseUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ids: batch, fields }),
+    });
+    if (!res.ok) {
+      throw await buildAdoError(res, 'ADO workitems batch request');
+    }
 
-      const data = (await res.json()) as WorkItemBatchResponse;
-      if (data.value) {
-        for (const v of data.value) {
-          results.push({
-            id: v.id,
-            rev: v.rev,
-            fields: v.fields as AdoWorkItemRaw['fields'],
-          });
-        }
+    const data = (await res.json()) as WorkItemBatchResponse;
+    if (data.value) {
+      for (const v of data.value) {
+        results.push({
+          id: v.id,
+          rev: v.rev,
+          fields: v.fields as AdoWorkItemRaw['fields'],
+        });
       }
-    } catch (err) {
-      throw err;
     }
   }
 
@@ -211,9 +207,14 @@ export async function fetchWorkItemsBatch(
 // Team Capacity (Story 4)
 // ---------------------------------------------------------------------------
 
+/**
+ * ADO capacity API response uses `teamMembers` (not `value`).
+ * Shape: { teamMembers: AdoCapacityMember[], totalCapacityPerDay: number, totalDaysOff: number }
+ */
 interface CapacityApiResponse {
-  value?: AdoCapacityMember[];
-  count?: number;
+  teamMembers?: AdoCapacityMember[];
+  totalCapacityPerDay?: number;
+  totalDaysOff?: number;
 }
 
 /**
@@ -260,7 +261,7 @@ export async function fetchTeamCapacity(
       const res = await fetch(url, { headers });
       if (res.ok) {
         const data = (await res.json()) as CapacityApiResponse;
-        return { members: data.value ?? [], retries: attempt };
+        return { members: data.teamMembers ?? [], retries: attempt };
       }
       // Retry on 5xx or 429
       if (res.status >= 500 || res.status === 429) {
