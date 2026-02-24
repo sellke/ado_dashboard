@@ -1,6 +1,6 @@
 # Story 2: Dashboard Types and Adapter Extension
 
-> **Status:** Completed ✅
+> **Status:** Amended — Additional Tasks Pending 🔄
 > **Priority:** High
 > **Dependencies:** Story 1 (API extension)
 
@@ -41,8 +41,32 @@
 
 ## Definition of Done
 
-- [x] All tasks completed ✅
-- [x] All acceptance criteria met ✅
+- [x] All original tasks completed ✅
+- [x] All original acceptance criteria met ✅
 - [x] Tests passing (21/21 adapter unit tests + TypeScript compilation: zero errors) ✅
 - [x] Code reviewed ✅
 - [x] No type errors across the codebase ✅
+
+---
+
+## Amendment: Carry-Over Precision Fix & Overhead Adapter Verification (2026-02-23)
+
+### Additional Acceptance Criteria
+
+- [ ] Given a workstream carry-over rate value, when displayed in the metric tile, then it shows 2 decimal places (e.g., `12.34%` not `12%`)
+- [ ] Given overhead % data is fixed in Story 1, when the adapter maps it, then the overhead % metric tile correctly receives and displays the real value
+- [ ] Given new `OverheadBreakdownItem` types are defined (Story 6 feeds these), when adapter maps overhead breakdown data, then `TrendSprintViewModel` includes `overheadBreakdown: OverheadBreakdownItem[]`
+
+### Additional Implementation Tasks
+
+- [ ] 2.11 Change carry-over % display format from whole number to 2 decimal places — update `formatCarryOverRate()` or equivalent formatter in `adapter.ts` to use `toFixed(2)`
+- [ ] 2.12 Verify that overhead % adapter mapping correctly passes the fixed value from Story 1 to the metric tile — update tests with non-null fixture values
+- [ ] 2.13 Add `OverheadBreakdownItem` type to `lib/dashboard/types.ts`: `{ category: 'Meetings' | 'Spikes' | 'Bugs' | 'Support', hours: number }` (prerequisite for Story 7)
+- [ ] 2.14 Extend `ApiTrendSprint` with `overheadBreakdown?: OverheadBreakdownItem[]` (prerequisite for Story 7 API mapping)
+- [ ] 2.15 Extend `TrendSprintViewModel` with `overheadBreakdown: OverheadBreakdownItem[]` and update `mapTrendSprint()` adapter function
+
+### Notes (Amendment)
+
+- `formatCarryOverRate()` may not exist as a named helper — locate the carry-over % formatting in the adapter and update it in place
+- The `OverheadBreakdownItem` type additions are prerequisites for Story 7 and should be done before that story begins
+- Keep the `'Meetings' | 'Spikes' | 'Bugs' | 'Support'` union type as a named type alias for reuse

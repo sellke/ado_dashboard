@@ -40,7 +40,7 @@ If user selects "Something else", follow up with a free-text question to get the
 
 #### Step 1.1: Initial Context Scan
 
-- Scan existing `.code-captain/specs/` for related specifications
+- Scan existing `.writ/specs/` for related specifications
 - Analyze current codebase architecture and patterns using `codebase_search`
 - Load project context files (`tech-stack.md`, `code-style.md`, `objective.md`)
 - **Output:** Context summary (no files created yet)
@@ -240,17 +240,17 @@ AskQuestion({
 
 #### Step 2.2: Determine Current Date
 
-Get current date by running: `npx @devobsessed/code-captain date`
+Get current date by running: `npx @devobsessed/writ date`
 
 This returns the current date in `YYYY-MM-DD` format for folder naming:
-`.code-captain/specs/[DATE]-[feature-name]/`
+`.writ/specs/[DATE]-[feature-name]/`
 
 #### Step 2.3: Create Directory Structure
 
 **Generated folder (using determined date):**
 
 ```
-.code-captain/specs/[DATE]-{feature-name}/
+.writ/specs/[DATE]-{feature-name}/
 ├── spec.md                    # Main specification (from contract)
 ├── spec-lite.md              # Condensed version for AI context
 ├── user-stories/             # Individual user story files
@@ -314,7 +314,7 @@ Story Plan:
 
 **Launch parallel subagents to create all user story files simultaneously.**
 
-> **Agent Reference:** See `.cursor/agents/user-story-generator.md` for the full agent specification and prompt template.
+> **Agent Reference:** See `agents/user-story-generator.md` for the full agent specification and prompt template.
 
 For each planned story, spawn a Task subagent:
 
@@ -328,7 +328,7 @@ Task({
   description: "Create user story 1",
   prompt: `Create the user story file for:
   
-**Spec folder:** .code-captain/specs/[DATE]-[feature-name]/user-stories/
+**Spec folder:** .writ/specs/[DATE]-[feature-name]/user-stories/
 **Story file:** story-1-{name}.md
 **Story number:** 1
 **Story title:** [Title]
@@ -478,7 +478,7 @@ Present complete package with file references:
 ```
 ✅ Specification package created successfully!
 
-📁 .code-captain/specs/[DATE]-feature-name/
+📁 .writ/specs/[DATE]-feature-name/
 ├── 📋 spec.md - Main specification document
 ├── 📝 spec-lite.md - AI context summary
 ├── 👥 user-stories/ - Individual user story files

@@ -20,6 +20,13 @@ export interface PerWorkstreamSummary {
     retries: number;
     error?: string;
   };
+  /** Feature Goal Sync summary (Story 1 — Phase 1E). */
+  milestoneSummary?: {
+    featuresFetched: number;
+    featuresUpserted: number;
+    milestonesCreated: number;
+    milestonesUpdated: number;
+  };
   error?: string;
 }
 

@@ -826,7 +826,13 @@ describe('GET /api/metrics', () => {
       .mockResolvedValueOnce([
         { sprintId: 's1', workstreamId: 'ws-1', velocity: 30, grossHours: 300, overheadHours: 60 },
         { sprintId: 's2', workstreamId: 'ws-1', velocity: 40, grossHours: 350, overheadHours: 70 },
-        { sprintId: 's3', workstreamId: 'ws-1', velocity: null, grossHours: 320, overheadHours: 64 },
+        {
+          sprintId: 's3',
+          workstreamId: 'ws-1',
+          velocity: null,
+          grossHours: 320,
+          overheadHours: 64,
+        },
       ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -898,9 +904,7 @@ describe('GET /api/metrics', () => {
           originalEstimate: 3,
         },
       ])
-      .mockResolvedValueOnce([
-        { sprintId: 's1', workstreamId: 'ws-1', storyPoints: 5 },
-      ]);
+      .mockResolvedValueOnce([{ sprintId: 's1', workstreamId: 'ws-1', storyPoints: 5 }]);
     prisma.sprintWorkstream.findMany.mockResolvedValue([
       { sprintId: 's1', workstreamId: 'ws-1', fteCount: 4 },
       { sprintId: 's2', workstreamId: 'ws-1', fteCount: 4 },
@@ -918,13 +922,21 @@ describe('GET /api/metrics', () => {
     expect(s1).toBeDefined();
     expect(s1.overheadBreakdown).toHaveLength(4);
     // Meetings = 10.25 × 4 FTE = 41
-    expect(s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Meetings').hours).toBeCloseTo(41);
+    expect(
+      s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Meetings').hours
+    ).toBeCloseTo(41);
     // Spikes = storyPoints = 5
-    expect(s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Spikes').hours).toBe(5);
+    expect(
+      s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Spikes').hours
+    ).toBe(5);
     // Bugs = completedWork = 8
-    expect(s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Bugs').hours).toBe(8);
+    expect(
+      s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Bugs').hours
+    ).toBe(8);
     // Support = originalEstimate = 3 (completedWork is null)
-    expect(s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Support').hours).toBe(3);
+    expect(
+      s1.overheadBreakdown.find((i: { category: string }) => i.category === 'Support').hours
+    ).toBe(3);
   });
 
   it('returns all 4 overhead categories with hours=0 when no overhead work items exist', async () => {

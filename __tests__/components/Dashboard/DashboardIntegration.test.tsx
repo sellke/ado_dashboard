@@ -11,26 +11,45 @@ import {
   createMixedRagApiResponse,
 } from './__fixtures__/dashboard-fixtures';
 
-const mockMilestonesEmpty = () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+const EMPTY_PROGRAM_ROLLUP = {
+  currentMonth: 'February 2026',
+  currentMonthCompletionPercent: null,
+  currentMonthTotalSP: 0,
+  currentMonthCompletedSP: 0,
+  quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+};
+
+const mockMilestonesEmpty = () =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ milestones: [], programRollup: EMPTY_PROGRAM_ROLLUP }),
+  });
 
 const mockMilestonesWithData = () =>
   Promise.resolve({
     ok: true,
     json: () =>
-      Promise.resolve([
-        {
-          id: 'm1',
-          title: 'Platform Phase 1',
-          workstreamId: 'ws-1',
-          targetMonth: '2026-03-01T00:00:00.000Z',
-          status: 'InProgress',
-          adoFeatureId: 12345,
-          notes: 'Key deliverable',
-          createdAt: '2026-02-01T00:00:00.000Z',
-          updatedAt: '2026-02-01T00:00:00.000Z',
-          workstream: { id: 'ws-1', name: 'Platform' },
-        },
-      ]),
+      Promise.resolve({
+        milestones: [
+          {
+            id: 'm1',
+            title: 'Platform Phase 1',
+            workstreamId: 'ws-1',
+            targetMonth: '2026-03-01T00:00:00.000Z',
+            status: 'InProgress',
+            adoFeatureId: 12345,
+            notes: 'Key deliverable',
+            createdAt: '2026-02-01T00:00:00.000Z',
+            updatedAt: '2026-02-01T00:00:00.000Z',
+            workstream: { id: 'ws-1', name: 'Platform' },
+            completedPoints: 0,
+            totalPoints: 0,
+            percentComplete: null,
+            burnupData: [],
+          },
+        ],
+        programRollup: EMPTY_PROGRAM_ROLLUP,
+      }),
   });
 
 describe('DashboardContainer integration', () => {
@@ -225,7 +244,11 @@ describe('DashboardContainer integration', () => {
           return Promise.resolve({
             ok: true,
             json: () =>
-              Promise.resolve({ success: true, syncLogId: 'log-1', summary: { status: 'Success' } }),
+              Promise.resolve({
+                success: true,
+                syncLogId: 'log-1',
+                summary: { status: 'Success' },
+              }),
           });
         }
         return Promise.resolve({
@@ -315,7 +338,11 @@ describe('DashboardContainer integration', () => {
           return Promise.resolve({
             ok: true,
             json: () =>
-              Promise.resolve({ success: true, syncLogId: 'log-2', summary: { status: 'Success' } }),
+              Promise.resolve({
+                success: true,
+                syncLogId: 'log-2',
+                summary: { status: 'Success' },
+              }),
           });
         }
         return Promise.resolve({
@@ -351,7 +378,11 @@ describe('DashboardContainer integration', () => {
           return Promise.resolve({
             ok: true,
             json: () =>
-              Promise.resolve({ success: true, syncLogId: 'log-1', summary: { status: 'Success' } }),
+              Promise.resolve({
+                success: true,
+                syncLogId: 'log-1',
+                summary: { status: 'Success' },
+              }),
           });
         }
         if (url.includes('/api/metrics')) {
@@ -378,7 +409,9 @@ describe('DashboardContainer integration', () => {
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
 
-      expect(await screen.findByText(/sync completed.*metrics refresh failed/i)).toBeInTheDocument();
+      expect(
+        await screen.findByText(/sync completed.*metrics refresh failed/i)
+      ).toBeInTheDocument();
       expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
     });
   });

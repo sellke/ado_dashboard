@@ -7,13 +7,19 @@ import { WorkstreamHealthCard } from './WorkstreamHealthCard';
 export interface WorkstreamCardsGridProps {
   /** Array of workstream cards to display (sorted by name for deterministic order) */
   cards: WorkstreamCardViewModel[];
+  milestonesLoading?: boolean;
+  milestonesError?: string | null;
 }
 
 /**
  * Renders a responsive grid of workstream health cards.
  * Cards are sorted by workstream name for deterministic display.
  */
-export function WorkstreamCardsGrid({ cards }: WorkstreamCardsGridProps) {
+export function WorkstreamCardsGrid({
+  cards,
+  milestonesLoading,
+  milestonesError,
+}: WorkstreamCardsGridProps) {
   if (!cards || cards.length === 0) {
     return null;
   }
@@ -27,7 +33,12 @@ export function WorkstreamCardsGrid({ cards }: WorkstreamCardsGridProps) {
       <Title order={2}>Workstreams</Title>
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         {sortedCards.map((card) => (
-          <WorkstreamHealthCard key={card.workstreamId} card={card} />
+          <WorkstreamHealthCard
+            key={card.workstreamId}
+            card={card}
+            milestonesLoading={milestonesLoading}
+            milestonesError={milestonesError}
+          />
         ))}
       </SimpleGrid>
     </Stack>

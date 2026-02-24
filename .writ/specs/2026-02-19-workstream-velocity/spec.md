@@ -1,8 +1,9 @@
 # Phase 1C: Workstream Velocity Section — Specification
 
 > Created: 2026-02-19
-> Status: Planning
-> Contract Locked: ✅
+> Last Amended: 2026-02-23
+> Status: In Progress 🔄
+> Contract Locked: ✅ (amended 2026-02-23)
 
 ## Contract Summary
 
@@ -21,8 +22,10 @@
 - All new components have unit tests
 
 **Scope Boundaries:**
-- Included: Velocity chart, velocity rate tile, prediction per workstream, rolling avg reference line, per-sprint bug listing with strikethrough
-- Excluded: Carry-over chart (metric tile only), overhead composition breakdown (Phase 1D), Storybook stories (deferred), milestone data (Phase 1E)
+- Included: Velocity chart, velocity rate tile, prediction per workstream, rolling avg reference line, per-sprint bug listing with strikethrough, overhead breakdown chart (Meetings/Spikes/Bugs/Support per sprint in hours), data fixes for velocity rate and overhead % metrics
+- Excluded: Carry-over chart (metric tile only), Storybook stories (deferred), milestone data (Phase 1E)
+
+> **Amendment (2026-02-23):** Overhead composition breakdown moved from Phase 1D into this spec. Velocity rate and overhead % data-fix work added. Carry-over % display precision fixed. See CHANGELOG.md.
 
 ---
 
@@ -119,14 +122,72 @@ bugs: Array<{
 - Map per-sprint bugs to `TrendBugViewModel[]`
 - Map per-workstream prediction to chart data
 
-### 7. Component Changes
+### 7. Data Fixes (Amendment — 2026-02-23)
+
+The following fields are defined in the original spec but currently return null/empty in the API response:
+
+| Field | Root Cause (TBD) | Fix Required |
+|-------|-----------------|--------------|
+| `velocityRate` per workstream | Likely a null propagation issue in `calculateVelocityRate()` or `calculateNetCapacityHours()` | Trace and fix in `trend-service.ts` |
+| `overheadPercent` per workstream | Likely unpopulated `MetricSnapshot.overheadPercent` in the metric calculation pipeline | Fix calculation and verify DB data |
+
+Investigation and fixes are tracked in Story 1 tasks 1.8–1.13.
+
+### 8. Carry-Over % Display Precision (Amendment — 2026-02-23)
+
+Carry-over % should display to 2 decimal places (e.g., `12.34%`) rather than as a whole number. This is a display-only change to the formatter in `adapter.ts`.
+
+### 9. Overhead Breakdown Chart (Amendment — 2026-02-23)
+
+Add an overhead composition line chart to each WorkstreamHealthCard, placed between the velocity trend chart and the bug list:
+
+#### Data Model
+
+```typescript
+// Per sprint, per workstream
+overheadBreakdown: Array<{
+  category: 'Meetings' | 'Spikes' | 'Bugs' | 'Support';
+  hours: number;
+}>
+```
+
+#### Calculation Rules
+
+| Category | Source | Calculation |
+|----------|--------|-------------|
+| Meetings | ADO Capacity | `10.25h × count of active members` (active = has ADO Capacity entry for sprint/workstream) |
+| Spikes | `WorkItem` table, type = 'Spike' | Sum of story point hours or estimated hours per sprint per workstream |
+| Bugs | `WorkItem` table, type = 'Bug' | Sum of hours per sprint per workstream |
+| Support | `WorkItem` table, type = 'Support' | Sum of hours per sprint per workstream |
+
+> **Note:** If Spikes or Support work item types are not yet in the `WorkItem` table, the ADO sync pipeline must be extended to include them (Story 6 task 6.2 gates this).
+
+#### Chart Specification
+
+- **Chart type:** Mantine `LineChart` with 4 series (one line per overhead category)
+- **X-axis:** Sprint names (same abbreviation format as velocity chart)
+- **Y-axis:** Hours
+- **Series:** Meetings (blue), Spikes (orange), Bugs (red), Support (green)
+- **Height:** ~200px (matches velocity chart)
+- **Placement:** Between `VelocityTrendChart` and `SprintBugList` in each `WorkstreamHealthCard`
+- **Section header:** "Overhead Breakdown"
+- **Empty state:** "No overhead data available"
+
+#### ADO Capacity Data
+
+The `MEETING_HOURS_PER_MEMBER_PER_SPRINT` constant = `10.25` — stored as a named constant, not inline.
+
+Active member count per sprint per workstream is derived from distinct team members who have ADO Capacity entries for that sprint/workstream combination.
+
+### 10. Component Changes
 
 #### `WorkstreamHealthCard.tsx`
 
 - Render 4 metric tiles instead of 3 (add velocity rate)
 - Replace text-based trend section with `VelocityTrendChart` component
-- Add per-sprint bug listing section below chart
-- Handle empty states (no trend data, no bugs)
+- Add `OverheadBreakdownChart` between velocity chart and bug list
+- Add per-sprint bug listing section below overhead chart
+- Handle empty states (no trend data, no bugs, no overhead data)
 
 #### New: `VelocityTrendChart.tsx` (component within Dashboard/)
 
@@ -142,6 +203,14 @@ bugs: Array<{
 - Closed bugs shown with strikethrough
 - ADO ID as `#12345` prefix
 
+#### New: `OverheadBreakdownChart.tsx` (component within Dashboard/) — Amendment 2026-02-23
+
+- Accepts `trendSprints: TrendSprintViewModel[]` (each sprint has `overheadBreakdown`)
+- Renders Mantine `LineChart` with 4 series (Meetings, Spikes, Bugs, Support)
+- Y-axis: hours; X-axis: sprint names
+- Compact height (~200px); empty state when no data
+- Section label "Overhead Breakdown" above chart
+
 ---
 
 ## Implementation Approach
@@ -149,15 +218,16 @@ bugs: Array<{
 ### Data Flow
 
 ```
-MetricSnapshot (DB)
+MetricSnapshot (DB) + WorkItem (DB) + ADO Capacity (DB)
   ↓
 GET /api/metrics (extended response)
-  ↓  now includes: per-workstream prediction + per-sprint bug items
+  ↓  includes: prediction + bug items + overhead breakdown per sprint
 adapter.ts (maps to view models)
-  ↓  now maps: velocity rate tile + bug view models + prediction
+  ↓  maps: velocity rate tile + bug view models + prediction + overheadBreakdown[]
 WorkstreamHealthCard
   ├── 4 metric tiles (velocity, velocity rate, overhead %, carry-over %)
   ├── VelocityTrendChart (line chart + reference line + prediction)
+  ├── OverheadBreakdownChart (4 category lines across sprints, in hours)
   └── SprintBugList (per-sprint bug items with strikethrough)
 ```
 
@@ -167,6 +237,7 @@ WorkstreamHealthCard
 - `calculateVelocityRate()` and `calculateNetCapacityHours()` exist in `trend-service.ts`
 - Mantine `LineChart` with `referenceLines` prop already used in `ProgramSummarySection`
 - `WorkItem` model has `adoId`, `title`, `state`, `type`, `sprintId`, `workstreamId`
+- ADO Capacity model already partially used for gross/overhead hour calculations
 
 ### New Code Required
 
@@ -177,3 +248,10 @@ WorkstreamHealthCard
 5. `SprintBugList` component with strikethrough styling
 6. Adapter mapping for new fields
 7. Unit tests for all new/changed code
+8. *(Amendment)* Fix velocity rate and overhead % null values in API response
+9. *(Amendment)* Extend ADO sync for missing overhead work item types (if needed)
+10. *(Amendment)* ADO Capacity query for active member count per sprint per workstream
+11. *(Amendment)* `overheadBreakdown` API extension with Meetings calculation
+12. *(Amendment)* `OverheadBreakdownItem` type and adapter mapping
+13. *(Amendment)* `OverheadBreakdownChart` component
+14. *(Amendment)* Carry-over % formatter update to 2 decimal places

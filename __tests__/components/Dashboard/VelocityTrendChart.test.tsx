@@ -1,3 +1,7 @@
+import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
+import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { render, screen } from '@/test-utils';
+
 /**
  * Tests for VelocityTrendChart component.
  * Verifies: renders with data, empty state, reference line, prediction point.
@@ -15,10 +19,6 @@ jest.mock('@mantine/charts', () => ({
   ),
 }));
 
-import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
-import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { render, screen } from '@/test-utils';
-
 function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintViewModel {
   return {
     sprintId: 's1',
@@ -32,6 +32,7 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
     rawActiveBugs: 2,
     rawBugsClosed: 3,
     bugs: [],
+    overheadBreakdown: [],
     ...overrides,
   };
 }

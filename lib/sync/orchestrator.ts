@@ -12,6 +12,7 @@ import { fetchTeamIterations } from './ado-client';
 import { syncCapacityForAllWorkstreams } from './capacity';
 import { SYNC_CONFIG } from './config';
 import { selectRollingFiveSprints, upsertSprintsFromIterations } from './iterations';
+import { syncMilestoneFeatures } from './milestone-features';
 import type {
   PerWorkstreamSummary,
   SyncOrchestratorInput,
@@ -100,7 +101,9 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     try {
       const allIterations = await iterationsFetcher();
       const selected = selectRollingFiveSprints(allIterations);
-      selectedSprintPathsOrderedDesc = selected.map((s) => s.path).filter((p): p is string => Boolean(p));
+      selectedSprintPathsOrderedDesc = selected
+        .map((s) => s.path)
+        .filter((p): p is string => Boolean(p));
       if (selected.length > 0) {
         const current = selected.find((s) => s.isCurrent) ?? selected[0];
         const upsertResult = await upsertSprintsFromIterations(selected, current.path);
@@ -183,7 +186,33 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     }
   }
 
-  // 2.5 Capacity sync (Story 4): for Full or Capacity, fetch and upsert per workstream
+  // 2.5 Feature Goal Sync (Story 1 — Phase 1E): for Full, sync -Goal Features and auto-create Milestones
+  if (syncType === 'Full' && !syncFn) {
+    for (const ws of workstreams) {
+      try {
+        const milestoneResult = await syncMilestoneFeatures(ws);
+        totalCreated += milestoneResult.milestonesCreated;
+        totalUpdated += milestoneResult.milestonesUpdated;
+
+        // Augment per-workstream summary with milestone counts
+        const summary = perWorkstreamSummaries.find((s) => s.workstreamId === ws.id);
+        if (summary) {
+          summary.milestoneSummary = {
+            featuresFetched: milestoneResult.featuresFetched,
+            featuresUpserted: milestoneResult.featuresUpserted,
+            milestonesCreated: milestoneResult.milestonesCreated,
+            milestonesUpdated: milestoneResult.milestonesUpdated,
+          };
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errorMessages.push(`MilestoneFeatures ${ws.name}: ${msg}`);
+        hasFailure = true;
+      }
+    }
+  }
+
+  // 2.7 Capacity sync (Story 4): for Full or Capacity, fetch and upsert per workstream
   const shouldSyncCapacity = syncType === 'Full' || syncType === 'Capacity';
   if (shouldSyncCapacity && iterationIdMap.size > 0) {
     try {

@@ -92,7 +92,20 @@ describe('DashboardContainer', () => {
   it('shows error state and retry when API fails', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'February 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
       return Promise.resolve({
         ok: false,
         status: 500,

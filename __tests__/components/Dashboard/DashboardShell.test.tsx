@@ -49,6 +49,10 @@ describe('DashboardShell', () => {
         },
         trendSprints: [],
         prediction: null,
+        overheadComposition: [],
+        currentSprintBugItems: [],
+        currentSprintSupportItems: [],
+        milestoneGroups: [],
       },
     ],
   };
@@ -153,6 +157,10 @@ describe('DashboardShell', () => {
           },
           trendSprints: [],
           prediction: null,
+          overheadComposition: [],
+          currentSprintBugItems: [],
+          currentSprintSupportItems: [],
+          milestoneGroups: [],
         },
       ],
     };

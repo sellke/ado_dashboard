@@ -847,7 +847,10 @@ describe('dashboard adapter', () => {
     });
 
     it('passes through id, title, workstreamId, completedPoints, totalPoints, burnupData, status', () => {
-      const m = { ...baseMilestone, burnupData: [{ sprintName: 'S1', sprintId: 's1', cumulativeCompletedSP: 50, totalSP: 100 }] };
+      const m = {
+        ...baseMilestone,
+        burnupData: [{ sprintName: 'S1', sprintId: 's1', cumulativeCompletedSP: 50, totalSP: 100 }],
+      };
       const vm = mapMilestoneToGoalViewModel(m);
       expect(vm.id).toBe('m1');
       expect(vm.title).toBe('Launch Feature X');
@@ -877,7 +880,12 @@ describe('dashboard adapter', () => {
       percentComplete: '0%',
       completedPoints,
       totalPoints,
-      burnupData: [] as { sprintName: string; sprintId: string; cumulativeCompletedSP: number; totalSP: number }[],
+      burnupData: [] as {
+        sprintName: string;
+        sprintId: string;
+        cumulativeCompletedSP: number;
+        totalSP: number;
+      }[],
       status: 'InProgress',
     });
 
@@ -1204,10 +1212,10 @@ describe('dashboard adapter', () => {
       const sprint = vm.workstreamCards[0].trendSprints[0];
 
       expect(sprint.overheadBreakdown).toHaveLength(4);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Meetings')?.hours).toBe(20.5);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Bugs')?.hours).toBe(8);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Spikes')?.hours).toBe(4);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Support')?.hours).toBe(2);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Meetings')?.hours).toBe(20.5);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Bugs')?.hours).toBe(8);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Spikes')?.hours).toBe(4);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Support')?.hours).toBe(2);
     });
 
     it('defaults missing categories to 0 when overheadBreakdown is partial', () => {
@@ -1238,10 +1246,10 @@ describe('dashboard adapter', () => {
       const sprint = vm.workstreamCards[0].trendSprints[0];
 
       expect(sprint.overheadBreakdown).toHaveLength(4);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Meetings')?.hours).toBe(10.25);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Spikes')?.hours).toBe(0);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Bugs')?.hours).toBe(0);
-      expect(sprint.overheadBreakdown.find((i) => i.category === 'Support')?.hours).toBe(0);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Meetings')?.hours).toBe(10.25);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Spikes')?.hours).toBe(0);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Bugs')?.hours).toBe(0);
+      expect(sprint.overheadBreakdown!.find((i) => i.category === 'Support')?.hours).toBe(0);
     });
 
     it('returns all 4 categories with hours=0 when overheadBreakdown is absent', () => {
@@ -1249,7 +1257,7 @@ describe('dashboard adapter', () => {
       const sprint = vm.workstreamCards[0].trendSprints[0];
 
       expect(sprint.overheadBreakdown).toHaveLength(4);
-      sprint.overheadBreakdown.forEach((item) => expect(item.hours).toBe(0));
+      sprint.overheadBreakdown!.forEach((item) => expect(item.hours).toBe(0));
     });
   });
 });

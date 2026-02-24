@@ -71,6 +71,10 @@ const fullDataCard: WorkstreamCardViewModel = {
     sprintLabel: 'Sprint 26.21',
     isPredicted: true,
   },
+  overheadComposition: [],
+  currentSprintBugItems: [],
+  currentSprintSupportItems: [],
+  milestoneGroups: [],
 };
 
 export const SingleWorkstream = () => <WorkstreamHealthCard card={fullDataCard} />;

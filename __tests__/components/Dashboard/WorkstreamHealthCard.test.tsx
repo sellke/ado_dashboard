@@ -60,6 +60,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawActiveBugs: 2,
       rawBugsClosed: 4,
       bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true }],
+      overheadBreakdown: [],
     },
     {
       sprintId: 's2',
@@ -73,6 +74,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawActiveBugs: 1,
       rawBugsClosed: 5,
       bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false }],
+      overheadBreakdown: [],
     },
   ],
   prediction: {
@@ -266,6 +268,7 @@ describe('WorkstreamHealthCard', () => {
           rawActiveBugs: 2,
           rawBugsClosed: 5,
           bugs: [{ adoId: '1', title: 'Platform bug', isClosed: false }],
+          overheadBreakdown: [],
         },
       ],
     });
@@ -285,6 +288,7 @@ describe('WorkstreamHealthCard', () => {
           rawActiveBugs: 1,
           rawBugsClosed: 3,
           bugs: [{ adoId: '2', title: 'Apps bug', isClosed: true }],
+          overheadBreakdown: [],
         },
       ],
     });

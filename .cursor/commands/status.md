@@ -1,4 +1,4 @@
-# Code Captain Status Command (status)
+# Writ Status Command (status)
 
 ## Overview
 A command that provides developers with a comprehensive status report when starting work or switching context. Analyzes current git state, active work, and project health to orient developers and suggest next actions.
@@ -9,7 +9,7 @@ A command that provides developers with a comprehensive status report when start
 /status
 ```
 
-Simple, no parameters needed. Works in any git repository with optional Code Captain project structure.
+Simple, no parameters needed. Works in any git repository with optional Writ project structure.
 
 ## Core Functionality
 
@@ -27,8 +27,8 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
 - Branch age and creation context
 
 ### 2. Active Work Detection
-**Code Captain Integration:**
-- Scan `.code-captain/specs/` for active specifications
+**Writ Integration:**
+- Scan `.writ/specs/` for active specifications
 - Parse current task progress from most recent spec's tasks.md
 - Identify completed vs pending tasks
 - Determine current user story context
@@ -52,10 +52,10 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
 
 ### 4. Contextual Command Suggestions
 **Based on Current State:**
-- If mid-task: Suggest `/execute-task`
+- If mid-task: Suggest `/implement-story`
 - If no active work: Suggest `/create-spec`
-- If specifications exist: Suggest implementation with `/execute-task`
-- Always suggest `/swab` for code cleanup
+- If specifications exist: Suggest implementation with `/implement-story`
+- Always suggest `/refactor` for code cleanup
 
 ## Output Format
 
@@ -63,7 +63,7 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
 
 ### Standard Status Report
 
-⚓ Code Captain Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -84,14 +84,14 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
    • Review recent main branch changes (3 new commits)
 
 ⚡ QUICK COMMANDS
-   /execute-task     # Continue current task
+   /implement-story     # Continue current task
    /commit-wip       # Commit work in progress  
    /sync-main        # Pull latest from main
-   /swab             # Quick code cleanup
+   /refactor             # Quick code cleanup
 
 ### Clean State Example
 
-⚓ Code Captain Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -110,12 +110,12 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
 
 ⚡ QUICK COMMANDS
    /create-spec      # Plan new feature
-   /swab             # Clean up existing code
+   /refactor             # Clean up existing code
    /review-specs     # Check previous specifications
 
 ### Problem State Example
 
-⚓ Code Captain Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -142,16 +142,16 @@ Simple, no parameters needed. Works in any git repository with optional Code Cap
    • Continue or restart task 1.4
 
 ⚡ QUICK COMMANDS
-  /execute-task     # Continue current task
-  /swab            # Code cleanup
+  /implement-story     # Continue current task
+  /refactor            # Code cleanup
 
 ## Implementation Details
 
 ### Output Presentation
 
-**Critical**: When Code Captain executes the status command, the report should be presented as **clean, formatted text** directly in the chat response, NOT wrapped in code blocks or markdown formatting. This ensures maximum readability and a professional presentation.
+**Critical**: When Writ executes the status command, the report should be presented as **clean, formatted text** directly in the chat response, NOT wrapped in code blocks or markdown formatting. This ensures maximum readability and a professional presentation.
 
-The status report uses Unicode characters (⚓, 📍, 📋, 🎯, ⚡, ⚠️) and box-drawing characters (━) for visual appeal. These should be output exactly as shown in the examples above.
+The status report uses Unicode characters (⚡, 📍, 📋, 🎯, 🔥, ⚠️) and box-drawing characters (━) for visual appeal. These should be output exactly as shown in the examples above.
 
 ### Git Analysis
 **Commands to Run:**
@@ -170,12 +170,12 @@ git branch -v                       # Branch info
 - Identify if work appears complete or in-progress
 - Calculate time since last activity
 
-### Code Captain Integration
+### Writ Integration
 
 **Spec Detection:**
 ```bash
 # Find most recent spec directory
-LATEST_SPEC=$(ls -t .code-captain/specs/*/spec.md | head -1 | xargs dirname)
+LATEST_SPEC=$(ls -t .writ/specs/*/spec.md | head -1 | xargs dirname)
 
 # Read overall progress from user stories overview
 cat "$LATEST_SPEC/user-stories/README.md"
@@ -224,7 +224,7 @@ Possible statuses:
 1. **Multiple specs exist**: Show the most recently modified spec (based on file timestamps)
 2. **Single spec, multiple stories**: Show the story with "In Progress" status, or first "Not Started" story if none in progress
 3. **All stories complete**: Show overall completion status and suggest next actions
-4. **No specs found**: Indicate no Code Captain specifications exist
+4. **No specs found**: Indicate no Writ specifications exist
 
 **Task Parsing Edge Cases:**
 
@@ -275,7 +275,7 @@ pip check
 4. **Is there an active task?** → Suggest continue task
 5. **Is current task complete?** → Suggest next task
 6. **No active work?** → Suggest create spec
-7. **Always:** → Suggest swab for cleanup
+7. **Always:** → Suggest refactor for cleanup
 
 ## Usage Patterns
 
@@ -317,9 +317,9 @@ $ /status
    Initialize git first: git init
 ```
 
-### No Code Captain Structure
+### No Writ Structure
 ```bash
-⚓ Code Captain Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -328,15 +328,15 @@ $ /status
    Working directory: Clean ✅
 
 📋 ACTIVE WORK
-   No Code Captain specifications found
+   No Writ specifications found
    Project structure: Standard git repository
 
 🎯 SUGGESTED ACTIONS
-   • Set up Code Captain workflow
+   • Set up Writ workflow
    • Create first feature specification
 
 ⚡ QUICK COMMANDS
-   /init             # Initialize Code Captain
+   /init             # Initialize Writ
    /create-spec      # Create first specification
 ```
 
@@ -383,7 +383,7 @@ $ /status
 
 ## Integration Points
 
-### Existing Code Captain Commands
+### Existing Writ Commands
 - Status should inform other commands about current state
 - Share analysis results to avoid duplicate work
 - Coordinate with task execution and spec management
@@ -410,15 +410,15 @@ $ /status
 
 ---
 
-*⚓ Keep your bearings, maintain your heading, and always know where you stand in the code.*
+*⚡ Know thy codebase. Know thy standing. The truth shall set your project free.*
 
 ## Suggested Next Actions
 
 Based on project state analysis, suggest relevant next steps:
 
 - **No specs**: Suggest `/create-spec` or `/plan-product`
-- **Specs ready for implementation**: Suggest `/execute-task`
-- **Tasks ready**: Suggest `/execute-task`
-- **Code quality issues**: Suggest `/swab`
+- **Specs ready for implementation**: Suggest `/implement-story`
+- **Tasks ready**: Suggest `/implement-story`
+- **Code quality issues**: Suggest `/refactor`
 - **Missing architecture**: Suggest `/create-adr`
 - **Research needed**: Suggest `/research`

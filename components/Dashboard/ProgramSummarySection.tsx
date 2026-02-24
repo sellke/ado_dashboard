@@ -1,22 +1,26 @@
 'use client';
 
-import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { BarChart, LineChart } from '@mantine/charts';
+import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { DashboardViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
+import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { RagBadge } from './RagBadge';
 
 export interface ProgramSummarySectionProps {
   viewModel: DashboardViewModel;
+  /** Stub: program-level milestone rollup passed through from milestones API (Phase 1B integration pending). */
+  programRollup?: ApiProgramMilestoneRollup | null;
 }
 
 function buildVelocityChartData(
   sprints: TrendSprintViewModel[],
   prediction: DashboardViewModel['sprint5Prediction']
 ): Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> {
-  const data: Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> = sprints.map((s) => ({
-    sprint: s.sprintName,
-    'Completed Points': s.rawVelocity ?? 0,
-  }));
+  const data: Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> =
+    sprints.map((s) => ({
+      sprint: s.sprintName,
+      'Completed Points': s.rawVelocity ?? 0,
+    }));
 
   if (prediction && data.length > 0) {
     const existingLabels = new Set(data.map((point) => point.sprint));
@@ -49,7 +53,9 @@ function buildVelocityChartData(
 
 function averageVelocity(sprints: TrendSprintViewModel[]): number | null {
   const values = sprints.map((s) => s.rawVelocity).filter((v): v is number => v !== null);
-  if (values.length === 0) return null;
+  if (values.length === 0) {
+    return null;
+  }
   return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
 }
 
@@ -61,7 +67,8 @@ function buildBugChartData(sprints: TrendSprintViewModel[]) {
   }));
 }
 
-export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function ProgramSummarySection({ viewModel, programRollup }: ProgramSummarySectionProps) {
   if (viewModel.state !== 'success') {
     return null;
   }
@@ -141,9 +148,7 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
                   xAxisProps={{
                     interval: 0,
                     tickFormatter: (v: string) =>
-                      v
-                        .replace(/^Sprint\s*/i, '')
-                        .replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+                      v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
                     angle: -20,
                     textAnchor: 'end',
                     height: 52,
@@ -197,7 +202,6 @@ export function ProgramSummarySection({ viewModel }: ProgramSummarySectionProps)
           </SimpleGrid>
         </Stack>
       )}
-
     </Stack>
   );
 }

@@ -12,7 +12,7 @@ const SERIES = [
   { name: 'Bugs', color: 'red.6' },
   { name: 'Spikes', color: 'orange.6' },
   { name: 'Support', color: 'yellow.6' },
-] as const;
+];
 
 export function OverheadCompositionChart({ composition }: OverheadCompositionChartProps) {
   if (composition.length === 0) {

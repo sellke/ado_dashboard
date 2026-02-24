@@ -19,7 +19,7 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 **MANDATORY:** This command **automatically executes research** if no relevant research exists. The ADR creation process will:
 
 1. Check for existing research on the decision topic
-2. If no research found: **automatically read and execute** the complete research workflow from `.code-captain/commands/research.md`
+2. If no research found: **automatically read and execute** the complete research workflow from `.writ/commands/research.md`
 3. Only proceed with ADR creation after research is completed and documented
 
 ## Command Process
@@ -32,7 +32,7 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 
 1. **Check for existing research:**
 
-   - Use `file_search` to look for related research in `.code-captain/research/` directory
+   - Use `file_search` to look for related research in `.writ/research/` directory
    - Search for research documents that might relate to the architectural decision
    - Use `list_dir` to explore the research directory structure
 
@@ -46,18 +46,18 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 
    🔄 AUTOMATICALLY EXECUTING RESEARCH WORKFLOW FIRST...
 
-   Reading .code-captain/commands/research.md and executing complete research process..."
+   Reading .writ/commands/research.md and executing complete research process..."
    ```
 
 3. **Execute research workflow automatically:**
 
-   - **IMMEDIATELY** use `read_file` to read `.code-captain/commands/research.md`
+   - **IMMEDIATELY** use `read_file` to read `.writ/commands/research.md`
    - **EXECUTE** the complete 4-phase research methodology as defined in research.md:
      - Phase 1: Define Research Scope
      - Phase 2: Initial Discovery
      - Phase 3: Deep Dive Analysis
      - Phase 4: Synthesis and Recommendations
-   - **CREATE** research document in `.code-captain/research/{date}-{topic}-research.md`
+   - **CREATE** research document in `.writ/research/{date}-{topic}-research.md`
    - **ONLY CONTINUE** with ADR creation after research is completed
 
 4. **Handle research workflow:**
@@ -131,7 +131,7 @@ Use `todo_write` to track the ADR creation process:
 
 2. **Find existing ADRs and documentation:**
 
-   - Use `file_search` to find existing ADRs in `.code-captain/decision-records/` directory
+   - Use `file_search` to find existing ADRs in `.writ/decision-records/` directory
    - Use `list_dir` to explore system structure and identify affected components
 
 3. **Gather decision context:**
@@ -182,7 +182,7 @@ Use `todo_write` to track the ADR creation process:
 
 1. **Leverage existing research (if found in Step 0):**
 
-   - Review research documents from `.code-captain/research/` for relevant findings
+   - Review research documents from `.writ/research/` for relevant findings
    - Extract key insights, alternatives, and recommendations from prior research
    - Identify gaps in existing research that need additional investigation
 
@@ -230,12 +230,12 @@ For each alternative, evaluate against established criteria:
 1. **Get current date for document content:**
 
    ```bash
-   npx @devobsessed/code-captain date
+   npx @devobsessed/writ date
    ```
 
 2. **Determine ADR number:**
 
-   - Check existing ADRs in `.code-captain/decision-records/` directory
+   - Check existing ADRs in `.writ/decision-records/` directory
    - Use sequential numbering (0001, 0002, etc.)
 
 3. **Create ADR directory structure:**
@@ -244,14 +244,14 @@ For each alternative, evaluate against established criteria:
 
 **ADR Creation:**
 
-Create markdown file: `.code-captain/decision-records/NNNN-decision-title.md`
+Create markdown file: `.writ/decision-records/NNNN-decision-title.md`
 
 **ADR Document Template:**
 
 ```markdown
 # NNNN. [Decision Title]
 
-**Date:** [Use output from npx @devobsessed/code-captain date]
+**Date:** [Use output from npx @devobsessed/writ date]
 
 **Status:** [Proposed/Accepted/Deprecated/Superseded]
 
@@ -397,7 +397,7 @@ Create markdown file: `.code-captain/decision-records/NNNN-decision-title.md`
 ## References
 
 - [Link to related ADRs]
-- [Prior research documents from .code-captain/research/ (if applicable)]
+- [Prior research documents from .writ/research/ (if applicable)]
 - [External documentation, articles, or research]
 - [Code repositories or examples]
 - [Meeting notes or discussion records]
@@ -417,7 +417,7 @@ Create markdown file: `.code-captain/decision-records/NNNN-decision-title.md`
 
 **Deliverables:**
 
-- Comprehensive ADR document in `.code-captain/decision-records/NNNN-decision-title.md`
+- Comprehensive ADR document in `.writ/decision-records/NNNN-decision-title.md`
 - Stakeholder review and approval record
 - Updated todo status marking completion
 

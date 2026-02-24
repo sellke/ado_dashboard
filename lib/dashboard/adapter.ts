@@ -48,10 +48,7 @@ function formatMonthLabel(isoDate: string): string {
 
 function isCurrentMonthFn(isoDate: string, today: Date): boolean {
   const d = new Date(isoDate);
-  return (
-    d.getUTCFullYear() === today.getUTCFullYear() &&
-    d.getUTCMonth() === today.getUTCMonth()
-  );
+  return d.getUTCFullYear() === today.getUTCFullYear() && d.getUTCMonth() === today.getUTCMonth();
 }
 
 /** Map ApiMilestoneWithProgress to MilestoneGoalViewModel with formatted display values */
@@ -68,9 +65,7 @@ export function mapMilestoneToGoalViewModel(
     isCurrentMonth: isCurrentMonthFn(milestone.targetMonth, today),
     adoFeatureId: milestone.adoFeatureId != null ? `#${milestone.adoFeatureId}` : null,
     percentComplete:
-      milestone.percentComplete != null
-        ? `${Math.round(milestone.percentComplete)}%`
-        : 'N/A',
+      milestone.percentComplete != null ? `${Math.round(milestone.percentComplete)}%` : 'N/A',
     completedPoints: milestone.completedPoints,
     totalPoints: milestone.totalPoints,
     burnupData: milestone.burnupData,
@@ -86,21 +81,21 @@ export function groupMilestonesByMonth(
   const groupMap = new Map<string, MilestoneGoalViewModel[]>();
   for (const m of milestones) {
     const key = m.targetMonth;
-    if (!groupMap.has(key)) groupMap.set(key, []);
+    if (!groupMap.has(key)) {
+      groupMap.set(key, []);
+    }
     groupMap.get(key)!.push(m);
   }
 
   const groups: (MilestoneMonthGroup & { _date: Date })[] = [];
-  for (const [, msList] of groupMap) {
+  for (const msList of Array.from(groupMap.values())) {
     const key = msList[0].targetMonth;
     const d = new Date(key);
     const isCurrentMonth = msList[0].isCurrentMonth;
     const totalPoints = msList.reduce((sum, m) => sum + m.totalPoints, 0);
     const completedPoints = msList.reduce((sum, m) => sum + m.completedPoints, 0);
     const groupCompletionPercent =
-      totalPoints > 0
-        ? `${Math.round((completedPoints / totalPoints) * 100)}%`
-        : 'N/A';
+      totalPoints > 0 ? `${Math.round((completedPoints / totalPoints) * 100)}%` : 'N/A';
 
     groups.push({
       monthLabel: msList[0].monthLabel,
@@ -111,31 +106,27 @@ export function groupMilestonesByMonth(
     });
   }
 
-  const todayTime = new Date(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    1
-  ).getTime();
+  const todayTime = new Date(today.getUTCFullYear(), today.getUTCMonth(), 1).getTime();
 
   groups.sort((a, b) => {
-    const aTime = new Date(
-      a._date.getUTCFullYear(),
-      a._date.getUTCMonth(),
-      1
-    ).getTime();
-    const bTime = new Date(
-      b._date.getUTCFullYear(),
-      b._date.getUTCMonth(),
-      1
-    ).getTime();
+    const aTime = new Date(a._date.getUTCFullYear(), a._date.getUTCMonth(), 1).getTime();
+    const bTime = new Date(b._date.getUTCFullYear(), b._date.getUTCMonth(), 1).getTime();
     const aIsCurrent = aTime === todayTime;
     const bIsCurrent = bTime === todayTime;
-    if (aIsCurrent) return -1;
-    if (bIsCurrent) return 1;
+    if (aIsCurrent) {
+      return -1;
+    }
+    if (bIsCurrent) {
+      return 1;
+    }
     const aIsFuture = aTime > todayTime;
     const bIsFuture = bTime > todayTime;
-    if (aIsFuture && bIsFuture) return aTime - bTime;
-    if (!aIsFuture && !bIsFuture) return bTime - aTime;
+    if (aIsFuture && bIsFuture) {
+      return aTime - bTime;
+    }
+    if (!aIsFuture && !bIsFuture) {
+      return bTime - aTime;
+    }
     return aIsFuture ? -1 : 1;
   });
 
@@ -237,6 +228,13 @@ function formatVelocityRate(value: number | null | undefined): string {
     return 'N/A';
   }
   return `${value.toFixed(2)} pts/hr`;
+}
+
+/** Format a sprint's name + date range into a compact label, e.g. "Sprint 14 · Jan 6 – Jan 17" */
+function formatSprintLabel(sprint: { name: string; startDate: string; endDate: string }): string {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  return `${sprint.name} · ${fmt(sprint.startDate)} – ${fmt(sprint.endDate)}`;
 }
 
 /** Format hours value; null -> "N/A", number -> "X hrs" */
@@ -445,11 +443,28 @@ export function mapApiResponseToDashboardViewModel(
   }
 
   const currentSprintName = response.sprint?.name ?? 'Current Sprint';
+  const detailSprintLabel = response.detailSprint
+    ? formatSprintLabel(response.detailSprint)
+    : null;
 
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
     const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent }) =>
       mapApiMetricToTile(ws.metrics[key], label, unit, isPercent)
     );
+
+    // Override velocity tile to display the rolling average instead of the current/projected value.
+    const velocityIdx = metrics.findIndex((m) => m.label === 'Velocity');
+    if (velocityIdx >= 0) {
+      const avgRaw = ws.metrics.velocity?.avg ?? null;
+      metrics[velocityIdx] = {
+        ...metrics[velocityIdx]!,
+        label: 'Avg Velocity',
+        value: formatMetricValue(avgRaw, 'pts'),
+        rawValue: avgRaw,
+        mode: undefined,
+        avgLabel: null,
+      };
+    }
 
     const velocityRateValue = ws.prediction?.velocityRate ?? null;
     metrics.splice(1, 0, {
@@ -460,6 +475,21 @@ export function mapApiResponseToDashboardViewModel(
       rag: null,
       avgLabel: null,
     });
+
+    // Apply 2-decimal-place formatting to overhead % tile.
+    const overheadIdx = metrics.findIndex((m) => m.label === 'Overhead %');
+    if (overheadIdx >= 0) {
+      const rawVal = metrics[overheadIdx]!.rawValue;
+      const avgRaw = ws.metrics.overheadPercent?.avg ?? null;
+      metrics[overheadIdx] = {
+        ...metrics[overheadIdx]!,
+        value: formatCarryOverRate(rawVal),
+        avgLabel:
+          avgRaw !== null && ws.metrics.overheadPercent?.mode !== 'projected'
+            ? formatCarryOverRate(avgRaw)
+            : null,
+      };
+    }
 
     // Apply 2-decimal-place formatting to carry-over % tile (more precise than default formatPercent).
     const carryOverIdx = metrics.findIndex((m) => m.label === 'Carry-Over %');
@@ -487,6 +517,7 @@ export function mapApiResponseToDashboardViewModel(
       workstreamId: ws.workstreamId,
       workstreamName: ws.workstreamName ?? 'Unknown',
       metrics,
+      detailSprintLabel,
       detail: {
         plannedPoints: formatDetailValue(d.plannedPoints),
         completedPoints: formatDetailValue(d.completedPoints),

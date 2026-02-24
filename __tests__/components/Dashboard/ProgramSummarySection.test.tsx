@@ -17,7 +17,11 @@ jest.mock('@mantine/charts', () => ({
     />
   ),
   BarChart: (props: Record<string, unknown>) => (
-    <div data-testid="bar-chart" data-series={JSON.stringify(props.series)} data-type={props.type as string} />
+    <div
+      data-testid="bar-chart"
+      data-series={JSON.stringify(props.series)}
+      data-type={props.type as string}
+    />
   ),
 }));
 
@@ -369,7 +373,12 @@ describe('ProgramSummarySection', () => {
           bugs: [],
         },
       ],
-      sprint5Prediction: { velocity: 'N/A', rawVelocity: null, sprintLabel: 'Sprint 26.21', isPredicted: true },
+      sprint5Prediction: {
+        velocity: 'N/A',
+        rawVelocity: null,
+        sprintLabel: 'Sprint 26.21',
+        isPredicted: true,
+      },
     };
 
     render(<ProgramSummarySection viewModel={vmNullTrend} />);

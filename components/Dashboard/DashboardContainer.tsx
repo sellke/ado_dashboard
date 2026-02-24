@@ -1,17 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Group, Stack, Title } from '@mantine/core';
 import {
   createErrorViewModel,
   createLoadingViewModel,
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
-import type { ApiResponse, DashboardViewModel } from '@/lib/dashboard/types';
 import type { DashboardId } from '@/lib/dashboard/config';
-import type { ApiMilestone } from '@/lib/milestones/types';
+import type { ApiResponse } from '@/lib/dashboard/types';
+import type {
+  ApiMilestonesResponse,
+  ApiMilestoneWithProgress,
+  ApiProgramMilestoneRollup,
+} from '@/lib/milestones/types';
 import { DashboardShell } from './DashboardShell';
-import { MilestonePanel } from './MilestonePanel';
 import { SyncControl } from './SyncControl';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
@@ -22,8 +25,13 @@ export interface DashboardContainerProps {
 }
 
 export function DashboardContainer({ dashboard, title = 'Dashboard' }: DashboardContainerProps) {
-  const [viewModel, setViewModel] = useState<DashboardViewModel>(createLoadingViewModel());
-  const [milestones, setMilestones] = useState<ApiMilestone[]>([]);
+  const [rawMetrics, setRawMetrics] = useState<ApiResponse | null>(null);
+  const [metricsViewState, setMetricsViewState] = useState<'loading' | 'error' | 'success'>(
+    'loading'
+  );
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [milestones, setMilestones] = useState<ApiMilestoneWithProgress[]>([]);
+  const [programRollup, setProgramRollup] = useState<ApiProgramMilestoneRollup | null>(null);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
   const [milestonesError, setMilestonesError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
@@ -32,10 +40,24 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   const metricsUrl = dashboard ? `/api/metrics?dashboard=${dashboard}` : '/api/metrics';
 
+  const viewModel = useMemo(() => {
+    if (metricsViewState === 'loading') {
+      return createLoadingViewModel();
+    }
+    if (metricsViewState === 'error') {
+      return createErrorViewModel(metricsError ?? 'Unknown error');
+    }
+    if (!rawMetrics) {
+      return createLoadingViewModel();
+    }
+    return mapApiResponseToDashboardViewModel(rawMetrics, milestones);
+  }, [metricsViewState, metricsError, rawMetrics, milestones]);
+
   const fetchMetrics = useCallback(
     async (options?: { skipLoadingState?: boolean }) => {
       if (!options?.skipLoadingState) {
-        setViewModel(createLoadingViewModel());
+        setMetricsViewState('loading');
+        setMetricsError(null);
       }
 
       try {
@@ -51,20 +73,22 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
             setSyncPartialSuccess(true);
             return;
           }
-          setViewModel(createErrorViewModel(msg));
+          setMetricsError(msg);
+          setMetricsViewState('error');
           return;
         }
 
         setSyncPartialSuccess(false);
-        const vm = mapApiResponseToDashboardViewModel(data as ApiResponse);
-        setViewModel(vm);
+        setRawMetrics(data as ApiResponse);
+        setMetricsViewState('success');
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load metrics';
         if (options?.skipLoadingState) {
           setSyncPartialSuccess(true);
           return;
         }
-        setViewModel(createErrorViewModel(message));
+        setMetricsError(message);
+        setMetricsViewState('error');
       }
     },
     [metricsUrl]
@@ -105,7 +129,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
     try {
       const res = await fetch('/api/milestones');
-      const data: ApiMilestone[] | { error?: string } = await res.json();
+      const data: ApiMilestonesResponse | { error?: string } = await res.json();
 
       if (!res.ok) {
         const msg =
@@ -114,14 +138,18 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
             : `Request failed: ${res.status}`;
         setMilestonesError(msg);
         setMilestones([]);
+        setProgramRollup(null);
         return;
       }
 
-      setMilestones(Array.isArray(data) ? data : []);
+      const response = data as ApiMilestonesResponse;
+      setMilestones(response.milestones ?? []);
+      setProgramRollup(response.programRollup ?? null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load milestones';
       setMilestonesError(message);
       setMilestones([]);
+      setProgramRollup(null);
     } finally {
       setMilestonesLoading(false);
     }
@@ -135,14 +163,6 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     fetchMilestones();
   }, [fetchMilestones]);
 
-  const workstreams =
-    viewModel.state === 'success' && viewModel.workstreamCards
-      ? viewModel.workstreamCards.map((c) => ({
-          id: c.workstreamId,
-          name: c.workstreamName,
-        }))
-      : [];
-
   return (
     <Stack gap="xl">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
@@ -155,13 +175,12 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
           onDismissError={() => setSyncError(null)}
         />
       </Group>
-      <DashboardShell viewModel={viewModel} onRetry={() => fetchMetrics()} />
-      <MilestonePanel
-        milestones={milestones}
-        workstreams={workstreams}
-        loading={milestonesLoading}
-        error={milestonesError}
-        onRefresh={fetchMilestones}
+      <DashboardShell
+        viewModel={viewModel}
+        onRetry={() => fetchMetrics()}
+        milestonesLoading={milestonesLoading}
+        milestonesError={milestonesError}
+        programRollup={programRollup}
       />
     </Stack>
   );

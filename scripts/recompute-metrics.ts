@@ -3,8 +3,8 @@
  * Run: pnpm tsx scripts/recompute-metrics.ts
  */
 
-import { prisma } from '@/lib/prisma';
 import { computeAllMetrics } from '@/lib/metrics/orchestrator';
+import { prisma } from '@/lib/prisma';
 
 async function main() {
   const sprints = await prisma.sprint.findMany({

@@ -13,10 +13,37 @@ Generate comprehensive product planning documentation using a contract-first app
 
 #### Step 1.1: Initial Context Scan
 
-- Scan existing `.code-captain/product/` for any existing product documentation
-- Load available project context from `.code-captain/docs/` (tech-stack.md if available)
+- Scan existing `.writ/product/` for any existing product documentation
+- Load available project context from `.writ/docs/` (tech-stack.md if available)
 - Review any existing product mission or objectives
 - **Output:** Product context summary and foundation assessment
+
+#### Step 1.1b: Product Direction (AskQuestion)
+
+**If user didn't specify a clear product idea, use AskQuestion immediately:**
+
+```
+AskQuestion({
+  title: "Product Planning - What are we building?",
+  questions: [
+    {
+      id: "product_direction",
+      prompt: "What kind of product are you envisioning?",
+      options: [
+        // Dynamically generate options based on existing codebase, .writ/product/, and project context
+        { id: "option_1", label: "[Product type suggestion based on codebase/domain]" },
+        { id: "option_2", label: "[Another relevant product direction]" },
+        { id: "option_3", label: "[Third suggestion from roadmap/existing docs]" },
+        { id: "other", label: "Something else (I'll describe it)" }
+      ]
+    }
+  ]
+})
+```
+
+If user selects "Something else", follow up with a free-text question to get their idea.
+
+**If user already described the product idea clearly, skip this step.**
 
 #### Step 1.2: Gap Analysis & Silent Enumeration
 
@@ -45,6 +72,77 @@ Generate comprehensive product planning documentation using a contract-first app
 - **Never declare "final question"** - let the conversation flow naturally
 - Let the user signal when they're ready to lock the contract
 - **Challenge ideas that don't make business or technical sense** - better to surface concerns early than plan the wrong product
+- **Use AskQuestion for structured choices** - when the question has a finite set of likely answers (scope decisions, model selection, audience targeting), present them as selectable options rather than free text. Reserve free-text questions for open-ended discovery (pain points, vision, differentiation).
+
+#### Step 1.3a: Structured Decision Points (AskQuestion)
+
+At key decision moments during discovery, use AskQuestion instead of free text:
+
+**MVP Scope Focus** (after understanding the problem space):
+```
+AskQuestion({
+  title: "MVP Scope - Where should we focus first?",
+  questions: [
+    {
+      id: "mvp_focus",
+      prompt: "Based on our discussion, which area should the MVP prioritize?",
+      options: [
+        // Generate 3-5 options from the discovered feature space
+        { id: "focus_1", label: "[Core feature area A] - [user value]" },
+        { id: "focus_2", label: "[Core feature area B] - [user value]" },
+        { id: "focus_3", label: "[Core feature area C] - [user value]" },
+        { id: "all", label: "All of the above (larger MVP scope)" }
+      ],
+      allowMultiple: true
+    }
+  ]
+})
+```
+
+**Business Model** (when discussing monetization):
+```
+AskQuestion({
+  title: "Business Model - How will this generate revenue?",
+  questions: [
+    {
+      id: "business_model",
+      prompt: "What monetization approach fits this product?",
+      options: [
+        { id: "freemium", label: "Freemium - Free tier + paid upgrades" },
+        { id: "subscription", label: "Subscription - Monthly/annual recurring" },
+        { id: "one_time", label: "One-time purchase" },
+        { id: "marketplace", label: "Marketplace/transaction fees" },
+        { id: "open_source", label: "Open source + services/support" },
+        { id: "ad_supported", label: "Ad-supported / data monetization" },
+        { id: "other", label: "Something else (I'll describe it)" },
+        { id: "none", label: "Not monetized (internal tool / side project)" }
+      ]
+    }
+  ]
+})
+```
+
+**Target Audience** (when narrowing market):
+```
+AskQuestion({
+  title: "Target Audience - Who are we building for first?",
+  questions: [
+    {
+      id: "target_audience",
+      prompt: "Which user segment should we target first?",
+      options: [
+        // Dynamically generate from discovery conversation
+        { id: "segment_1", label: "[User segment A] - [size/accessibility]" },
+        { id: "segment_2", label: "[User segment B] - [size/accessibility]" },
+        { id: "segment_3", label: "[User segment C] - [size/accessibility]" },
+        { id: "broad", label: "General audience (no specific segment)" }
+      ]
+    }
+  ]
+})
+```
+
+**Use these at natural moments in the conversation — not all at once.** The discovery loop (Step 1.3) still drives the conversation; these structured questions replace specific free-text questions where options are clearer and faster.
 
 **Critical Analysis Responsibility:**
 - If product scope seems too large for available resources, recommend phasing
@@ -139,7 +237,7 @@ Options:
 
 **Generated folder:**
 ```
-.code-captain/product/
+.writ/product/
 ├── mission.md                 # Complete product vision and strategy
 ├── mission-lite.md           # Condensed version for AI context
 ├── roadmap.md                # Development phases and timeline
@@ -362,7 +460,7 @@ Present complete package with file references:
 ```
 ✅ Product planning package created successfully!
 
-📁 .code-captain/product/
+📁 .writ/product/
 ├── 📋 mission.md - Complete product vision and strategy
 ├── 📝 mission-lite.md - AI context summary
 ├── 🗺️ roadmap.md - Phased development plan
@@ -381,7 +479,7 @@ Please review the planning documents and let me know:
 
 Once you're satisfied with the product plan, you can use:
 - `/create-spec` to detail specific features from the roadmap
-- `/execute-task` to begin implementing planned features
+- `/implement-story` to begin implementing planned features
 - `/research` to investigate any market or product unknowns
 ```
 
@@ -410,7 +508,7 @@ Once you're satisfied with the product plan, you can use:
 
 ## Tool Integration
 
-**Primary Code Captain tools:**
+**Primary Writ tools:**
 - `todo_write` - Progress tracking throughout discovery and creation
 - `file_search` - Locating existing product documentation
 - `read_file` - Loading project context and existing plans
@@ -422,16 +520,16 @@ Once you're satisfied with the product plan, you can use:
 - Product research (market analysis, competitive landscape)
 - User research and persona development
 
-## Integration with Code Captain Ecosystem
+## Integration with Writ Ecosystem
 
 **Project foundation dependency:**
-- Works with existing `.code-captain/docs/` context files for technical awareness
+- Works with existing `.writ/docs/` context files for technical awareness
 - Builds on any existing product documentation
 - Integrates with established project patterns if present
 
 **Cross-command integration:**
 - Feeds into `/create-spec` for detailed feature planning
-- Supports `/execute-task` with clear product context
+- Supports `/implement-story` with clear product context
 - Can trigger `/research` for market or technical investigation
 
 **Output integration:**

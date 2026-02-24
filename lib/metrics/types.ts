@@ -56,6 +56,10 @@ export interface PriorSnapshot {
 export interface OverheadResult {
   overheadHours: number;
   overheadPercent: number | null;
+  ceremonyHours: number;
+  bugHours: number;
+  spikeHours: number;
+  supportHours: number;
 }
 
 // ============================================================================

@@ -39,7 +39,7 @@ Use `todo_write` to track progress through technical setup:
     },
     {
       "id": "greenfield-tech-stack",
-      "content": "Document technology stack in .code-captain/docs/tech-stack.md",
+      "content": "Document technology stack in .writ/docs/tech-stack.md",
       "status": "pending"
     },
     {
@@ -81,11 +81,11 @@ Based on technical requirements, recommend:
 
 #### Directory Structure (Pre-existing)
 
-The `.code-captain/` directory structure already exists from installation:
+The `.writ/` directory structure already exists from installation:
 
-- `.code-captain/docs/` - For technical documentation
-- `.code-captain/research/` - For research outputs
-- `.code-captain/commands/` - Pre-installed command definitions
+- `.writ/docs/` - For technical documentation
+- `.writ/research/` - For research outputs
+- `.writ/commands/` - Pre-installed command definitions
 
 #### Configuration Files
 
@@ -96,8 +96,8 @@ The `.code-captain/` directory structure already exists from installation:
 
 #### Documentation Creation (Exact File Paths)
 
-1. **`.code-captain/docs/tech-stack.md`** - Technology stack decisions and rationale
-2. **`.code-captain/docs/code-style.md`** - Coding standards and development patterns
+1. **`.writ/docs/tech-stack.md`** - Technology stack decisions and rationale
+2. **`.writ/docs/code-style.md`** - Coding standards and development patterns
 3. **`README.md`** - Technical overview and setup instructions
 
 ### Phase 4: Next Steps Guidance
@@ -119,7 +119,7 @@ Your development environment is now set up and documented:
 
 ### For Existing Products:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features with TDD workflow
+/implement-story - Implement features with TDD workflow
 
 ### For Research:
 /research "topic" - Conduct systematic technical research
@@ -148,12 +148,12 @@ Use `todo_write` to track analysis progress:
     },
     {
       "id": "brownfield-tech-stack",
-      "content": "Document current tech stack in .code-captain/docs/tech-stack.md",
+      "content": "Document current tech stack in .writ/docs/tech-stack.md",
       "status": "pending"
     },
     {
       "id": "brownfield-code-style",
-      "content": "Analyze and document code patterns in .code-captain/docs/code-style.md",
+      "content": "Analyze and document code patterns in .writ/docs/code-style.md",
       "status": "pending"
     },
     {
@@ -266,7 +266,7 @@ Your existing project has been analyzed and documented:
 
 ### For Feature Development:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features following established patterns
+/implement-story - Implement features following established patterns
 
 ### For Technical Improvements:
 /research "technical topic" - Research solutions for identified gaps
@@ -300,7 +300,7 @@ Ready to define your product strategy and enhance your codebase!
 
 ### For Feature Development:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features
+/implement-story - Implement features
 
 ### For Technical Improvements:
 /research "topic" - Research solutions for gaps
@@ -323,7 +323,7 @@ Ready to define your product strategy and enhance your codebase!
 #### Directory Structure (Created by Install Script)
 
 ```
-.code-captain/
+.writ/
 ├── commands/                 # CC command definitions (pre-installed)
 └── docs/
     ├── best-practices.md     # Development best practices (pre-installed)
@@ -334,18 +334,18 @@ Ready to define your product strategy and enhance your codebase!
 
 #### Specific File Locations
 
-**Docs Directory** (`.code-captain/docs/`):
+**Docs Directory** (`.writ/docs/`):
 
 - `best-practices.md` - Development best practices (pre-installed)
 - `code-style.md` - Coding standards, naming conventions, patterns
 - `tech-stack.md` - Technology choices with justifications
 - `architecture.md` - System architecture and technical decisions (if complex)
 
-**Research Directory** (`.code-captain/research/`):
+**Research Directory** (`.writ/research/`):
 
 - Research outputs, technical analysis, and investigation results
 
-**Commands Directory** (`.code-captain/commands/`):
+**Commands Directory** (`.writ/commands/`):
 
 - Pre-installed CC command definitions (managed by system)
 
@@ -392,7 +392,7 @@ todo_write({
 
 Before marking documentation todos as complete, ensure:
 
-1. **Directory exists**: `.code-captain/docs/`
+1. **Directory exists**: `.writ/docs/`
 2. **File is created**: Use `write` tool to create the actual file
 3. **Content is complete**: File contains all required sections
 4. **Path is correct**: Double-check exact file path matches todo description

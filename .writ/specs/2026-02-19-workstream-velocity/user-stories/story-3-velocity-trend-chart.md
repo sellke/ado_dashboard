@@ -40,7 +40,21 @@
 
 ## Definition of Done
 
-- [x] All tasks completed ✅
+- [x] All original tasks completed ✅
 - [x] All acceptance criteria met ✅
 - [x] Component tests passing (12/12, 100%) ✅
 - [x] Chart matches program-level velocity chart styling ✅
+
+---
+
+## Amendment: Verify Real Data Display & Rolling Average (2026-02-23)
+
+### Additional Acceptance Criteria
+
+- [ ] Given velocity rate data is fixed (Story 1), when the chart renders, then the rolling average reference line shows a real non-zero value labeled "Avg: X"
+- [ ] Given a current sprint with net capacity hours, when the chart renders, then the forecasted data point reflects `avgVelocityRate × netCapacityHours` (not a hardcoded or null value)
+
+### Additional Implementation Tasks
+
+- [ ] 3.7 End-to-end verify the rolling average reference line renders with real data (not zero/null) after Story 1 data fix — update fixtures if needed to use realistic non-zero velocity values
+- [ ] 3.8 End-to-end verify the forecasted sprint prediction point uses real `avgVelocityRate × netCapacityHours` — confirm the formula is correctly wired from the API through the adapter to the chart

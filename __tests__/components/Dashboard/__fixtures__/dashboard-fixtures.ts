@@ -6,10 +6,13 @@
 import { mapApiResponseToDashboardViewModel } from '@/lib/dashboard/adapter';
 import type {
   ApiMetric,
+  ApiOverheadItem,
   ApiResponse,
   ApiWorkstream,
   DashboardViewModel,
   MetricTileViewModel,
+  OverheadCompositionViewModel,
+  OverheadItemViewModel,
   WorkstreamCardViewModel,
 } from '@/lib/dashboard/types';
 
@@ -24,6 +27,46 @@ export function createMetricTile(
     unit: 'pts',
     rag: 'Green',
     avgLabel: null,
+    ...overrides,
+  };
+}
+
+/** Create a sample OverheadCompositionViewModel. */
+export function createOverheadCompositionViewModel(
+  overrides: Partial<OverheadCompositionViewModel> = {}
+): OverheadCompositionViewModel {
+  return {
+    sprintName: 'Sprint 1',
+    ceremonyHours: 10.25,
+    bugHours: 5,
+    spikeHours: 2,
+    supportHours: 3,
+    overheadPercent: '25%',
+    ...overrides,
+  };
+}
+
+/** Create a sample OverheadItemViewModel. */
+export function createOverheadItemViewModel(
+  overrides: Partial<OverheadItemViewModel> = {}
+): OverheadItemViewModel {
+  return {
+    adoId: '#12345',
+    title: 'Login crash',
+    state: 'Active',
+    hours: '4.5 hrs',
+    isClosed: false,
+    ...overrides,
+  };
+}
+
+/** Create a sample ApiOverheadItem (API layer). */
+export function createApiOverheadItem(overrides: Partial<ApiOverheadItem> = {}): ApiOverheadItem {
+  return {
+    adoId: 12345,
+    title: 'Login crash',
+    state: 'Active',
+    hours: 4.5,
     ...overrides,
   };
 }
@@ -87,6 +130,12 @@ export function createWorkstreamCard(
           { adoId: '12345', title: 'Login crash', isClosed: true },
           { adoId: '67890', title: 'Slow query', isClosed: false },
         ],
+        overheadBreakdown: [
+          { category: 'Meetings' as const, hours: 10.25 },
+          { category: 'Spikes' as const, hours: 4 },
+          { category: 'Bugs' as const, hours: 5 },
+          { category: 'Support' as const, hours: 3 },
+        ],
       },
       {
         sprintId: 's2',
@@ -100,6 +149,12 @@ export function createWorkstreamCard(
         rawActiveBugs: 3,
         rawBugsClosed: 4,
         bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
+        overheadBreakdown: [
+          { category: 'Meetings' as const, hours: 10.25 },
+          { category: 'Spikes' as const, hours: 2 },
+          { category: 'Bugs' as const, hours: 6 },
+          { category: 'Support' as const, hours: 2 },
+        ],
       },
     ],
     prediction: {
@@ -110,6 +165,41 @@ export function createWorkstreamCard(
       sprintLabel: 'Sprint 26.21',
       isPredicted: true,
     },
+    overheadComposition: [
+      createOverheadCompositionViewModel({ sprintName: 'Sprint 1' }),
+      createOverheadCompositionViewModel({
+        sprintName: 'Sprint 2',
+        ceremonyHours: 10.25,
+        bugHours: 6,
+        overheadPercent: '27%',
+      }),
+    ],
+    milestoneGroups: [],
+    currentSprintBugItems: [
+      createOverheadItemViewModel({
+        adoId: '#12345',
+        title: 'Login crash',
+        state: 'Closed',
+        hours: '4.5 hrs',
+        isClosed: true,
+      }),
+      createOverheadItemViewModel({
+        adoId: '#67890',
+        title: 'Slow query',
+        state: 'Active',
+        hours: 'N/A',
+        isClosed: false,
+      }),
+    ],
+    currentSprintSupportItems: [
+      createOverheadItemViewModel({
+        adoId: '#11111',
+        title: 'Infra request',
+        state: 'Done',
+        hours: '2 hrs',
+        isClosed: true,
+      }),
+    ],
     ...overrides,
   };
 }
@@ -192,7 +282,12 @@ export function createDashboardViewModel(
           bugs: [],
         },
       ],
-      sprint5Prediction: { velocity: '124 pts', rawVelocity: 124, sprintLabel: 'Sprint 26.21', isPredicted: true },
+      sprint5Prediction: {
+        velocity: '124 pts',
+        rawVelocity: 124,
+        sprintLabel: 'Sprint 26.21',
+        isPredicted: true,
+      },
       workstreamCards: [
         createWorkstreamCard({ workstreamId: 'ws-1', workstreamName: 'Platform' }),
         createWorkstreamCard({ workstreamId: 'ws-2', workstreamName: 'Apps' }),
@@ -251,6 +346,15 @@ function createApiWorkstream(overrides: Partial<ApiWorkstream> = {}): ApiWorkstr
       carryOverPoints: 6,
       overheadHours: 22,
       grossHours: 80,
+    },
+    currentSprintOverheadItems: {
+      bugs: [
+        createApiOverheadItem({ adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 }),
+        createApiOverheadItem({ adoId: 67890, title: 'Slow query', state: 'Active', hours: null }),
+      ],
+      support: [
+        createApiOverheadItem({ adoId: 11111, title: 'Infra request', state: 'Done', hours: 2 }),
+      ],
     },
     ...overrides,
   };

@@ -94,6 +94,15 @@ describe('calculateOverhead', () => {
     // overhead = ceremony(5) + bug(4) + spike(3) + support(2) = 14
     expect(result.overheadHours).toBe(14);
     expect(result.overheadPercent).toBeCloseTo(14, 10); // 14/100*100
+
+    // Breakdown fields
+    expect(result.ceremonyHours).toBe(5);
+    expect(result.bugHours).toBe(4);
+    expect(result.spikeHours).toBe(3);
+    expect(result.supportHours).toBe(2);
+    expect(result.ceremonyHours + result.bugHours + result.spikeHours + result.supportHours).toBe(
+      result.overheadHours
+    );
   });
 
   it('should return null overheadPercent when grossHours is null', () => {
@@ -103,6 +112,13 @@ describe('calculateOverhead', () => {
 
     expect(result.overheadHours).toBe(9); // 5 + 4
     expect(result.overheadPercent).toBeNull();
+    expect(result.ceremonyHours).toBe(5);
+    expect(result.bugHours).toBe(4);
+    expect(result.spikeHours).toBe(0);
+    expect(result.supportHours).toBe(0);
+    expect(result.ceremonyHours + result.bugHours + result.spikeHours + result.supportHours).toBe(
+      result.overheadHours
+    );
   });
 
   it('should return null overheadPercent when grossHours is 0', () => {
@@ -192,6 +208,28 @@ describe('calculateOverhead', () => {
 
     expect(result.overheadHours).toBe(0);
     expect(result.overheadPercent).toBe(0);
+    expect(result.ceremonyHours).toBe(0);
+    expect(result.bugHours).toBe(0);
+    expect(result.spikeHours).toBe(0);
+    expect(result.supportHours).toBe(0);
+    expect(result.ceremonyHours + result.bugHours + result.spikeHours + result.supportHours).toBe(
+      result.overheadHours
+    );
+  });
+
+  it('should have breakdown fields that sum to overheadHours', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Bug', completedWork: 10 }),
+      makeItem({ type: 'Spike', storyPoints: 5 }),
+      makeItem({ type: 'Support', completedWork: 3, originalEstimate: 6 }),
+    ];
+    const sw = makeSW({ grossHours: 200, ceremonyHours: 7 });
+    const result = calculateOverhead(items, sw);
+
+    expect(result.ceremonyHours + result.bugHours + result.spikeHours + result.supportHours).toBe(
+      result.overheadHours
+    );
+    expect(result.overheadHours).toBe(25); // 7 + 10 + 5 + 3
   });
 });
 

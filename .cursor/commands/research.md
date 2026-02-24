@@ -87,7 +87,7 @@ Conduct systematic research on a topic using structured phases that build upon e
 3. Identify next steps or areas requiring further investigation
 4. Document sources and evidence for claims
 5. Determine current date using robust file system method (see Date Determination Process below)
-6. Create research document in `.code-captain/research/` folder using the standardized format below
+6. Create research document in `.writ/research/` folder using the standardized format below
 7. Present findings in appropriate format (ADR, proposal, summary document)
 
 **Deliverables:**
@@ -97,7 +97,7 @@ Conduct systematic research on a topic using structured phases that build upon e
 - Specific recommendations with rationale
 - Risk assessment and mitigation strategies
 - Further research needs
-- **Research document:** `.code-captain/research/[DATE]-[topic-name]-research.md` (get DATE using file system method below)
+- **Research document:** `.writ/research/[DATE]-[topic-name]-research.md` (get DATE using file system method below)
 
 ## Output Structure
 
@@ -122,18 +122,18 @@ Conduct systematic research on a topic using structured phases that build upon e
 
 ## Date Determination
 
-Get current date by running: `npx @devobsessed/code-captain date`
+Get current date by running: `npx @devobsessed/writ date`
 
 This returns the current date in `YYYY-MM-DD` format for folder naming:
-`.code-captain/research/[DATE]-[topic-name]-research.md`
+`.writ/research/[DATE]-[topic-name]-research.md`
 
 ## Research Document Template
 
 **First, determine the current date using the process above.**
 
-Create a markdown file in `.code-captain/research/[DATE]-[topic-name]-research.md` where `[DATE]` is determined using the robust date process.
+Create a markdown file in `.writ/research/[DATE]-[topic-name]-research.md` where `[DATE]` is determined using the robust date process.
 
-**Example:** `.code-captain/research/2024-01-15-blockchain-supply-chain-research.md`
+**Example:** `.writ/research/2024-01-15-blockchain-supply-chain-research.md`
 
 Use the following structure:
 
@@ -268,7 +268,7 @@ Use the following structure:
 - Research blockchain solutions for supply chain [in_progress]
 - Analyze implementation approaches [pending]
 - Evaluate vendor options [pending]
-- Create research document in .code-captain/research/ [pending]
+- Create research document in .writ/research/ [pending]
 - Create recommendation report [pending]
 ```
 
@@ -279,7 +279,7 @@ Use the following structure:
 - Analyze implementation approaches [in_progress]
 - Evaluate vendor options [pending]
 - Determine date using file system method [pending]
-- Create research document in .code-captain/research/ [pending]
+- Create research document in .writ/research/ [pending]
 - Create recommendation report [pending]
 ```
 
@@ -290,6 +290,6 @@ Use the following structure:
 - Analyze implementation approaches [completed]
 - Evaluate vendor options [completed]
 - Determine date using file system method [completed]
-- Create research document in .code-captain/research/ [completed]
+- Create research document in .writ/research/ [completed]
 - Create recommendation report [completed]
 ```

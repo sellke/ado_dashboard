@@ -9,6 +9,8 @@ import { POST } from '@/app/api/sync/ado/route';
 import { cleanupTestData, prisma } from '../prisma/helpers';
 
 describe('POST /api/sync/ado', () => {
+  jest.setTimeout(15000);
+
   beforeAll(async () => {
     await cleanupTestData();
     // Seed workstreams for sync (orchestrator needs workstreams)

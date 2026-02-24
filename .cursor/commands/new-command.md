@@ -2,7 +2,7 @@
 
 ## Overview
 
-A meta command that creates new Code Captain commands following established patterns and conventions. This command generates properly structured command files, updates documentation, and ensures consistency across the Code Captain ecosystem.
+A meta command that creates new Writ commands following established patterns and conventions. This command generates properly structured command files, updates documentation, and ensures consistency across the Writ ecosystem.
 
 ## Command Process
 
@@ -10,13 +10,13 @@ A meta command that creates new Code Captain commands following established patt
 
 **Mission Statement:**
 
-> Your goal is to turn my rough command idea into a comprehensive command specification. You will deliver the complete command package only after we both agree on the command contract. **Important: Challenge command ideas that don't fit the Code Captain ecosystem or would create maintenance burden - it's better to surface concerns early than build the wrong command.**
+> Your goal is to turn my rough command idea into a comprehensive command specification. You will deliver the complete command package only after we both agree on the command contract. **Important: Challenge command ideas that don't fit the Writ ecosystem or would create maintenance burden - it's better to surface concerns early than build the wrong command.**
 
 #### Step 1.1: Initial Context Scan
 
-- Scan existing commands in `.cursor/commands/` to understand patterns
-- Analyze existing Code Captain ecosystem using `codebase_search`
-- Load command patterns from successful commands (`create-spec`, `execute-task`, etc.)
+- Scan existing commands in `commands/` to understand patterns
+- Analyze existing Writ ecosystem using `codebase_search`
+- Load command patterns from successful commands (`create-spec`, `implement-story`, etc.)
 - **Output:** Context summary (no files created yet)
 
 #### Step 1.2: Gap Analysis & Silent Enumeration
@@ -53,7 +53,7 @@ A meta command that creates new Code Captain commands following established patt
 
 - If command seems to duplicate existing functionality, explain the overlap and suggest alternatives
 - If complexity seems too high for the proposed value, recommend simplification
-- If the command doesn't fit Code Captain patterns, point out the inconsistency
+- If the command doesn't fit Writ patterns, point out the inconsistency
 - If implementation would create maintenance burden, suggest alternative approaches
 - If command scope is unclear or too broad, ask for focus and boundaries
 
@@ -61,7 +61,7 @@ A meta command that creates new Code Captain commands following established patt
 
 - "I see potential overlap with [existing command]. How would [your command] be different from [existing]?"
 - "The complexity you're describing sounds like it might need 3-4 separate commands. Should we focus on [core piece] first?"
-- "I'm concerned that [proposed approach] would break Code Captain's [established pattern]. Have you considered [alternative]?"
+- "I'm concerned that [proposed approach] would break Writ's [established pattern]. Have you considered [alternative]?"
 - "This command would need significant ongoing maintenance. Could we achieve the same goal with [simpler approach]?"
 
 **Question Categories (examples):**
@@ -70,7 +70,7 @@ A meta command that creates new Code Captain commands following established patt
 - "Should this integrate with [existing command found in scan], or remain separate?"
 - "What does 'success' look like - how will developers know the command worked correctly?"
 - "Should this be a contract-style command (extensive clarification like create-spec) or direct execution (immediate action like swab)?"
-- "Where should outputs be stored - new folder or existing (.code-captain/[folder])?"
+- "Where should outputs be stored - new folder or existing (.writ/[folder])?"
 - "What Cursor tools will it need - codebase_search, file_search, edit_file, web_search?"
 
 **Transition to Contract:**
@@ -179,7 +179,7 @@ Options:
 - Echo check/contract proposal phase
 - Explicit user agreement before proceeding
 
-**Direct Execution Commands** (like `swab`, `execute-task`):
+**Direct Execution Commands** (like `refactor`, `implement-story`):
 
 - Immediate action workflows
 - Minimal clarification if needed
@@ -219,11 +219,11 @@ Options:
 ✅ New command created successfully!
 
 📁 Files Created:
-  - .cursor/commands/[command-name].md
+  - commands/[command-name].md
 
 🚀 Command Ready:
   Usage: /[command-name] [args]
-  Documentation: .cursor/commands/[command-name].md
+  Documentation: commands/[command-name].md
 ```
 
 ## Core Rules
@@ -233,12 +233,12 @@ Options:
 3. **Automatic Integration** - Updates all necessary documentation files
 4. **Validation Required** - Check for conflicts and proper structure
 5. **Template Flexibility** - Adapt template based on command type and requirements
-6. **Language & Shell Agnostic** - Commands should work across different programming languages and shell environments, using Code Captain's existing tools rather than making assumptions about tech stack
+6. **Language & Shell Agnostic** - Commands should work across different programming languages and shell environments, using Writ's existing tools rather than making assumptions about tech stack
 
 ## AI Implementation Prompt
 
 ```
-You are creating a new Code Captain command following established patterns.
+You are creating a new Writ command following established patterns.
 
 MISSION: Generate a complete, well-structured command file and update documentation.
 
@@ -272,13 +272,13 @@ TEMPLATE ADAPTATION RULES:
 - CRITICAL: Be language and shell agnostic - use codebase_search, list_dir, file_search instead of language-specific find commands or hardcoded file extensions
 
 DOCUMENTATION UPDATES:
-Commands are automatically discovered by Cursor from `.cursor/commands/` - no manual documentation updates needed.
+Commands are automatically discovered by Cursor from `commands/` - no manual documentation updates needed.
 
 OUTPUT REQUIREMENTS:
 1. Generate complete command file following the template
 2. Ensure consistency with existing command patterns
 3. Validate no conflicts with existing commands
-4. Create command in `.cursor/commands/[command-name].md`
+4. Create command in `commands/[command-name].md`
 
 QUALITY CHECKS:
 - Command name follows naming conventions (lowercase, hyphens)
@@ -287,7 +287,7 @@ QUALITY CHECKS:
 - Integration points are clearly documented
 - All sections serve a clear purpose
 - No hardcoded language assumptions or shell-specific commands
-- Uses Code Captain's existing tools (codebase_search, list_dir, file_search) rather than system-specific commands
+- Uses Writ's existing tools (codebase_search, list_dir, file_search) rather than system-specific commands
 ```
 
 ## Implementation Details
@@ -309,7 +309,7 @@ QUALITY CHECKS:
 echo "command-name" | grep -E '^[a-z][a-z0-9-]*[a-z0-9]$'
 
 # Check conflicts
-ls .code-captain/commands/ | grep "^command-name.md$"
+ls .writ/commands/ | grep "^command-name.md$"
 ```
 
 ### Template Selection Logic
@@ -328,13 +328,13 @@ ls .code-captain/commands/ | grep "^command-name.md$"
    - Structured output formats
    - Contract-based workflows
 
-3. **Implementation** (`execute-task`, `swab`)
+3. **Implementation** (`implement-story`, `refactor`)
 
    - Code modification workflows
    - TDD patterns
    - Verification steps
 
-4. **Quality** (`status`, `swab`)
+4. **Quality** (`status`, `refactor`)
 5. **Meta** (`new-command`, `explain-code`)
    - Command scaffolding and template generation
    - Documentation updates across the ecosystem
@@ -383,12 +383,12 @@ Try: /new-command "valid-name" "clear description"
 
 ## Integration Notes
 
-This command integrates with Code Captain by:
+This command integrates with Writ by:
 
 1. **Following Established Patterns** - Uses same structure as existing commands
 2. **Maintaining Consistency** - Ensures all new commands match style and format
 3. **Automatic Documentation** - Updates all necessary files without manual intervention
-4. **Extensibility** - Makes it easy to add new capabilities to Code Captain
+4. **Extensibility** - Makes it easy to add new capabilities to Writ
 5. **Quality Assurance** - Validates structure and prevents conflicts
 
 ## Future Enhancements
@@ -401,4 +401,4 @@ Potential improvements (not in initial version):
 - **Version Control**: Track command changes and updates
 - **Command Dependencies**: Handle commands that depend on other commands
 
-But for now: Focus on core functionality - create well-structured commands that integrate seamlessly with the existing Code Captain ecosystem.
+But for now: Focus on core functionality - create well-structured commands that integrate seamlessly with the existing Writ ecosystem.

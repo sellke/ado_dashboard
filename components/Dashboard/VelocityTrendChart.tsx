@@ -1,7 +1,7 @@
 'use client';
 
-import { Text } from '@mantine/core';
 import { LineChart } from '@mantine/charts';
+import { Text } from '@mantine/core';
 import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 
 export interface VelocityTrendChartProps {
@@ -51,7 +51,9 @@ function buildChartData(
 
 function computeRollingAvg(sprints: TrendSprintViewModel[]): number | null {
   const values = sprints.map((s) => s.rawVelocity).filter((v): v is number => v !== null);
-  if (values.length === 0) return null;
+  if (values.length === 0) {
+    return null;
+  }
   return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
 }
 
@@ -82,9 +84,7 @@ export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendCh
       xAxisProps={{
         interval: 0,
         tickFormatter: (v: string) =>
-          v
-            .replace(/^Sprint\s*/i, '')
-            .replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+          v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
         angle: -20,
         textAnchor: 'end',
         height: 52,
@@ -98,9 +98,7 @@ export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendCh
         isAnimationActive: false,
       }}
       referenceLines={
-        rollingAvg !== null
-          ? [{ y: rollingAvg, color: 'gray.5', label: `Avg: ${rollingAvg}` }]
-          : []
+        rollingAvg !== null ? [{ y: rollingAvg, color: 'gray.5', label: `Avg: ${rollingAvg}` }] : []
       }
     />
   );

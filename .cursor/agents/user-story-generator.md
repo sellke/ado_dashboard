@@ -19,7 +19,7 @@ The agent expects the following context in its prompt:
 
 | Parameter | Description |
 |-----------|-------------|
-| `spec_folder` | Full path to the spec folder (e.g., `.code-captain/specs/2025-01-28-feature-name/user-stories/`) |
+| `spec_folder` | Full path to the spec folder (e.g., `.writ/specs/2025-01-28-feature-name/user-stories/`) |
 | `story_number` | Story number (1, 2, 3, etc.) |
 | `story_filename` | Filename (e.g., `story-1-user-login.md`) |
 | `story_title` | Human-readable title |

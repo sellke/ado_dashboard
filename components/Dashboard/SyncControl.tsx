@@ -1,7 +1,7 @@
 'use client';
 
-import { Alert, Button, Loader, Stack, Text } from '@mantine/core';
 import { IconAlertCircle, IconRefresh } from '@tabler/icons-react';
+import { Alert, Button, Loader, Stack, Text } from '@mantine/core';
 
 export interface SyncControlProps {
   onSync: () => void;
@@ -69,9 +69,7 @@ export function SyncControl({
           w="100%"
           data-testid="sync-partial-success-alert"
         >
-          <Text size="sm">
-            Sync completed but metrics refresh failed. Use Sync Now to retry.
-          </Text>
+          <Text size="sm">Sync completed but metrics refresh failed. Use Sync Now to retry.</Text>
         </Alert>
       )}
     </Stack>

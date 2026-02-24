@@ -25,7 +25,8 @@ export const workstreams = [
   },
   {
     name: 'UCM',
-    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Unified Configuration Manager',
+    adoAreaPath:
+      'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Unified Configuration Manager',
   },
 ];
 

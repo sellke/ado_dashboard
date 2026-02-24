@@ -18,6 +18,10 @@ const createCard = (overrides: Partial<WorkstreamCardViewModel> = {}): Workstrea
   },
   trendSprints: [],
   prediction: null,
+  overheadComposition: [],
+  currentSprintBugItems: [],
+  currentSprintSupportItems: [],
+  milestoneGroups: [],
   ...overrides,
 });
 

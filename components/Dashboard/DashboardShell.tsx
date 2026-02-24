@@ -3,15 +3,27 @@
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Alert, Button, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
 import type { DashboardViewModel } from '@/lib/dashboard/types';
+import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { ProgramSummarySection } from './ProgramSummarySection';
 import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
 
 export interface DashboardShellProps {
   viewModel: DashboardViewModel;
   onRetry: () => void;
+  milestonesLoading?: boolean;
+  milestonesError?: string | null;
+  programRollup?: ApiProgramMilestoneRollup | null;
 }
 
-function WorkstreamSection({ viewModel }: { viewModel: DashboardViewModel }) {
+function WorkstreamSection({
+  viewModel,
+  milestonesLoading,
+  milestonesError,
+}: {
+  viewModel: DashboardViewModel;
+  milestonesLoading?: boolean;
+  milestonesError?: string | null;
+}) {
   if (viewModel.state !== 'success') {
     return null;
   }
@@ -19,7 +31,13 @@ function WorkstreamSection({ viewModel }: { viewModel: DashboardViewModel }) {
   if (!workstreamCards || workstreamCards.length === 0) {
     return null;
   }
-  return <WorkstreamCardsGrid cards={workstreamCards} />;
+  return (
+    <WorkstreamCardsGrid
+      cards={workstreamCards}
+      milestonesLoading={milestonesLoading}
+      milestonesError={milestonesError}
+    />
+  );
 }
 
 /** Loading skeletons for summary and cards */
@@ -80,7 +98,13 @@ function ErrorState({ message, onRetry }: { message?: string; onRetry: () => voi
   );
 }
 
-export function DashboardShell({ viewModel, onRetry }: DashboardShellProps) {
+export function DashboardShell({
+  viewModel,
+  onRetry,
+  milestonesLoading,
+  milestonesError,
+  programRollup,
+}: DashboardShellProps) {
   if (viewModel.state === 'loading') {
     return <LoadingSkeletons />;
   }
@@ -95,8 +119,12 @@ export function DashboardShell({ viewModel, onRetry }: DashboardShellProps) {
 
   return (
     <Stack gap="xl">
-      <ProgramSummarySection viewModel={viewModel} />
-      <WorkstreamSection viewModel={viewModel} />
+      <ProgramSummarySection viewModel={viewModel} programRollup={programRollup} />
+      <WorkstreamSection
+        viewModel={viewModel}
+        milestonesLoading={milestonesLoading}
+        milestonesError={milestonesError}
+      />
     </Stack>
   );
 }

@@ -8,21 +8,11 @@ export default {
 const noop = () => {};
 
 export const Idle = () => (
-  <SyncControl
-    onSync={noop}
-    syncInProgress={false}
-    syncError={null}
-    syncPartialSuccess={false}
-  />
+  <SyncControl onSync={noop} syncInProgress={false} syncError={null} syncPartialSuccess={false} />
 );
 
 export const SyncInProgress = () => (
-  <SyncControl
-    onSync={noop}
-    syncInProgress={true}
-    syncError={null}
-    syncPartialSuccess={false}
-  />
+  <SyncControl onSync={noop} syncInProgress syncError={null} syncPartialSuccess={false} />
 );
 
 export const SyncFailure = () => (
@@ -36,10 +26,5 @@ export const SyncFailure = () => (
 );
 
 export const PartialSuccess = () => (
-  <SyncControl
-    onSync={noop}
-    syncInProgress={false}
-    syncError={null}
-    syncPartialSuccess={true}
-  />
+  <SyncControl onSync={noop} syncInProgress={false} syncError={null} syncPartialSuccess />
 );

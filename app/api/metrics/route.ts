@@ -345,8 +345,57 @@ export async function GET(request: Request) {
       snapshots[0]!.computedAt
     );
 
+    // When the active sprint is current, pull detail fields from the last completed sprint
+    // so Planned/Completed/Carry-over reflect a closed sprint rather than mid-sprint partials.
+    const priorDetailMap = new Map<
+      string,
+      {
+        plannedPoints: number | null;
+        completedPoints: number | null;
+        carryOverItems: number | null;
+        carryOverPoints: number | null;
+        overheadHours: number | null;
+        grossHours: number | null;
+      }
+    >();
+    let detailSprint: { name: string; startDate: string; endDate: string } | null = null;
+    if (isCurrentSprint) {
+      const priorSprint = await prisma.sprint.findFirst({
+        where: { endDate: { lt: now } },
+        orderBy: { endDate: 'desc' },
+      });
+      if (priorSprint) {
+        detailSprint = {
+          name: priorSprint.name,
+          startDate: priorSprint.startDate.toISOString(),
+          endDate: priorSprint.endDate.toISOString(),
+        };
+        const priorSnaps = await prisma.metricSnapshot.findMany({
+          where: { sprintId: priorSprint.id, workstreamId: { in: allowedWsIds } },
+          select: {
+            workstreamId: true,
+            plannedPoints: true,
+            completedPoints: true,
+            carryOverItems: true,
+            carryOverPoints: true,
+            overheadHours: true,
+            grossHours: true,
+          },
+        });
+        for (const ps of priorSnaps) {
+          priorDetailMap.set(ps.workstreamId, ps);
+        }
+      }
+    }
+
     const workstreams = snapshots.map((s) => {
       const formatted = formatWorkstreamResponse(s, includeRolling, isCurrentSprint);
+      if (isCurrentSprint) {
+        const prior = priorDetailMap.get(s.workstreamId);
+        if (prior) {
+          formatted.detail = prior;
+        }
+      }
       const trends = buildTrendSeries({
         rollingSprintsDesc: rollingSprints,
         currentSprintId: currentRollingSprintId,
@@ -527,6 +576,7 @@ export async function GET(request: Request) {
         startDate: sprint.startDate.toISOString(),
         endDate: sprint.endDate.toISOString(),
       },
+      detailSprint,
       rollingWindow: {
         count: rollingSprints.length,
         currentSprintId:

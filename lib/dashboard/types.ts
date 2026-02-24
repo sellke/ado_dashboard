@@ -120,6 +120,7 @@ export interface ApiMilestoneMetric {
 
 export interface ApiResponse {
   sprint: { id: string; name: string; startDate: string; endDate: string } | null;
+  detailSprint: { name: string; startDate: string; endDate: string } | null;
   workstreams: ApiWorkstream[];
   program: {
     metrics: {
@@ -183,6 +184,7 @@ export interface WorkstreamCardViewModel {
   workstreamId: string;
   workstreamName: string;
   metrics: MetricTileViewModel[];
+  detailSprintLabel: string | null;
   detail: {
     plannedPoints: string;
     completedPoints: string;
@@ -223,7 +225,7 @@ export interface TrendSprintViewModel {
   rawBugsClosed: number;
   bugs: TrendBugViewModel[];
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
-  overheadBreakdown: OverheadBreakdownItem[];
+  overheadBreakdown?: OverheadBreakdownItem[];
 }
 
 export interface DashboardViewModel {

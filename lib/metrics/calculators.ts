@@ -66,12 +66,23 @@ export function calculateOverhead(
   const grossHours = sprintWorkstream.grossHours;
 
   if (grossHours === null || grossHours === 0) {
-    return { overheadHours, overheadPercent: null };
+    return {
+      overheadHours,
+      overheadPercent: null,
+      ceremonyHours,
+      bugHours,
+      spikeHours,
+      supportHours,
+    };
   }
 
   return {
     overheadHours,
     overheadPercent: (overheadHours / grossHours) * 100,
+    ceremonyHours,
+    bugHours,
+    spikeHours,
+    supportHours,
   };
 }
 

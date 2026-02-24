@@ -2,14 +2,16 @@
 
 import { Card, Group, Stack, Text } from '@mantine/core';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
+import { MilestoneGoalsPanel } from './MilestoneGoalsPanel';
+import { OverheadBreakdownChart } from './OverheadBreakdownChart';
 import { RagBadge } from './RagBadge';
-import { SprintBugList } from './SprintBugList';
 import { VelocityTrendChart } from './VelocityTrendChart';
 
 export interface WorkstreamHealthCardProps {
   /** Workstream card view model with metrics and detail */
   card: WorkstreamCardViewModel;
+  milestonesLoading?: boolean;
+  milestonesError?: string | null;
 }
 
 /**
@@ -17,22 +19,20 @@ export interface WorkstreamHealthCardProps {
  * Overhead %, Carry-Over %), RAG status, detail block, velocity trend chart, and bug list.
  * Export-friendly for slide generation; handles null values gracefully.
  */
-export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
+export function WorkstreamHealthCard({
+  card,
+  milestonesLoading,
+  milestonesError,
+}: WorkstreamHealthCardProps) {
   const {
     workstreamName,
     metrics,
     detail,
+    detailSprintLabel,
     trendSprints = [],
     prediction,
-    overheadComposition = [],
-    currentSprintBugItems = [],
-    currentSprintSupportItems = [],
+    milestoneGroups = [],
   } = card;
-
-  const showOverheadPanel =
-    overheadComposition.length > 0 ||
-    currentSprintBugItems.length > 0 ||
-    currentSprintSupportItems.length > 0;
 
   return (
     <Card withBorder padding="md" shadow="sm">
@@ -62,6 +62,9 @@ export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
           pt="xs"
           style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
+          <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+            {detailSprintLabel ?? 'Last Sprint'}
+          </Text>
           <Text size="xs" c="dimmed">
             Planned: {detail.plannedPoints} • Completed: {detail.completedPoints}
           </Text>
@@ -77,16 +80,25 @@ export function WorkstreamHealthCard({ card }: WorkstreamHealthCardProps) {
           style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
           <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
-          {trendSprints.length > 0 && <SprintBugList trendSprints={trendSprints} />}
+          <Text size="xs" c="dimmed" tt="uppercase" fw={500} mt="xs">
+            Overhead Trend
+          </Text>
+          <OverheadBreakdownChart trendSprints={trendSprints} />
         </Stack>
 
-        {showOverheadPanel && (
-          <OverheadBreakdownPanel
-            composition={overheadComposition}
-            bugItems={currentSprintBugItems}
-            supportItems={currentSprintSupportItems}
+
+        <Stack
+          gap="xs"
+          mt="xs"
+          pt="xs"
+          style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+        >
+          <MilestoneGoalsPanel
+            milestoneGroups={milestoneGroups}
+            loading={milestonesLoading}
+            error={milestonesError}
           />
-        )}
+        </Stack>
       </Stack>
     </Card>
   );
