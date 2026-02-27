@@ -241,7 +241,7 @@ export function createDashboardViewModel(
         }),
         createMetricTile({
           label: 'Avg Total Overhead %',
-          value: '29%',
+          value: '29.00%',
           rawValue: 29,
           unit: '%',
           rag: 'Amber',

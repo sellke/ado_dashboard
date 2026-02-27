@@ -406,6 +406,8 @@ export function mapApiResponseToDashboardViewModel(
     const avgVelocityRate = m.averageVelocityRate ?? null;
     const rawCarryOver = m.carryOverRate?.avg ?? null;
     const roundedCarryOver = rawCarryOver !== null ? Math.round(rawCarryOver * 100) / 100 : null;
+    const rawOverhead = m.overheadPercent?.avg ?? null;
+    const roundedOverhead = rawOverhead !== null ? Math.round(rawOverhead * 100) / 100 : null;
     programMetrics = [
       {
         label: 'Avg Total Velocity',
@@ -425,8 +427,8 @@ export function mapApiResponseToDashboardViewModel(
       },
       {
         label: 'Avg Total Overhead %',
-        value: formatPercent(m.overheadPercent?.avg ?? null),
-        rawValue: m.overheadPercent?.avg ?? null,
+        value: roundedOverhead !== null ? `${roundedOverhead.toFixed(2)}%` : 'N/A',
+        rawValue: roundedOverhead,
         unit: '%',
         rag: toRagStatus(m.overheadPercent?.rag ?? null),
         avgLabel: null,
@@ -443,9 +445,7 @@ export function mapApiResponseToDashboardViewModel(
   }
 
   const currentSprintName = response.sprint?.name ?? 'Current Sprint';
-  const detailSprintLabel = response.detailSprint
-    ? formatSprintLabel(response.detailSprint)
-    : null;
+  const detailSprintLabel = response.detailSprint ? formatSprintLabel(response.detailSprint) : null;
 
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
     const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent }) =>

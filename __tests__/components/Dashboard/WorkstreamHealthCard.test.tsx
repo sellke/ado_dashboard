@@ -6,19 +6,23 @@ import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
 /**
  * Tests for WorkstreamHealthCard component.
  * Verifies full-data, partial-data, and null-data workstream payloads.
- * Integration tests for VelocityTrendChart and SprintBugList.
+ * Integration tests for VelocityTrendChart and OverheadBreakdownPanel.
  */
 
 jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => (
-    <div
-      data-testid="velocity-line-chart"
-      data-series={JSON.stringify(props.series)}
-      data-points={JSON.stringify(props.data)}
-      data-reference-lines={JSON.stringify(props.referenceLines)}
-      data-h={String(props.h)}
-    />
-  ),
+  LineChart: (props: Record<string, unknown>) => {
+    const series = props.series as Array<{ name: string }> | undefined;
+    const isOverhead = series?.some((s) => s.name === 'Meetings');
+    return (
+      <div
+        data-testid={isOverhead ? 'overhead-line-chart' : 'velocity-line-chart'}
+        data-series={JSON.stringify(props.series)}
+        data-points={JSON.stringify(props.data)}
+        data-reference-lines={JSON.stringify(props.referenceLines)}
+        data-h={String(props.h)}
+      />
+    );
+  },
   BarChart: (props: Record<string, unknown>) => (
     <div
       data-testid="overhead-bar-chart"
@@ -60,7 +64,12 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawActiveBugs: 2,
       rawBugsClosed: 4,
       bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true }],
-      overheadBreakdown: [],
+      overheadBreakdown: [
+        { category: 'Meetings' as const, hours: 10.25 },
+        { category: 'Spikes' as const, hours: 4 },
+        { category: 'Bugs' as const, hours: 5 },
+        { category: 'Support' as const, hours: 3 },
+      ],
     },
     {
       sprintId: 's2',
@@ -74,7 +83,12 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawActiveBugs: 1,
       rawBugsClosed: 5,
       bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false }],
-      overheadBreakdown: [],
+      overheadBreakdown: [
+        { category: 'Meetings' as const, hours: 10.25 },
+        { category: 'Spikes' as const, hours: 2 },
+        { category: 'Bugs' as const, hours: 6 },
+        { category: 'Support' as const, hours: 2 },
+      ],
     },
   ],
   prediction: {
@@ -145,16 +159,6 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.queryByText('No trend data available')).not.toBeInTheDocument();
   });
 
-  it('renders SprintBugList below chart when trend sprints have bug data', () => {
-    render(<WorkstreamHealthCard card={fullDataCard} />);
-
-    expect(screen.getByTestId('sprint-bug-list')).toBeInTheDocument();
-    expect(screen.getByText('Sprint 1')).toBeInTheDocument();
-    // Login crash appears in both SprintBugList (trend) and OverheadBreakdownPanel (current sprint items)
-    expect(screen.getAllByText(/Login crash/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Slow query/).length).toBeGreaterThan(0);
-  });
-
   it('passes prediction data to VelocityTrendChart', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 
@@ -215,7 +219,7 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
   });
 
-  it('shows chart empty state and hides bug list when trendSprints is empty', () => {
+  it('shows chart empty state when trendSprints is empty', () => {
     const noTrendsCard: WorkstreamCardViewModel = {
       ...fullDataCard,
       trendSprints: [],
@@ -225,7 +229,6 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText('No trend data available')).toBeInTheDocument();
     expect(screen.queryByTestId('velocity-line-chart')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sprint-bug-list')).not.toBeInTheDocument();
   });
 
   it('shows "(Projected)" suffix on velocity and velocity rate tiles when mode is projected', () => {
@@ -251,46 +254,14 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText('0.85 pts/hr (Projected)')).toBeInTheDocument();
   });
 
-  it('each card displays its own velocity chart and bug data when multiple cards render', () => {
+  it('each card displays its own velocity chart when multiple cards render', () => {
     const card1 = createWorkstreamCard({
       workstreamId: 'ws-1',
       workstreamName: 'Platform',
-      trendSprints: [
-        {
-          sprintId: 's1',
-          sprintName: 'Sprint 1',
-          velocity: '40 pts',
-          velocityRate: '0.67 pts/hr',
-          activeBugs: '2',
-          bugsClosed: '5',
-          rawVelocity: 40,
-          rawVelocityRate: 0.67,
-          rawActiveBugs: 2,
-          rawBugsClosed: 5,
-          bugs: [{ adoId: '1', title: 'Platform bug', isClosed: false }],
-          overheadBreakdown: [],
-        },
-      ],
     });
     const card2 = createWorkstreamCard({
       workstreamId: 'ws-2',
       workstreamName: 'Apps',
-      trendSprints: [
-        {
-          sprintId: 's2',
-          sprintName: 'Sprint 2',
-          velocity: '32 pts',
-          velocityRate: '0.50 pts/hr',
-          activeBugs: '1',
-          bugsClosed: '3',
-          rawVelocity: 32,
-          rawVelocityRate: 0.5,
-          rawActiveBugs: 1,
-          rawBugsClosed: 3,
-          bugs: [{ adoId: '2', title: 'Apps bug', isClosed: true }],
-          overheadBreakdown: [],
-        },
-      ],
     });
 
     render(
@@ -303,30 +274,8 @@ describe('WorkstreamHealthCard', () => {
     const charts = screen.getAllByTestId('velocity-line-chart');
     expect(charts).toHaveLength(2);
 
-    const bugLists = screen.getAllByTestId('sprint-bug-list');
-    expect(bugLists).toHaveLength(2);
-
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Apps')).toBeInTheDocument();
-    expect(screen.getByText(/Platform bug/)).toBeInTheDocument();
-    expect(screen.getByText(/Apps bug/)).toBeInTheDocument();
-  });
-
-  it('chart and bug list stack vertically in card layout', () => {
-    render(<WorkstreamHealthCard card={fullDataCard} />);
-
-    const chart = screen.getByTestId('velocity-line-chart');
-    const bugList = screen.getByTestId('sprint-bug-list');
-
-    expect(chart).toBeInTheDocument();
-    expect(bugList).toBeInTheDocument();
-
-    // Chart should appear before bug list in DOM order (vertical stack)
-    const ordered = document.querySelectorAll(
-      '[data-testid="velocity-line-chart"], [data-testid="sprint-bug-list"]'
-    );
-    expect(ordered[0]).toHaveAttribute('data-testid', 'velocity-line-chart');
-    expect(ordered[1]).toHaveAttribute('data-testid', 'sprint-bug-list');
   });
 
   it('RAG display does not break when metric values are null', () => {
@@ -347,7 +296,7 @@ describe('WorkstreamHealthCard', () => {
   });
 
   describe('OverheadBreakdownPanel integration', () => {
-    it('renders overhead-breakdown-panel when overhead composition data is present', () => {
+    it('renders overhead-breakdown-panel when overhead breakdown data is present', () => {
       render(<WorkstreamHealthCard card={fullDataCard} />);
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
@@ -357,9 +306,9 @@ describe('WorkstreamHealthCard', () => {
       expect(screen.getByText('Overhead Breakdown')).toBeInTheDocument();
     });
 
-    it('renders the overhead bar chart from fixture composition data', () => {
+    it('renders the overhead breakdown chart from fixture trend sprint data', () => {
       render(<WorkstreamHealthCard card={fullDataCard} />);
-      expect(screen.getByTestId('overhead-bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('overhead-line-chart')).toBeInTheDocument();
     });
 
     it('renders bug and support item tables', () => {
@@ -371,7 +320,10 @@ describe('WorkstreamHealthCard', () => {
     it('does not render overhead panel when all overhead data is absent', () => {
       const noOverheadCard: WorkstreamCardViewModel = {
         ...fullDataCard,
-        overheadComposition: [],
+        trendSprints: fullDataCard.trendSprints.map((s) => ({
+          ...s,
+          overheadBreakdown: [],
+        })),
         currentSprintBugItems: [],
         currentSprintSupportItems: [],
       };
@@ -380,9 +332,12 @@ describe('WorkstreamHealthCard', () => {
       expect(screen.queryByTestId('overhead-breakdown-panel')).not.toBeInTheDocument();
     });
 
-    it('renders panel when only bug items are present (no composition)', () => {
+    it('renders panel when only bug items are present (no overhead breakdown)', () => {
       const bugOnlyCard: WorkstreamCardViewModel = createWorkstreamCard({
-        overheadComposition: [],
+        trendSprints: createWorkstreamCard().trendSprints.map((s) => ({
+          ...s,
+          overheadBreakdown: [],
+        })),
         currentSprintBugItems: [
           { adoId: '#99', title: 'Crash on load', state: 'Active', hours: '1 hr', isClosed: false },
         ],
@@ -391,12 +346,14 @@ describe('WorkstreamHealthCard', () => {
 
       render(<WorkstreamHealthCard card={bugOnlyCard} />);
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
-      expect(screen.queryByTestId('overhead-bar-chart')).not.toBeInTheDocument();
     });
 
     it('renders panel when only support items are present', () => {
       const supportOnlyCard: WorkstreamCardViewModel = createWorkstreamCard({
-        overheadComposition: [],
+        trendSprints: createWorkstreamCard().trendSprints.map((s) => ({
+          ...s,
+          overheadBreakdown: [],
+        })),
         currentSprintBugItems: [],
         currentSprintSupportItems: [
           { adoId: '#55', title: 'Deploy request', state: 'Done', hours: '2 hrs', isClosed: true },

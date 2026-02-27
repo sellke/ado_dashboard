@@ -1,6 +1,6 @@
 # Story 6: Dashboard Integration
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 5
 
@@ -20,12 +20,12 @@
 
 ## Implementation Tasks
 
-- [ ] 6.1 Write an integration test: dashboard render with milestone data flows through to `MilestoneGoalsPanel` (mock API response)
-- [ ] 6.2 Update `app/dashboard/page.tsx`: add `GET /api/milestones` fetch alongside existing metrics fetch; pass response to `DashboardContainer`
-- [ ] 6.3 Update `components/Dashboard/DashboardContainer.tsx`: accept `milestonesData` prop (new `ApiMilestonesResponse` type); pass it to adapter and to `WorkstreamHealthCard`
-- [ ] 6.4 Update `components/Dashboard/WorkstreamHealthCard.tsx`: replace `<MilestonePanel>` with `<MilestoneGoalsPanel milestoneGroups={card.milestoneGroups} />`
-- [ ] 6.5 Update `ProgramSummarySection` (or its data feed): pass `programRollup` from milestones API response to the program summary component (wires into 1B deliverable)
-- [ ] 6.6 Verify full end-to-end render: dashboard loads, milestones section shows correct data, no console errors, no TypeScript errors
+- [x] 6.1 Write an integration test: dashboard render with milestone data flows through to `MilestoneGoalsPanel` (mock API response)
+- [x] 6.2 Update `app/dashboard/page.tsx`: add `GET /api/milestones` fetch alongside existing metrics fetch; pass response to `DashboardContainer`
+- [x] 6.3 Update `components/Dashboard/DashboardContainer.tsx`: accept `milestonesData` prop (new `ApiMilestonesResponse` type); pass it to adapter and to `WorkstreamHealthCard`
+- [x] 6.4 Update `components/Dashboard/WorkstreamHealthCard.tsx`: replace `<MilestonePanel>` with `<MilestoneGoalsPanel milestoneGroups={card.milestoneGroups} />`
+- [x] 6.5 Update `ProgramSummarySection` (or its data feed): pass `programRollup` from milestones API response to the program summary component (wires into 1B deliverable)
+- [x] 6.6 Verify full end-to-end render: dashboard loads, milestones section shows correct data, no console errors, no TypeScript errors
 
 ## Notes
 
@@ -37,8 +37,8 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing (767/767)
+- [x] Code reviewed
+- [x] Documentation updated

@@ -120,7 +120,7 @@ export interface ApiMilestoneMetric {
 
 export interface ApiResponse {
   sprint: { id: string; name: string; startDate: string; endDate: string } | null;
-  detailSprint: { name: string; startDate: string; endDate: string } | null;
+  detailSprint?: { name: string; startDate: string; endDate: string } | null;
   workstreams: ApiWorkstream[];
   program: {
     metrics: {
@@ -184,7 +184,7 @@ export interface WorkstreamCardViewModel {
   workstreamId: string;
   workstreamName: string;
   metrics: MetricTileViewModel[];
-  detailSprintLabel: string | null;
+  detailSprintLabel?: string | null;
   detail: {
     plannedPoints: string;
     completedPoints: string;

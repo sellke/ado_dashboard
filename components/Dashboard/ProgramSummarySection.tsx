@@ -4,6 +4,8 @@ import { BarChart, LineChart } from '@mantine/charts';
 import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { DashboardViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import { ChartLegend } from './ChartLegend';
+import { PointValueTooltip } from './PointValueTooltip';
 import { RagBadge } from './RagBadge';
 
 export interface ProgramSummarySectionProps {
@@ -15,8 +17,8 @@ export interface ProgramSummarySectionProps {
 function buildVelocityChartData(
   sprints: TrendSprintViewModel[],
   prediction: DashboardViewModel['sprint5Prediction']
-): Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> {
-  const data: Array<{ sprint: string; 'Completed Points'?: number; Predicted?: number }> =
+): Array<{ sprint: string; 'Completed Points'?: number; Forecasted?: number }> {
+  const data: Array<{ sprint: string; 'Completed Points'?: number; Forecasted?: number }> =
     sprints.map((s) => ({
       sprint: s.sprintName,
       'Completed Points': s.rawVelocity ?? 0,
@@ -38,12 +40,12 @@ function buildVelocityChartData(
 
     const lastActual = data[data.length - 1]['Completed Points'];
     if (typeof lastActual === 'number') {
-      data[data.length - 1].Predicted = lastActual;
+      data[data.length - 1].Forecasted = lastActual;
     }
 
-    const predictionPoint: { sprint: string; Predicted?: number } = { sprint: predictionLabel };
+    const predictionPoint: { sprint: string; Forecasted?: number } = { sprint: predictionLabel };
     if (prediction.rawVelocity != null) {
-      predictionPoint.Predicted = prediction.rawVelocity;
+      predictionPoint.Forecasted = prediction.rawVelocity;
     }
     data.push(predictionPoint);
   }
@@ -132,8 +134,9 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
             <Card withBorder padding="md" style={{ overflow: 'visible' }}>
               <Stack gap="xs">
                 <Text size="sm" fw={500} c="dimmed">
-                  Velocity (Completed Points)
+                  Velocity (Points)
                 </Text>
+                <div style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
                 <LineChart
                   h={220}
                   data={buildVelocityChartData(programTrendSprints, sprint5Prediction)}
@@ -143,7 +146,7 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                   curveType="linear"
                   series={[
                     { name: 'Completed Points', color: 'blue.6' },
-                    { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
+                    { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
                   ]}
                   xAxisProps={{
                     interval: 0,
@@ -155,17 +158,24 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                     tickMargin: 10,
                   }}
                   yAxisProps={{ domain: [0, 'auto'] }}
-                  tooltipAnimationDuration={150}
+                  tooltipAnimationDuration={0}
                   tooltipProps={{
-                    position: { y: -20 },
-                    offset: 10,
+                    offset: 0,
                     isAnimationActive: false,
+                    content: PointValueTooltip as never,
                   }}
                   referenceLines={
                     avgVelocity !== null
                       ? [{ y: avgVelocity, color: 'gray.5', label: `Avg: ${avgVelocity}` }]
                       : []
                   }
+                />
+                </div>
+                <ChartLegend
+                  items={[
+                    { label: 'Completed Points', color: 'blue.6' },
+                    { label: 'Forecasted', color: 'blue.6', dashed: true },
+                  ]}
                 />
               </Stack>
             </Card>

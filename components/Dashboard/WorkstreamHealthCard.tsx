@@ -3,7 +3,7 @@
 import { Card, Group, Stack, Text } from '@mantine/core';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { MilestoneGoalsPanel } from './MilestoneGoalsPanel';
-import { OverheadBreakdownChart } from './OverheadBreakdownChart';
+import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
 import { VelocityTrendChart } from './VelocityTrendChart';
 
@@ -32,7 +32,14 @@ export function WorkstreamHealthCard({
     trendSprints = [],
     prediction,
     milestoneGroups = [],
+    currentSprintBugItems = [],
+    currentSprintSupportItems = [],
   } = card;
+
+  const hasOverheadData =
+    trendSprints.some((s) => (s.overheadBreakdown ?? []).some((item) => item.hours > 0)) ||
+    currentSprintBugItems.length > 0 ||
+    currentSprintSupportItems.length > 0;
 
   return (
     <Card withBorder padding="md" shadow="sm">
@@ -79,13 +86,19 @@ export function WorkstreamHealthCard({
           pt="xs"
           style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
-          <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
-          <Text size="xs" c="dimmed" tt="uppercase" fw={500} mt="xs">
-            Overhead Trend
+          <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+            Velocity (Points)
           </Text>
-          <OverheadBreakdownChart trendSprints={trendSprints} />
+          <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
         </Stack>
 
+        {hasOverheadData && (
+          <OverheadBreakdownPanel
+            trendSprints={trendSprints}
+            bugItems={currentSprintBugItems}
+            supportItems={currentSprintSupportItems}
+          />
+        )}
 
         <Stack
           gap="xs"

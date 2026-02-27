@@ -1,15 +1,17 @@
 'use client';
 
 import { LineChart } from '@mantine/charts';
-import { Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { ChartLegend } from './ChartLegend';
+import { PointValueTooltip } from './PointValueTooltip';
 
 export interface VelocityTrendChartProps {
   trendSprints: TrendSprintViewModel[];
   prediction: WorkstreamCardViewModel['prediction'];
 }
 
-type ChartDataPoint = { sprint: string; 'Completed Points'?: number; Predicted?: number };
+type ChartDataPoint = { sprint: string; 'Completed Points'?: number; Forecasted?: number };
 
 function buildChartData(
   sprints: TrendSprintViewModel[],
@@ -36,12 +38,12 @@ function buildChartData(
 
     const lastActual = data[data.length - 1]['Completed Points'];
     if (typeof lastActual === 'number') {
-      data[data.length - 1].Predicted = lastActual;
+      data[data.length - 1].Forecasted = lastActual;
     }
 
     const predictionPoint: ChartDataPoint = { sprint: predictionLabel };
     if (prediction.rawVelocity != null) {
-      predictionPoint.Predicted = prediction.rawVelocity;
+      predictionPoint.Forecasted = prediction.rawVelocity;
     }
     data.push(predictionPoint);
   }
@@ -70,36 +72,46 @@ export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendCh
   const rollingAvg = computeRollingAvg(trendSprints);
 
   return (
-    <LineChart
-      h={200}
-      data={chartData}
-      dataKey="sprint"
-      withDots
-      connectNulls={false}
-      curveType="linear"
-      series={[
-        { name: 'Completed Points', color: 'blue.6' },
-        { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
-      ]}
-      xAxisProps={{
-        interval: 0,
-        tickFormatter: (v: string) =>
-          v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
-        angle: -20,
-        textAnchor: 'end',
-        height: 52,
-        tickMargin: 10,
-      }}
-      yAxisProps={{ domain: [0, 'auto'] }}
-      tooltipAnimationDuration={150}
-      tooltipProps={{
-        position: { y: -20 },
-        offset: 10,
-        isAnimationActive: false,
-      }}
-      referenceLines={
-        rollingAvg !== null ? [{ y: rollingAvg, color: 'gray.5', label: `Avg: ${rollingAvg}` }] : []
-      }
-    />
+    <Stack gap={4} style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
+      <LineChart
+        h={200}
+        data={chartData}
+        dataKey="sprint"
+        withDots
+        connectNulls={false}
+        curveType="linear"
+        series={[
+          { name: 'Completed Points', color: 'blue.6' },
+          { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
+        ]}
+        xAxisProps={{
+          interval: 0,
+          tickFormatter: (v: string) =>
+            v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+          angle: -20,
+          textAnchor: 'end',
+          height: 52,
+          tickMargin: 10,
+        }}
+        yAxisProps={{ domain: [0, 'auto'] }}
+        tooltipAnimationDuration={0}
+        tooltipProps={{
+          offset: 0,
+          isAnimationActive: false,
+          content: PointValueTooltip as never,
+        }}
+        referenceLines={
+          rollingAvg !== null
+            ? [{ y: rollingAvg, color: 'gray.5', label: `Avg: ${rollingAvg}` }]
+            : []
+        }
+      />
+      <ChartLegend
+        items={[
+          { label: 'Completed Points', color: 'blue.6' },
+          { label: 'Forecasted', color: 'blue.6', dashed: true },
+        ]}
+      />
+    </Stack>
   );
 }

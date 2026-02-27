@@ -1,0 +1,7 @@
+/* Prevent Recharts SVG from clipping dots at chart edges */
+.mantine-LineChart-root svg,
+.mantine-LineChart-root .recharts-responsive-container,
+.mantine-BarChart-root svg,
+.mantine-BarChart-root .recharts-responsive-container {
+  overflow: visible !important;
+}

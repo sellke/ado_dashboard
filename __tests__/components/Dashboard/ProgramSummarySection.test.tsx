@@ -50,7 +50,7 @@ describe('ProgramSummarySection', () => {
       },
       {
         label: 'Avg Total Overhead %',
-        value: '29%',
+        value: '29.00%',
         rawValue: 29,
         unit: '%',
         rag: 'Amber',
@@ -116,7 +116,7 @@ describe('ProgramSummarySection', () => {
     expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
 
     expect(screen.getByText('Avg Total Overhead %')).toBeInTheDocument();
-    expect(screen.getByText('29%')).toBeInTheDocument();
+    expect(screen.getByText('29.00%')).toBeInTheDocument();
 
     expect(screen.getByText('Avg Total Carry-Over %')).toBeInTheDocument();
     expect(screen.getByText('13.50%')).toBeInTheDocument();

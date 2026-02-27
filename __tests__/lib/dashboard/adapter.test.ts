@@ -133,7 +133,7 @@ describe('dashboard adapter', () => {
       expect(programVelocityRate?.rag).toBeNull();
 
       const programOverhead = vm.programMetrics?.find((m) => m.label === 'Avg Total Overhead %');
-      expect(programOverhead?.value).toBe('29%');
+      expect(programOverhead?.value).toBe('29.00%');
       expect(programOverhead?.rawValue).toBe(29);
       expect(programOverhead?.rag).toBe('Amber');
 
@@ -276,7 +276,7 @@ describe('dashboard adapter', () => {
         const ws = vm.workstreamCards[0];
 
         expect(ws.metrics).toHaveLength(4);
-        expect(ws.metrics[0].label).toBe('Velocity');
+        expect(ws.metrics[0].label).toBe('Avg Velocity');
         expect(ws.metrics[1].label).toBe('Velocity Rate');
         expect(ws.metrics[2].label).toBe('Overhead %');
         expect(ws.metrics[3].label).toBe('Carry-Over %');
@@ -458,7 +458,7 @@ describe('dashboard adapter', () => {
       const vm = mapApiResponseToDashboardViewModel(mixedRagResponse);
 
       const ws = vm.workstreamCards[0];
-      const velocity = ws.metrics.find((m) => m.label === 'Velocity');
+      const velocity = ws.metrics.find((m) => m.label === 'Avg Velocity');
       const overhead = ws.metrics.find((m) => m.label === 'Overhead %');
       const carryOver = ws.metrics.find((m) => m.label === 'Carry-Over %');
 
@@ -1173,8 +1173,8 @@ describe('dashboard adapter', () => {
       const overhead = vm.workstreamCards[0].metrics.find((m) => m.label === 'Overhead %');
 
       expect(overhead?.rawValue).toBe(18.5);
-      expect(overhead?.value).toBe('18.5%');
-      expect(overhead?.avgLabel).toBe('22%');
+      expect(overhead?.value).toBe('18.50%');
+      expect(overhead?.avgLabel).toBe('22.00%');
     });
   });
 

@@ -1,22 +1,22 @@
 'use client';
 
 import { Stack, Text } from '@mantine/core';
-import type { OverheadCompositionViewModel, OverheadItemViewModel } from '@/lib/dashboard/types';
+import type { OverheadItemViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import { CurrentSprintItemTables } from './CurrentSprintItemTables';
-import { OverheadCompositionChart } from './OverheadCompositionChart';
+import { OverheadBreakdownChart } from './OverheadBreakdownChart';
 
 export interface OverheadBreakdownPanelProps {
-  composition: OverheadCompositionViewModel[];
+  trendSprints: TrendSprintViewModel[];
   bugItems: OverheadItemViewModel[];
   supportItems: OverheadItemViewModel[];
 }
 
 /**
- * Umbrella panel that composes OverheadCompositionChart and CurrentSprintItemTables.
+ * Umbrella panel that composes OverheadBreakdownChart and CurrentSprintItemTables.
  * Purely presentational — rendered inline below velocity/bug sections in WorkstreamHealthCard.
  */
 export function OverheadBreakdownPanel({
-  composition,
+  trendSprints,
   bugItems,
   supportItems,
 }: OverheadBreakdownPanelProps) {
@@ -29,9 +29,9 @@ export function OverheadBreakdownPanel({
       data-testid="overhead-breakdown-panel"
     >
       <Text size="xs" c="dimmed" tt="uppercase">
-        Overhead Breakdown
+        Overhead Breakdown (Hours)
       </Text>
-      <OverheadCompositionChart composition={composition} />
+      <OverheadBreakdownChart trendSprints={trendSprints} />
       <CurrentSprintItemTables bugItems={bugItems} supportItems={supportItems} />
     </Stack>
   );
