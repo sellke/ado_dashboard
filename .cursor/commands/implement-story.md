@@ -137,14 +137,14 @@ Spawns a **read-only** sub-agent for code review.
 - Acceptance criteria verification
 - Code quality (patterns, errors, readability)
 - Security (injection, auth, secrets, vulnerable deps)
-- Test coverage (all AC covered? edge cases?)
+- Test completeness (do tests exist for all AC? edge cases written?)
 - Integration (breaking changes, circular deps, migrations)
 
 **Results:**
 - **PASS** → continue to testing
 - **FAIL** → send feedback to coding agent for fixes
 
-**Review loop:** Max 3 iterations across all gates. After 3 failures → escalate to user.
+**Review loop:** Max 3 iterations shared across review + visual QA. After 3 failures → escalate to user.
 
 ---
 

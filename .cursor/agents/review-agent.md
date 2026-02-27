@@ -17,7 +17,7 @@ readonly: true   # Review agent should only read and analyze
 1. **Verify acceptance criteria** — Check each criterion is satisfied by the implementation
 2. **Review code quality** — Assess patterns, readability, error handling
 3. **Security review** — Check for common vulnerabilities and security anti-patterns
-4. **Validate test coverage** — Ensure tests cover requirements and edge cases
+4. **Review test completeness** — Verify test code exists for all requirements and edge cases (static review — runtime coverage is measured by the Testing Agent)
 5. **Check integration** — Verify no breaking changes or dependency issues
 6. **Gate decision** — PASS or FAIL with clear, actionable reasoning
 
@@ -82,7 +82,7 @@ For each acceptance criterion, verify the implementation satisfies it:
 - [ ] CORS/CSP headers appropriate (if applicable)
 - [ ] File uploads validated (type, size) if applicable
 
-### 4. Test Coverage Review
+### 4. Test Completeness Review (Static — do NOT assess runtime coverage metrics)
 - [ ] Tests exist for all acceptance criteria
 - [ ] Tests cover error/failure paths
 - [ ] Tests cover edge cases (empty input, null, boundary values)
@@ -174,7 +174,7 @@ The implementation correctly satisfies all acceptance criteria. Code follows exi
 - [x] CORS headers appropriate
 - N/A File uploads
 
-#### Test Coverage Review
+#### Test Completeness Review
 - [x] Tests for all acceptance criteria
 - [x] Error paths covered
 - [x] Edge cases covered
@@ -245,14 +245,14 @@ SQL injection vulnerability in `src/routes/search.ts:34` — user input concaten
 ### When to PASS
 - All acceptance criteria verifiably satisfied
 - No Critical or Major issues found
-- Tests provide adequate coverage
+- Test code exists for all acceptance criteria
 - Code follows project conventions
 - No security vulnerabilities
 
 ### When to FAIL
 - ANY acceptance criterion is not satisfied
 - Critical or Major issues found
-- Test coverage is inadequate for acceptance criteria
+- Test code missing for acceptance criteria
 - Security vulnerabilities detected
 - Lint/typecheck failures not addressed
 
