@@ -2,7 +2,7 @@
 
 ## Overview
 
-Runs a single user story through the full 6-gate SDLC pipeline: architecture check → coding (TDD) → lint/typecheck → review → testing → documentation.
+Runs a single user story through the full SDLC pipeline: architecture check → coding (TDD) → lint/typecheck → review → drift handling → testing → documentation.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -18,16 +18,16 @@ This is the **per-story execution engine**. For full spec execution with depende
 ## Agent Pipeline
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│  GATE 0  │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│  GATE 4  │──▶│ GATE 4.5 │──▶│  GATE 5  │
-│ ARCH     │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │ TESTING  │   │ VISUAL QA│   │  DOCS    │
-│ CHECK    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ AGENT    │   │(optional)│   │ AGENT    │
-│(readonly)│   │ (TDD)    │   │ (auto)   │   │(readonly)│   │(+coverage│   │(readonly)│   │(adaptive)│
-└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
-     │              ▲              │               │                             │
-     │ ABORT?       │ fix loop     │ fail?         │ FAIL?                       │ FAIL?
-     ▼              └──────────────┘               │                             │
-  ask user                                    back to Gate 1               back to Gate 1
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│  GATE 0  │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│ GATE 3.5 │──▶│  GATE 4  │──▶│ GATE 4.5 │──▶│  GATE 5  │
+│ ARCH     │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │  DRIFT   │   │ TESTING  │   │ VISUAL QA│   │  DOCS    │
+│ CHECK    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ RESPONSE │   │ AGENT    │   │(optional)│   │ AGENT    │
+│(readonly)│   │ (TDD)    │   │ (auto)   │   │(readonly)│   │ (auto)   │   │(+coverage│   │(readonly)│   │(adaptive)│
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+     │              ▲              │               │               │                             │
+     │ ABORT?       │ fix loop     │ fail?         │ FAIL?         │ PAUSE?                      │ FAIL?
+     ▼              └──────────────┘               │               ▼                             │
+  ask user                                    back to Gate 1  ask user                      back to Gate 1
                                               (max 3 iterations total across review + visual QA)
 ```
 
@@ -133,18 +133,130 @@ Auto-detect and run project linters:
 
 Spawns a **read-only** sub-agent for code review.
 
+**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis.
+
 **Reviews:**
 - Acceptance criteria verification
 - Code quality (patterns, errors, readability)
 - Security (injection, auth, secrets, vulnerable deps)
-- Test completeness (do tests exist for all AC? edge cases written?)
+- Test coverage (all AC covered? edge cases?)
 - Integration (breaking changes, circular deps, migrations)
+- **Drift analysis** — compare implementation against spec contract, classify deviations
 
 **Results:**
-- **PASS** → continue to testing
+- **PASS** → continue to testing (may include Small or Medium drift)
 - **FAIL** → send feedback to coding agent for fixes
+- **PAUSE** → Large drift detected; surface conflict to user before continuing
 
-**Review loop:** Max 3 iterations shared across review + visual QA. After 3 failures → escalate to user.
+**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user.
+
+#### Gate 3.5: Drift Response Handling
+
+> **Format reference:** `.writ/docs/drift-report-format.md` — canonical drift report structure, field definitions, DEV-ID numbering, parsing guide, and validation rules.
+
+After the review agent returns, inspect the `### Drift Analysis` section of the review output.
+
+##### Drift-Log Write Procedure
+
+All drift writes target **`.writ/specs/[spec-folder]/drift-log.md`** where `[spec-folder]` is the spec folder loaded in Step 2 (e.g., `.writ/specs/2026-02-27-phase1-foundation/drift-log.md`).
+
+**DEV-ID continuation:** Before writing, scan the existing `drift-log.md` for the highest `DEV-XXX` number. The next deviation starts at highest + 1. If the file doesn't exist, start at `DEV-001`.
+
+**File creation (first drift):**
+```markdown
+# Drift Log
+
+> Spec: .writ/specs/[spec-folder]/
+> Created: YYYY-MM-DD
+> ⚠️ Append-only — do not modify existing entries.
+
+---
+
+[story section goes here]
+```
+
+**File append (subsequent drift):** Read existing content, append `\n---\n\n` followed by the new story section. Do not modify existing entries.
+
+**Atomic write:** Write to `drift-log.md.tmp`, then rename to `drift-log.md`. This prevents partial writes if interrupted.
+
+##### Handling by Overall Drift Level
+
+**On `Overall Drift: None`** — no write to drift-log.md. Continue pipeline.
+
+**On `Overall Drift: Small`** — pipeline continues PASS:
+1. Parse each `Small` deviation from the review output's drift report
+2. Format a story section per the canonical format:
+
+```markdown
+## Story N: [Story Title] — Drift Report
+
+> Run: YYYY-MM-DD
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-XXX] [Brief description]
+- **Severity:** Small
+- **Spec said:** [what spec expected]
+- **Implementation did:** [what actually happened]
+- **Reason:** [why the deviation occurred]
+- **Resolution:** Auto-amended
+- **Spec amendment:** [proposed spec change text from review agent]
+```
+
+3. Write/append to `drift-log.md` using the procedure above
+4. Include in pipeline summary: `drift: N small (auto-amended)`
+
+**On `Overall Drift: Medium`** — pipeline continues PASS with warning:
+1. Parse each deviation from the review output's drift report
+2. Surface warning to user in pipeline output:
+
+```
+⚠️ Spec drift detected (Medium):
+- [DEV-XXX] [description] — flagged for post-implementation review
+```
+
+3. Format and write/append to `drift-log.md` — Medium deviations use:
+   - **Resolution:** `Flagged for review`
+   - **Spec amendment:** `N/A — flagged for post-implementation review` (or amendment text if the review agent proposed one)
+4. Any Small deviations in the same run are also logged with their own entries
+5. Include in pipeline summary: `drift: N medium ⚠️, M small (auto-amended)`
+6. Continue to Gate 4
+
+**On `Overall Drift: Large`** — pipeline PAUSES:
+1. Parse each deviation from the review output's drift report
+2. Log all Small and Medium deviations to `drift-log.md` immediately (they don't depend on user decision)
+3. Surface Large deviations to user:
+
+```
+🛑 Large spec drift detected — pipeline paused.
+
+[DEV-XXX] [Brief description]
+  Spec said:          [what spec expected]
+  Implementation did: [what actually happened]
+  Why it matters:     [impact assessment]
+
+Options:
+1. Accept deviation — continue pipeline, log as accepted drift
+2. Reject deviation — send back to coding agent with spec constraints
+3. Modify spec — update spec.md to reflect new approach, then continue
+```
+
+4. Wait for user response via `AskQuestion`
+5. **On "Accept":** Append Large deviation entry to `drift-log.md` with:
+   - **Resolution:** `Pipeline paused — accepted by user`
+   - **Spec amendment:** `N/A — deviation accepted as-is` (or amendment text if user provided one)
+   - Continue pipeline to Gate 4
+6. **On "Reject":** Append Large deviation entry to `drift-log.md` with:
+   - **Resolution:** `Pipeline paused — rejected, sent back to coding agent`
+   - **Spec amendment:** `N/A — implementation revised to match spec`
+   - Send review feedback + spec constraints back to coding agent (counts as review iteration)
+7. **On "Modify spec":** User updates `spec.md`, append Large deviation entry with:
+   - **Resolution:** `Pipeline paused — spec modified by user`
+   - **Spec amendment:** [description of spec change]
+   - Regenerate `spec-lite.md` from the updated `spec.md`, reload both, then re-run from Gate 3 (counts as review iteration)
+
+**Mixed severities:** The overall drift level is the **highest** severity present. If the report contains 1 Small + 1 Large, the pipeline PAUSES for the Large deviation. Small and Medium amendments are still logged immediately — only Large entries wait for user decision.
 
 ---
 
@@ -164,7 +276,7 @@ Spawns a **read-only** sub-agent for code review.
 - **≥80% line coverage on new files** — mandatory
 - **Coverage must not decrease on modified files**
 
-**On failure:** Send test output back to coding agent. 2 fix iterations max, then escalate.
+**On failure:** Send test output back to coding agent. 2 fix iterations max (separate from the review loop's 3-iteration cap), then escalate.
 
 ---
 
@@ -223,6 +335,7 @@ git commit -m "feat: complete story N - [title]
 - Files: X created, Y modified
 - Tests: N passing, X% coverage
 - Review: passed (iteration count)
+- Drift: none | N small (auto-amended), M medium ⚠️ — see drift-log.md
 - Docs: updated"
 ```
 
@@ -233,6 +346,7 @@ git commit -m "feat: complete story N - [title]
 
 Pipeline: arch-check ✅ → code ✅ → lint ✅ → review ✅ (1 iter) → test ✅ (15/15, 91%) → docs ✅
 Files changed: 8 (3 created, 5 modified)
+Drift: 1 small (auto-amended), 1 medium ⚠️ — see drift-log.md
 ```
 
 ---
@@ -271,7 +385,7 @@ Options:
 
 ## Quick Mode (`--quick`)
 
-**Skips:** Gate 0 (arch-check), Gate 3 (review), Gate 5 (docs)
+**Skips:** Gate 0 (arch-check), Gate 3 (review), Gate 3.5 (drift handling), Gate 5 (docs)
 **Keeps:** Gate 1 (coding/TDD), Gate 2 (lint), Gate 4 (testing)
 
 Use for prototyping, spikes, internal tools. Run full pipeline later:
