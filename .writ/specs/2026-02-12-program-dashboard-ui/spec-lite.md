@@ -3,7 +3,7 @@
 > Source: `spec.md`
 > Purpose: Compact AI context
 > Created: 2026-02-12
-> Last Updated: 2026-02-16
+> Last Updated: 2026-03-04
 > Contract Locked: Yes
 
 ## Core Objective
@@ -30,8 +30,10 @@ Deliver a Mantine dashboard that shows program-level and workstream-level health
 - `netCapacityHours = totalHours - overhead - bugHours - spikeHours - supportHours`
 - Sprint 5 prediction: `avg(velocityRate) * currentSprintNetCapacityHours`
 - Bug counts are sprint-scoped and require sprint assignment:
-  - closed: `Closed|Done|Resolved`
-  - active: non-done-like states
+  - open: `New|Active` (explicit state match)
+  - closed: `Resolved|Testing|Closed` (with `changedDate` within sprint window)
+  - `Done` state does not apply to bugs in this ADO configuration
+  - Bugs in unrecognized states are excluded from both buckets
 
 ## Data Contract
 

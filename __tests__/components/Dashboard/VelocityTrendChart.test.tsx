@@ -7,15 +7,18 @@ import { render, screen } from '@/test-utils';
  * Verifies: renders with data, empty state, reference line, prediction point.
  */
 
-jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => (
     <div
       data-testid="velocity-line-chart"
       data-series={JSON.stringify(props.series)}
       data-points={JSON.stringify(props.data)}
       data-reference-lines={JSON.stringify(props.referenceLines)}
-      data-h={String(props.h)}
+      data-height={String(props.height)}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -82,14 +85,14 @@ describe('VelocityTrendChart', () => {
       expect(points[3].sprint).toBe('Sprint 26.20');
     });
 
-    it('renders both "Completed Points" and "Predicted" series', () => {
+    it('renders both "Completed Points" and "Forecasted" series', () => {
       render(<VelocityTrendChart trendSprints={fourSprints} prediction={null} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
       expect(series).toEqual([
         { name: 'Completed Points', color: 'blue.6' },
-        { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
+        { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
       ]);
     });
 
@@ -97,7 +100,7 @@ describe('VelocityTrendChart', () => {
       render(<VelocityTrendChart trendSprints={fourSprints} prediction={null} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
-      expect(chart.getAttribute('data-h')).toBe('200');
+      expect(chart.getAttribute('data-height')).toBe('200');
     });
 
     it('omits Completed Points for sprints with null rawVelocity', () => {
@@ -127,16 +130,16 @@ describe('VelocityTrendChart', () => {
 
       const predictionPoint = points[4];
       expect(predictionPoint.sprint).toContain('(Forecasted)');
-      expect(predictionPoint.Predicted).toBe(48);
+      expect(predictionPoint.Forecasted).toBe(48);
     });
 
-    it('bridges the last actual point to the prediction with a Predicted value', () => {
+    it('bridges the last actual point to the prediction with a Forecasted value', () => {
       render(<VelocityTrendChart trendSprints={fourSprints} prediction={prediction} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
       const lastActualPoint = points[3];
-      expect(lastActualPoint.Predicted).toBe(lastActualPoint['Completed Points']);
+      expect(lastActualPoint.Forecasted).toBe(lastActualPoint['Completed Points']);
     });
 
     it('renders without prediction segment when prediction is null', () => {
@@ -146,7 +149,7 @@ describe('VelocityTrendChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points).toHaveLength(4);
       points.forEach((p: Record<string, unknown>) => {
-        expect(p).not.toHaveProperty('Predicted');
+        expect(p).not.toHaveProperty('Forecasted');
       });
     });
 
@@ -161,7 +164,7 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
       const predictionPoint = points[4];
-      expect(predictionPoint).not.toHaveProperty('Predicted');
+      expect(predictionPoint).not.toHaveProperty('Forecasted');
     });
   });
 

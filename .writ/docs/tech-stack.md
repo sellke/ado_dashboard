@@ -17,6 +17,13 @@
 | Prisma | 6.3.0 | Database ORM and migrations |
 | PostgreSQL | 16 (Alpine) | Relational database (Dockerized) |
 
+### Charts
+
+| Technology | Version | Purpose |
+|---|---|---|
+| Recharts | ^2.15.4 | SVG chart rendering (used directly via `lib/charts/` wrappers) |
+| lib/charts/ | — | Thin wrappers (AppLineChart, AppBarChart, AppAreaChart) with Mantine theme integration, dark mode, and escape hatches |
+
 ### Supporting
 
 | Technology | Version | Purpose |

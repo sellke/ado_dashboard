@@ -44,7 +44,6 @@ describe('Dashboard accessibility', () => {
               detail: {
                 plannedPoints: 50,
                 completedPoints: 45,
-                carryOverItems: 3,
                 carryOverPoints: 6,
                 overheadHours: 22,
                 grossHours: 80,

@@ -1,10 +1,20 @@
 /**
  * Tests for WorkstreamCardsGrid component.
- * Verifies card rendering, empty state, and deterministic ordering.
+ * Verifies card rendering, empty state, deterministic ordering, and shared sprint selector.
  */
 import { WorkstreamCardsGrid } from '@/components/Dashboard/WorkstreamCardsGrid';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { render, screen } from '@/test-utils';
+import type { SprintStoryViewModel, StatusGroupViewModel, StoryRowViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { render, screen, userEvent } from '@/test-utils';
+
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => {
+    const series = props.series as Array<{ name: string }> | undefined;
+    const isOverhead = series?.some((s) => s.name === 'Mtgs');
+    return <div data-testid={isOverhead ? 'overhead-line-chart' : 'velocity-line-chart'} />;
+  },
+  AppBarChart: () => <div data-testid="overhead-bar-chart" />,
+  ChartLegend: () => <div data-testid="chart-legend" />,
+}));
 
 const createCard = (overrides: Partial<WorkstreamCardViewModel> = {}): WorkstreamCardViewModel => ({
   workstreamId: 'ws-1',
@@ -13,17 +23,49 @@ const createCard = (overrides: Partial<WorkstreamCardViewModel> = {}): Workstrea
   detail: {
     plannedPoints: '40',
     completedPoints: '34',
-    carryOverItems: '3',
     carryOverPoints: '6',
   },
   trendSprints: [],
   prediction: null,
   overheadComposition: [],
-  currentSprintBugItems: [],
-  currentSprintSupportItems: [],
+  overheadItemsBySprint: [],
   milestoneGroups: [],
   ...overrides,
 });
+
+function createStoryRow(overrides: Partial<StoryRowViewModel> = {}): StoryRowViewModel {
+  return {
+    adoId: '#12345',
+    title: 'Implement auth flow',
+    assignedTo: 'Jane Doe',
+    storyPoints: '5',
+    state: 'Active',
+    statusGroup: 'Active',
+    adoUrl: 'https://dev.azure.com/test/12345',
+    ...overrides,
+  };
+}
+
+function createStatusGroup(overrides: Partial<StatusGroupViewModel> = {}): StatusGroupViewModel {
+  return {
+    group: 'Active',
+    stories: [createStoryRow()],
+    ...overrides,
+  };
+}
+
+function createSprint(overrides: Partial<SprintStoryViewModel> = {}): SprintStoryViewModel {
+  return {
+    id: 'sprint-1',
+    name: 'Sprint 2026.05',
+    startDate: '2026-02-24T00:00:00.000Z',
+    endDate: '2026-03-07T00:00:00.000Z',
+    isCurrent: true,
+    statusGroups: [createStatusGroup()],
+    totalStories: 1,
+    ...overrides,
+  };
+}
 
 describe('WorkstreamCardsGrid', () => {
   it('renders one card per workstream', () => {
@@ -75,5 +117,120 @@ describe('WorkstreamCardsGrid', () => {
 
     expect(alphaIndex).toBeLessThan(betaIndex);
     expect(betaIndex).toBeLessThan(zebraIndex);
+  });
+
+  describe('shared sprint selector', () => {
+    it('renders SprintTabSelector when sprint data exists', () => {
+      const cards = [createCard({ workstreamId: 'ws-1' })];
+      const sprintStoriesMap = {
+        'ws-1': [
+          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: true }),
+          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: false }),
+        ],
+      };
+
+      render(<WorkstreamCardsGrid cards={cards} sprintStoriesMap={sprintStoriesMap} />);
+
+      expect(screen.getByTestId('sprint-tab-selector')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Sprint 05/ })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Sprint 04/ })).toBeInTheDocument();
+    });
+
+    it('hides SprintTabSelector when no sprint data', () => {
+      const cards = [createCard({ workstreamId: 'ws-1' })];
+
+      render(<WorkstreamCardsGrid cards={cards} />);
+
+      expect(screen.queryByTestId('sprint-tab-selector')).not.toBeInTheDocument();
+    });
+
+    it('hides SprintTabSelector when sprintStoriesMap is empty', () => {
+      const cards = [createCard({ workstreamId: 'ws-1' })];
+
+      render(<WorkstreamCardsGrid cards={cards} sprintStoriesMap={{}} />);
+
+      expect(screen.queryByTestId('sprint-tab-selector')).not.toBeInTheDocument();
+    });
+
+    it('hides SprintTabSelector when storiesLoading is true', () => {
+      const cards = [createCard({ workstreamId: 'ws-1' })];
+      const sprintStoriesMap = {
+        'ws-1': [createSprint({ id: 's1', name: 'Sprint 05' })],
+      };
+
+      render(
+        <WorkstreamCardsGrid
+          cards={cards}
+          sprintStoriesMap={sprintStoriesMap}
+          storiesLoading={true}
+        />
+      );
+
+      expect(screen.queryByTestId('sprint-tab-selector')).not.toBeInTheDocument();
+    });
+
+    it('defaults to current sprint', () => {
+      const cards = [createCard({ workstreamId: 'ws-1' })];
+      const sprintStoriesMap = {
+        'ws-1': [
+          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: false }),
+          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: true }),
+        ],
+      };
+
+      render(<WorkstreamCardsGrid cards={cards} sprintStoriesMap={sprintStoriesMap} />);
+
+      const currentTab = screen.getByRole('tab', { name: /Sprint 04/ });
+      expect(currentTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('tab change updates all cards', async () => {
+      const user = userEvent.setup();
+      const cards = [
+        createCard({ workstreamId: 'ws-1', workstreamName: 'Alpha' }),
+        createCard({ workstreamId: 'ws-2', workstreamName: 'Beta' }),
+      ];
+      const sprint1Stories = [
+        createStatusGroup({
+          stories: [createStoryRow({ title: 'Alpha Story S1', adoId: '#1' })],
+        }),
+      ];
+      const sprint2Stories = [
+        createStatusGroup({
+          stories: [createStoryRow({ title: 'Alpha Story S2', adoId: '#2' })],
+        }),
+      ];
+      const betaSprint1Stories = [
+        createStatusGroup({
+          stories: [createStoryRow({ title: 'Beta Story S1', adoId: '#3' })],
+        }),
+      ];
+      const betaSprint2Stories = [
+        createStatusGroup({
+          stories: [createStoryRow({ title: 'Beta Story S2', adoId: '#4' })],
+        }),
+      ];
+      const sprintStoriesMap = {
+        'ws-1': [
+          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: true, statusGroups: sprint1Stories, totalStories: 1 }),
+          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: false, statusGroups: sprint2Stories, totalStories: 1 }),
+        ],
+        'ws-2': [
+          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: true, statusGroups: betaSprint1Stories, totalStories: 1 }),
+          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: false, statusGroups: betaSprint2Stories, totalStories: 1 }),
+        ],
+      };
+
+      render(<WorkstreamCardsGrid cards={cards} sprintStoriesMap={sprintStoriesMap} />);
+
+      expect(screen.getByText('Alpha Story S1')).toBeInTheDocument();
+      expect(screen.getByText('Beta Story S1')).toBeInTheDocument();
+
+      const sprint4Tab = screen.getByRole('tab', { name: /Sprint 04/ });
+      await user.click(sprint4Tab);
+
+      expect(screen.getByText('Alpha Story S2')).toBeInTheDocument();
+      expect(screen.getByText('Beta Story S2')).toBeInTheDocument();
+    });
   });
 });

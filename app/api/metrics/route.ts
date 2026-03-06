@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import { resolveDashboard } from '@/lib/dashboard/config';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
 import { buildTrendSeries } from '@/lib/metrics/trend-service';
-import type { MetricWithRag, ThresholdConfigInput, WorkstreamMetrics } from '@/lib/metrics/types';
+import { DONE_STATES, type MetricWithRag, type ThresholdConfigInput, type WorkstreamMetrics } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
 
 /** Hours of meeting/ceremony overhead per team member per sprint (Story 6). */
@@ -69,7 +69,6 @@ function formatWorkstreamResponse(
     overheadRag: string | null;
     predictabilityRag: string | null;
     carryOverRag: string | null;
-    carryOverItems: number | null;
     carryOverPoints: number | null;
     plannedPoints: number | null;
     completedPoints: number | null;
@@ -113,7 +112,6 @@ function formatWorkstreamResponse(
     detail: {
       plannedPoints: s.plannedPoints,
       completedPoints: s.completedPoints,
-      carryOverItems: s.carryOverItems,
       carryOverPoints: s.carryOverPoints,
       overheadHours: s.overheadHours,
       grossHours: s.grossHours,
@@ -145,10 +143,12 @@ function formatWorkstreamResponse(
       mode: 'predicted';
       formula: string;
     } | null,
-    currentSprintOverheadItems: {
-      bugs: [] as Array<{ adoId: number; title: string; state: string; hours: number | null }>,
-      support: [] as Array<{ adoId: number; title: string; state: string; hours: number | null }>,
-    },
+    overheadItemsBySprint: [] as Array<{
+      sprintId: string;
+      bugs: Array<{ adoId: number; title: string; state: string; hours: number | null }>;
+      spikes: Array<{ adoId: number; title: string; state: string; hours: number | null }>;
+      support: Array<{ adoId: number; title: string; state: string; hours: number | null }>;
+    }>,
   };
 }
 
@@ -317,7 +317,13 @@ export async function GET(request: Request) {
         sprintId: true,
         workstreamId: true,
         storyPoints: true,
+        adoId: true,
+        title: true,
+        state: true,
+        completedWork: true,
+        originalEstimate: true,
       },
+      orderBy: { adoId: 'asc' },
     });
     const wsFilterForSW = workstreamIdParam
       ? { workstreamId: workstreamIdParam }
@@ -347,13 +353,16 @@ export async function GET(request: Request) {
 
     // When the active sprint is current, pull detail fields from the last completed sprint
     // so Planned/Completed/Carry-over reflect a closed sprint rather than mid-sprint partials.
+    // Uses SprintPlanSnapshot for accurate carry-over data; falls back to MetricSnapshot.
     const priorDetailMap = new Map<
       string,
       {
         plannedPoints: number | null;
         completedPoints: number | null;
-        carryOverItems: number | null;
         carryOverPoints: number | null;
+        carryOverRate: number | null;
+        carryOverRateAvg: number | null;
+        carryOverRag: string | null;
         overheadHours: number | null;
         grossHours: number | null;
       }
@@ -370,20 +379,55 @@ export async function GET(request: Request) {
           startDate: priorSprint.startDate.toISOString(),
           endDate: priorSprint.endDate.toISOString(),
         };
-        const priorSnaps = await prisma.metricSnapshot.findMany({
+
+        // Try snapshot-based detail first (accurate carry-over for completed sprints)
+        const priorPlanSnapshots = await prisma.sprintPlanSnapshot.findMany({
+          where: { sprintId: priorSprint.id, workstreamId: { in: allowedWsIds } },
+        });
+
+        const priorMetricSnaps = await prisma.metricSnapshot.findMany({
           where: { sprintId: priorSprint.id, workstreamId: { in: allowedWsIds } },
           select: {
             workstreamId: true,
             plannedPoints: true,
             completedPoints: true,
-            carryOverItems: true,
             carryOverPoints: true,
+            carryOverRate: true,
+            carryOverRateAvg: true,
+            carryOverRag: true,
             overheadHours: true,
             grossHours: true,
           },
         });
-        for (const ps of priorSnaps) {
-          priorDetailMap.set(ps.workstreamId, ps);
+
+        // Only override detail when we have SprintPlanSnapshot data — without snapshots,
+        // a completed sprint's MetricSnapshot shows planned≈completed (items already moved)
+        // which would display misleading 100% completion. Fall back to current sprint detail.
+        if (priorPlanSnapshots.length > 0) {
+          for (const ms of priorMetricSnaps) {
+            const wsSnaps = priorPlanSnapshots.filter((s) => s.workstreamId === ms.workstreamId);
+            if (wsSnaps.length > 0) {
+              const plannedPoints = wsSnaps.reduce((sum, s) => sum + (s.storyPoints ?? 0), 0);
+              const completedPoints = wsSnaps
+                .filter((s) => (DONE_STATES as readonly string[]).includes(s.state))
+                .reduce((sum, s) => sum + (s.storyPoints ?? 0), 0);
+              const carryOverPoints = plannedPoints - completedPoints;
+              const carryOverRate =
+                plannedPoints > 0 ? (carryOverPoints / plannedPoints) * 100 : null;
+              priorDetailMap.set(ms.workstreamId, {
+                plannedPoints,
+                completedPoints,
+                carryOverPoints,
+                carryOverRate,
+                carryOverRateAvg: ms.carryOverRateAvg,
+                carryOverRag: ms.carryOverRag,
+                overheadHours: ms.overheadHours,
+                grossHours: ms.grossHours,
+              });
+            }
+          }
+        } else {
+          detailSprint = null;
         }
       }
     }
@@ -393,7 +437,19 @@ export async function GET(request: Request) {
       if (isCurrentSprint) {
         const prior = priorDetailMap.get(s.workstreamId);
         if (prior) {
-          formatted.detail = prior;
+          formatted.detail = {
+            plannedPoints: prior.plannedPoints,
+            completedPoints: prior.completedPoints,
+            carryOverPoints: prior.carryOverPoints,
+            overheadHours: prior.overheadHours,
+            grossHours: prior.grossHours,
+          };
+          formatted.metrics.carryOverRate = toMetricWithRag(
+            prior.carryOverRate,
+            prior.carryOverRateAvg,
+            prior.carryOverRag,
+            includeRolling
+          );
         }
       }
       const trends = buildTrendSeries({
@@ -455,9 +511,10 @@ export async function GET(request: Request) {
         mode: 'predicted' as const,
         formula: trends.prediction.formula,
       };
-      formatted.currentSprintOverheadItems = {
+      formatted.overheadItemsBySprint = rollingSprintIds.map((rsId) => ({
+        sprintId: rsId,
         bugs: trendBugs
-          .filter((b) => b.sprintId === sprintId && b.workstreamId === s.workstreamId)
+          .filter((b) => b.sprintId === rsId && b.workstreamId === s.workstreamId)
           .sort((a, b) => a.adoId - b.adoId)
           .map((b) => ({
             adoId: b.adoId,
@@ -465,8 +522,17 @@ export async function GET(request: Request) {
             state: b.state,
             hours: b.completedWork ?? b.originalEstimate ?? null,
           })),
+        spikes: trendSpikes
+          .filter((sp) => sp.sprintId === rsId && sp.workstreamId === s.workstreamId)
+          .sort((a, b) => a.adoId - b.adoId)
+          .map((sp) => ({
+            adoId: sp.adoId,
+            title: sp.title,
+            state: sp.state,
+            hours: sp.completedWork ?? sp.originalEstimate ?? null,
+          })),
         support: trendSupport
-          .filter((sv) => sv.sprintId === sprintId && sv.workstreamId === s.workstreamId)
+          .filter((sv) => sv.sprintId === rsId && sv.workstreamId === s.workstreamId)
           .sort((a, b) => a.adoId - b.adoId)
           .map((sv) => ({
             adoId: sv.adoId,
@@ -474,7 +540,7 @@ export async function GET(request: Request) {
             state: sv.state,
             hours: sv.completedWork ?? sv.originalEstimate ?? null,
           })),
-      };
+      }));
       return formatted;
     });
 

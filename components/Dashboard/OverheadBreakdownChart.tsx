@@ -1,10 +1,8 @@
 'use client';
 
-import { LineChart } from '@mantine/charts';
+import { AppLineChart, ChartLegend } from '@/lib/charts';
 import { Stack, Text } from '@mantine/core';
 import type { TrendSprintViewModel } from '@/lib/dashboard/types';
-import { ChartLegend } from './ChartLegend';
-import { PointValueTooltip } from './PointValueTooltip';
 
 export interface OverheadBreakdownChartProps {
   trendSprints: TrendSprintViewModel[];
@@ -60,8 +58,8 @@ export function OverheadBreakdownChart({ trendSprints }: OverheadBreakdownChartP
 
   return (
     <Stack gap={4} style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
-      <LineChart
-        h={200}
+      <AppLineChart
+        height={200}
         data={chartData}
         dataKey="sprint"
         withDots
@@ -77,11 +75,9 @@ export function OverheadBreakdownChart({ trendSprints }: OverheadBreakdownChartP
           tickMargin: 10,
         }}
         yAxisProps={{ domain: [0, 'auto'] }}
-        tooltipAnimationDuration={0}
         tooltipProps={{
           offset: 0,
           isAnimationActive: false,
-          content: PointValueTooltip as never,
         }}
       />
       <ChartLegend

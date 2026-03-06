@@ -1,9 +1,9 @@
 # Program Dashboard UI Specification
 
 > Created: 2026-02-12
-> Status: In Progress (Change Request)
+> Status: Completed
 > Contract Locked: Yes
-> Last Updated: 2026-02-16
+> Last Updated: 2026-03-04
 
 ## Contract Summary
 
@@ -27,7 +27,7 @@
 - Program summary clearly shows 4-sprint average context and Sprint 5 velocity prediction
 - Workstream views show Sprint 1-4 velocity, velocity rate, active bugs, and bugs closed
 - Velocity-rate and prediction formulas are applied consistently with existing work-type hour derivation rules
-- Bug counts include only bugs assigned to the sprint being displayed
+- Bug counts include only bugs assigned to the sprint being displayed, classified by explicit state sets (`New|Active` for open, `Resolved|Testing|Closed` for resolved)
 - Existing sync, loading, empty, and error UX remains stable
 
 **Scope Boundaries:**
@@ -57,8 +57,8 @@
 - **Predicted Velocity (Sprint 5 only):**
   - `average velocity rate × current sprint net capacity hours`
   - Show as predicted value and keep distinct from actuals.
-- **Bugs Closed (Sprint 1-4):** Bug items in done-like states (`Closed`, `Done`, `Resolved`) assigned to that sprint.
-- **Active Bugs (Sprint 1-4):** Bug items in non-done-like states assigned to that sprint.
+- **Bugs Closed (Sprint 1-4):** Bug items in resolved states (`Resolved`, `Testing`, `Closed`) assigned to that sprint, with `changedDate` within the sprint window. (`Done` state does not apply to bugs in this ADO configuration.)
+- **Active Bugs (Sprint 1-4):** Bug items in open states (`New`, `Active`) assigned to that sprint. Bugs in states outside both the open and resolved sets are excluded from both counts.
 
 ## 3) Page Composition
 

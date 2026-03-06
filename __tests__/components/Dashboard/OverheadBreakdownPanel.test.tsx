@@ -1,20 +1,23 @@
 /**
  * Tests for OverheadBreakdownPanel component.
- * Verifies: renders chart + tables, section header, data-testid, conditional rendering.
+ * Verifies: renders chart + tables, section header, data-testid, sprint selection, conditional rendering.
  */
 
 import { createOverheadItemViewModel } from '@/__tests__/components/Dashboard/__fixtures__/dashboard-fixtures';
 import { OverheadBreakdownPanel } from '@/components/Dashboard/OverheadBreakdownPanel';
-import type { OverheadItemViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
+import type { OverheadSprintViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import { render, screen } from '@/test-utils';
 
-jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => (
     <div
       data-testid="overhead-line-chart"
       data-series={JSON.stringify(props.series)}
       data-data={JSON.stringify(props.data)}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -48,12 +51,19 @@ const trendSprints: TrendSprintViewModel[] = [
   makeTrendSprint('Sprint 2', { Bugs: 6 }),
 ];
 
-const bugItems: OverheadItemViewModel[] = [
-  createOverheadItemViewModel({ adoId: '#12345', title: 'Login crash', isClosed: true }),
-];
-
-const supportItems: OverheadItemViewModel[] = [
-  createOverheadItemViewModel({ adoId: '#11111', title: 'Infra request', isClosed: false }),
+const overheadItemsBySprint: OverheadSprintViewModel[] = [
+  {
+    sprintId: 'Sprint 1',
+    bugs: [createOverheadItemViewModel({ adoId: '#12345', title: 'Login crash', isClosed: true })],
+    spikes: [createOverheadItemViewModel({ adoId: '#55555', title: 'Perf spike', isClosed: false })],
+    support: [createOverheadItemViewModel({ adoId: '#11111', title: 'Infra request', isClosed: false })],
+  },
+  {
+    sprintId: 'Sprint 2',
+    bugs: [createOverheadItemViewModel({ adoId: '#22222', title: 'Sprint 2 Bug', isClosed: false })],
+    spikes: [],
+    support: [],
+  },
 ];
 
 describe('OverheadBreakdownPanel', () => {
@@ -62,22 +72,62 @@ describe('OverheadBreakdownPanel', () => {
       render(
         <OverheadBreakdownPanel
           trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
         />
       );
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
 
-    it('renders "Overhead Breakdown" section header', () => {
+    it('renders "Overhead Breakdown (Hours)" section header', () => {
       render(
         <OverheadBreakdownPanel
           trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
         />
       );
-      expect(screen.getByText('Overhead Breakdown')).toBeInTheDocument();
+      expect(screen.getByText('Overhead Breakdown (Hours)')).toBeInTheDocument();
+    });
+  });
+
+  describe('sprint selection', () => {
+    it('renders items for the selected sprint', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
+        />
+      );
+      expect(screen.getByText(/Login crash/)).toBeInTheDocument();
+      expect(screen.getByText(/Perf spike/)).toBeInTheDocument();
+      expect(screen.getByText(/Infra request/)).toBeInTheDocument();
+    });
+
+    it('renders items for a different selected sprint', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 2"
+        />
+      );
+      expect(screen.getByText(/Sprint 2 Bug/)).toBeInTheDocument();
+      expect(screen.queryByText(/Login crash/)).not.toBeInTheDocument();
+    });
+
+    it('renders empty states when activeSprintId has no match', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="nonexistent"
+        />
+      );
+      expect(screen.getByText('No bug items')).toBeInTheDocument();
+      expect(screen.getByText('No spike items')).toBeInTheDocument();
+      expect(screen.getByText('No support items')).toBeInTheDocument();
     });
   });
 
@@ -86,50 +136,33 @@ describe('OverheadBreakdownPanel', () => {
       render(
         <OverheadBreakdownPanel
           trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
         />
       );
       expect(screen.getByTestId('overhead-line-chart')).toBeInTheDocument();
     });
 
-    it('renders CurrentSprintItemTables with bug and support sections', () => {
+    it('renders CurrentSprintItemTables with bug, spike, and support sections', () => {
       render(
         <OverheadBreakdownPanel
           trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
         />
       );
       expect(screen.getByTestId('bug-items')).toBeInTheDocument();
+      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
       expect(screen.getByTestId('support-items')).toBeInTheDocument();
-    });
-
-    it('passes bug items to CurrentSprintItemTables', () => {
-      render(
-        <OverheadBreakdownPanel
-          trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
-        />
-      );
-      expect(screen.getByText(/Login crash/)).toBeInTheDocument();
-    });
-
-    it('passes support items to CurrentSprintItemTables', () => {
-      render(
-        <OverheadBreakdownPanel
-          trendSprints={trendSprints}
-          bugItems={bugItems}
-          supportItems={supportItems}
-        />
-      );
-      expect(screen.getByText(/Infra request/)).toBeInTheDocument();
     });
 
     it('shows empty state when trendSprints is empty', () => {
       render(
-        <OverheadBreakdownPanel trendSprints={[]} bugItems={bugItems} supportItems={supportItems} />
+        <OverheadBreakdownPanel
+          trendSprints={[]}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
+        />
       );
       expect(screen.getByText('No overhead data available')).toBeInTheDocument();
     });
@@ -138,17 +171,28 @@ describe('OverheadBreakdownPanel', () => {
   describe('empty states', () => {
     it('renders panel with empty tables when items arrays are empty', () => {
       render(
-        <OverheadBreakdownPanel trendSprints={trendSprints} bugItems={[]} supportItems={[]} />
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={[{ sprintId: 'Sprint 1', bugs: [], spikes: [], support: [] }]}
+          activeSprintId="Sprint 1"
+        />
       );
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
       expect(screen.getByText('No bug items')).toBeInTheDocument();
+      expect(screen.getByText('No spike items')).toBeInTheDocument();
       expect(screen.getByText('No support items')).toBeInTheDocument();
     });
 
     it('still renders panel and header even when all data is empty', () => {
-      render(<OverheadBreakdownPanel trendSprints={[]} bugItems={[]} supportItems={[]} />);
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={[]}
+          overheadItemsBySprint={[]}
+          activeSprintId=""
+        />
+      );
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
-      expect(screen.getByText('Overhead Breakdown')).toBeInTheDocument();
+      expect(screen.getByText('Overhead Breakdown (Hours)')).toBeInTheDocument();
     });
   });
 });

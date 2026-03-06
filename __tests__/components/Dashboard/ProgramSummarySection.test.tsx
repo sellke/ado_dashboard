@@ -7,8 +7,8 @@ import { ProgramSummarySection } from '@/components/Dashboard/ProgramSummarySect
 import type { DashboardViewModel, MetricTileViewModel } from '@/lib/dashboard/types';
 import { render, screen } from '@/test-utils';
 
-jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => (
     <div
       data-testid="line-chart"
       data-series={JSON.stringify(props.series)}
@@ -16,12 +16,15 @@ jest.mock('@mantine/charts', () => ({
       data-with-legend={String(!!props.withLegend)}
     />
   ),
-  BarChart: (props: Record<string, unknown>) => (
+  AppBarChart: (props: Record<string, unknown>) => (
     <div
       data-testid="bar-chart"
       data-series={JSON.stringify(props.series)}
       data-type={props.type as string}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -133,7 +136,7 @@ describe('ProgramSummarySection', () => {
     render(<ProgramSummarySection viewModel={populatedViewModel} />);
 
     expect(screen.getByText('Sprint Trend')).toBeInTheDocument();
-    expect(screen.getByText('Velocity (Completed Points)')).toBeInTheDocument();
+    expect(screen.getByText('Velocity (Points)')).toBeInTheDocument();
     expect(screen.getByText('Bug Burndown')).toBeInTheDocument();
 
     const lineCharts = screen.getAllByTestId('line-chart');
@@ -144,7 +147,7 @@ describe('ProgramSummarySection', () => {
     const velocitySeries = JSON.parse(lineCharts[0].getAttribute('data-series')!);
     expect(velocitySeries).toEqual([
       { name: 'Completed Points', color: 'blue.6' },
-      { name: 'Predicted', color: 'blue.6', strokeDasharray: '5 5' },
+      { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
     ]);
     const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
     expect(velocityPoints).toHaveLength(3);
@@ -155,8 +158,8 @@ describe('ProgramSummarySection', () => {
 
     const bugSeries = JSON.parse(barCharts[0].getAttribute('data-series')!);
     expect(bugSeries).toEqual([
-      { name: 'Closed', color: 'green.6' },
-      { name: 'Open', color: 'red.6' },
+      { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
+      { name: 'Open (New/Active)', color: 'red.6' },
     ]);
 
     expect(screen.queryByText('Sprint 5 Predicted Velocity')).not.toBeInTheDocument();
@@ -233,7 +236,7 @@ describe('ProgramSummarySection', () => {
     const velocityPoints = JSON.parse(lineChart.getAttribute('data-points')!);
     expect(velocityPoints).toHaveLength(5);
     expect(velocityPoints[4].sprint).toBe('Sprint 26.21 (Forecasted)');
-    expect(velocityPoints[4].Predicted).toBe(58);
+    expect(velocityPoints[4].Forecasted).toBe(58);
   });
 
   it('renders N/A for metrics with null values with stable layout', () => {

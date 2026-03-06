@@ -1,25 +1,45 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { SimpleGrid, Stack, Title } from '@mantine/core';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { deriveSprintList } from '@/lib/dashboard/sprint-utils';
+import { SprintTabSelector } from './SprintTabSelector';
 import { WorkstreamHealthCard } from './WorkstreamHealthCard';
 
 export interface WorkstreamCardsGridProps {
-  /** Array of workstream cards to display (sorted by name for deterministic order) */
   cards: WorkstreamCardViewModel[];
   milestonesLoading?: boolean;
   milestonesError?: string | null;
+  sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
+  storiesLoading?: boolean;
+  storiesError?: string | null;
 }
 
-/**
- * Renders a responsive grid of workstream health cards.
- * Cards are sorted by workstream name for deterministic display.
- */
 export function WorkstreamCardsGrid({
   cards,
   milestonesLoading,
   milestonesError,
+  sprintStoriesMap,
+  storiesLoading,
+  storiesError,
 }: WorkstreamCardsGridProps) {
+  const [activeSprintId, setActiveSprintId] = useState<string>('');
+
+  const sprints = deriveSprintList(sprintStoriesMap);
+
+  useEffect(() => {
+    if (sprints.length === 0) return;
+    setActiveSprintId((prev) => {
+      if (!prev) {
+        const current = sprints.find((s) => s.isCurrent);
+        return current?.id ?? sprints[0].id;
+      }
+      const stillValid = sprints.some((s) => s.id === prev);
+      return stillValid ? prev : (sprints.find((s) => s.isCurrent)?.id ?? sprints[0].id);
+    });
+  }, [sprintStoriesMap]);
+
   if (!cards || cards.length === 0) {
     return null;
   }
@@ -31,6 +51,13 @@ export function WorkstreamCardsGrid({
   return (
     <Stack gap="md">
       <Title order={2}>Workstreams</Title>
+      {!storiesLoading && sprints.length > 0 && (
+        <SprintTabSelector
+          sprints={sprints}
+          activeSprintId={activeSprintId}
+          onSprintChange={setActiveSprintId}
+        />
+      )}
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         {sortedCards.map((card) => (
           <WorkstreamHealthCard
@@ -38,6 +65,10 @@ export function WorkstreamCardsGrid({
             card={card}
             milestonesLoading={milestonesLoading}
             milestonesError={milestonesError}
+            sprintStories={sprintStoriesMap?.[card.workstreamId]}
+            activeSprintId={activeSprintId}
+            storiesLoading={storiesLoading}
+            storiesError={storiesError}
           />
         ))}
       </SimpleGrid>

@@ -7,8 +7,9 @@ import {
   createLoadingViewModel,
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
+import { mapSprintStoriesResponse } from '@/lib/dashboard/sprint-stories-adapter';
 import type { DashboardId } from '@/lib/dashboard/config';
-import type { ApiResponse } from '@/lib/dashboard/types';
+import type { ApiResponse, SprintStoriesApiResponse, SprintStoryViewModel } from '@/lib/dashboard/types';
 import type {
   ApiMilestonesResponse,
   ApiMilestoneWithProgress,
@@ -34,6 +35,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [programRollup, setProgramRollup] = useState<ApiProgramMilestoneRollup | null>(null);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
   const [milestonesError, setMilestonesError] = useState<string | null>(null);
+  const [sprintStoriesMap, setSprintStoriesMap] = useState<Record<string, SprintStoryViewModel[]>>({});
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [storiesError, setStoriesError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncPartialSuccess, setSyncPartialSuccess] = useState(false);
@@ -155,6 +159,33 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
   }, []);
 
+  const fetchSprintStories = useCallback(
+    async (workstreamIds: string[]) => {
+      if (workstreamIds.length === 0) return;
+      setStoriesLoading(true);
+      setStoriesError(null);
+
+      try {
+        const results: Record<string, SprintStoryViewModel[]> = {};
+        await Promise.all(
+          workstreamIds.map(async (wsId) => {
+            const res = await fetch(`/api/sprints/stories?workstreamId=${wsId}`);
+            if (!res.ok) return;
+            const data: SprintStoriesApiResponse = await res.json();
+            results[wsId] = mapSprintStoriesResponse(data);
+          })
+        );
+        setSprintStoriesMap(results);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load sprint stories';
+        setStoriesError(message);
+      } finally {
+        setStoriesLoading(false);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     fetchMetrics();
   }, [fetchMetrics]);
@@ -162,6 +193,13 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   useEffect(() => {
     fetchMilestones();
   }, [fetchMilestones]);
+
+  useEffect(() => {
+    if (metricsViewState === 'success' && rawMetrics?.workstreams) {
+      const wsIds = rawMetrics.workstreams.map((ws) => ws.workstreamId);
+      fetchSprintStories(wsIds);
+    }
+  }, [metricsViewState, rawMetrics, fetchSprintStories]);
 
   return (
     <Stack gap="xl">
@@ -181,6 +219,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
         programRollup={programRollup}
+        sprintStoriesMap={sprintStoriesMap}
+        storiesLoading={storiesLoading}
+        storiesError={storiesError}
       />
     </Stack>
   );

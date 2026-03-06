@@ -6,7 +6,10 @@ const config: StorybookConfig = {
     disableTelemetry: true,
     enableCrashReports: false,
   },
-  stories: ['../components/**/*.(stories|story).@(js|jsx|ts|tsx)'],
+  stories: [
+    '../components/**/*.(stories|story).@(js|jsx|ts|tsx)',
+    '../lib/charts/**/*.(stories|story).@(js|jsx|ts|tsx)',
+  ],
   addons: ['storybook-dark-mode'],
   framework: {
     name: '@storybook/nextjs',

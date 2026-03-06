@@ -42,6 +42,7 @@ model Workstream {
   transcripts       Transcript[]
   ceremonyInsights  CeremonyInsight[]
   metricSnapshots   MetricSnapshot[]
+  planSnapshots     SprintPlanSnapshot[]
 
   @@map("workstreams")
 }
@@ -60,6 +61,7 @@ model Sprint {
   workItems         WorkItem[]
   transcripts       Transcript[]
   metricSnapshots    MetricSnapshot[]
+  planSnapshots      SprintPlanSnapshot[]
 
   @@map("sprints")
 }
@@ -145,6 +147,32 @@ model MetricSnapshot {
   @@unique([sprintId, workstreamId])
   @@index([sprintId])
   @@map("metric_snapshots")
+}
+
+// ============================================================================
+// MODELS — Sprint Plan Snapshot
+// ============================================================================
+// Records work item assignments per sprint at compute time so that carry-over
+// calculations can reference historical data even after ADO moves items.
+
+model SprintPlanSnapshot {
+  id           String   @id @default(cuid())
+  sprintId     String
+  workstreamId String
+  adoId        Int
+  storyPoints  Float?
+  state        String
+  type         String
+  capturedAt   DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sprint     Sprint     @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  workstream Workstream @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+
+  @@unique([sprintId, workstreamId, adoId])
+  @@index([sprintId, workstreamId])
+  @@map("sprint_plan_snapshots")
 }
 
 // ============================================================================

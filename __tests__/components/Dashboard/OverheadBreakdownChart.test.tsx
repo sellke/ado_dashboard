@@ -7,14 +7,17 @@ import { render, screen } from '@/test-utils';
  * Verifies: renders with data, empty state, zero-only state, chart series, data transformation.
  */
 
-jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => (
     <div
       data-testid="overhead-line-chart"
       data-series={JSON.stringify(props.series)}
       data-points={JSON.stringify(props.data)}
-      data-h={String(props.h)}
+      data-height={String(props.height)}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -135,14 +138,14 @@ describe('OverheadBreakdownChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points[0]).toMatchObject({
         sprint: 'Sprint 26.17',
-        Meetings: 10.25,
+        Mtgs: 10.25,
         Spikes: 4,
         Bugs: 5,
         Support: 3,
       });
       expect(points[1]).toMatchObject({
         sprint: 'Sprint 26.18',
-        Meetings: 10.25,
+        Mtgs: 10.25,
         Spikes: 2,
         Bugs: 6,
         Support: 2,
@@ -171,7 +174,7 @@ describe('OverheadBreakdownChart', () => {
 
       const chart = screen.getByTestId('overhead-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
-      expect(points[0].Meetings).toBe(0);
+      expect(points[0].Mtgs).toBe(0);
       expect(points[0].Spikes).toBe(0);
       expect(points[0].Bugs).toBe(8);
       expect(points[0].Support).toBe(0);
@@ -181,12 +184,12 @@ describe('OverheadBreakdownChart', () => {
       render(<OverheadBreakdownChart trendSprints={twoSprints} />);
 
       const chart = screen.getByTestId('overhead-line-chart');
-      expect(chart.getAttribute('data-h')).toBe('200');
+      expect(chart.getAttribute('data-height')).toBe('200');
     });
   });
 
   describe('series configuration', () => {
-    it('renders exactly 4 series: Meetings, Spikes, Bugs, Support', () => {
+    it('renders exactly 4 series: Mtgs, Spikes, Bugs, Support', () => {
       render(<OverheadBreakdownChart trendSprints={twoSprints} />);
 
       const chart = screen.getByTestId('overhead-line-chart');
@@ -195,7 +198,7 @@ describe('OverheadBreakdownChart', () => {
         color: string;
       }>;
       expect(series).toHaveLength(4);
-      expect(series.map((s) => s.name)).toEqual(['Meetings', 'Spikes', 'Bugs', 'Support']);
+      expect(series.map((s) => s.name)).toEqual(['Mtgs', 'Spikes', 'Bugs', 'Support']);
     });
 
     it('uses distinct colors for each series', () => {

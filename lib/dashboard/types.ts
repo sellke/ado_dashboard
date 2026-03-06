@@ -4,6 +4,7 @@
  */
 
 import type { ApiBurnupPoint } from '../milestones/types';
+import type { StatusGroup } from '../sprints/status-mapping';
 
 export type RagStatus = 'Green' | 'Amber' | 'Red' | null;
 
@@ -58,6 +59,13 @@ export interface ApiOverheadItem {
   hours: number | null;
 }
 
+export interface ApiOverheadItemsBySprint {
+  sprintId: string;
+  bugs: ApiOverheadItem[];
+  spikes: ApiOverheadItem[];
+  support: ApiOverheadItem[];
+}
+
 /** Overhead category type for breakdown chart (Meetings, Spikes, Bugs, Support). */
 export type OverheadCategory = 'Meetings' | 'Spikes' | 'Bugs' | 'Support';
 
@@ -72,7 +80,9 @@ export interface ApiTrendSprint {
   sprintName: string;
   velocity: number | null;
   velocityRate: number | null;
+  /** Bugs in open states (New|Active). */
   activeBugs: number;
+  /** Bugs in resolved states (Resolved|Testing|Closed) with changedDate within sprint window. */
   bugsClosed: number;
   mode: 'actual';
   bugs?: Array<{ adoId: number; title: string; state: string }>;
@@ -93,7 +103,6 @@ export interface ApiWorkstream {
   detail: {
     plannedPoints: number | null;
     completedPoints: number | null;
-    carryOverItems: number | null;
     carryOverPoints: number | null;
     overheadHours: number | null;
     grossHours: number | null;
@@ -107,10 +116,7 @@ export interface ApiWorkstream {
     mode: 'predicted';
     formula: string;
   };
-  currentSprintOverheadItems?: {
-    bugs: ApiOverheadItem[];
-    support: ApiOverheadItem[];
-  };
+  overheadItemsBySprint?: ApiOverheadItemsBySprint[];
 }
 
 export interface ApiMilestoneMetric {
@@ -178,6 +184,14 @@ export interface OverheadItemViewModel {
   state: string;
   hours: string;
   isClosed: boolean;
+  adoUrl: string;
+}
+
+export interface OverheadSprintViewModel {
+  sprintId: string;
+  bugs: OverheadItemViewModel[];
+  spikes: OverheadItemViewModel[];
+  support: OverheadItemViewModel[];
 }
 
 export interface WorkstreamCardViewModel {
@@ -188,7 +202,6 @@ export interface WorkstreamCardViewModel {
   detail: {
     plannedPoints: string;
     completedPoints: string;
-    carryOverItems: string;
     carryOverPoints: string;
   };
   trendSprints: TrendSprintViewModel[];
@@ -201,14 +214,14 @@ export interface WorkstreamCardViewModel {
     isPredicted: boolean;
   } | null;
   overheadComposition: OverheadCompositionViewModel[];
-  currentSprintBugItems: OverheadItemViewModel[];
-  currentSprintSupportItems: OverheadItemViewModel[];
+  overheadItemsBySprint: OverheadSprintViewModel[];
   milestoneGroups: MilestoneMonthGroup[];
 }
 
 export interface TrendBugViewModel {
   adoId: string;
   title: string;
+  /** True when bug state is in BUG_RESOLVED_STATES (Resolved|Testing|Closed). */
   isClosed: boolean;
 }
 
@@ -217,11 +230,15 @@ export interface TrendSprintViewModel {
   sprintName: string;
   velocity: string;
   velocityRate: string;
+  /** Formatted active bug count — bugs in New|Active states. */
   activeBugs: string;
+  /** Formatted closed bug count — bugs in Resolved|Testing|Closed states. */
   bugsClosed: string;
   rawVelocity: number | null;
   rawVelocityRate: number | null;
+  /** Raw active bug count — bugs in New|Active states. */
   rawActiveBugs: number;
+  /** Raw closed bug count — bugs in Resolved|Testing|Closed states. */
   rawBugsClosed: number;
   bugs: TrendBugViewModel[];
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
@@ -243,4 +260,55 @@ export interface DashboardViewModel {
   } | null;
   workstreamCards: WorkstreamCardViewModel[];
   errorMessage?: string;
+}
+
+// ============================================================================
+// Sprint Stories types (Sprint Story List feature)
+// ============================================================================
+
+/** Raw API response shape from GET /api/sprints/stories */
+export interface SprintStoriesApiResponse {
+  sprints: Array<{
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    isCurrent: boolean;
+    stories: Array<{
+      adoId: number;
+      title: string;
+      assignedTo: string | null;
+      storyPoints: number | null;
+      state: string;
+      statusGroup: StatusGroup;
+    }>;
+  }>;
+}
+
+/** View model for a single story row in the sprint story list */
+export interface StoryRowViewModel {
+  adoId: string;
+  title: string;
+  assignedTo: string;
+  storyPoints: string;
+  state: string;
+  statusGroup: StatusGroup;
+  adoUrl: string;
+}
+
+/** View model for a group of stories sharing the same status */
+export interface StatusGroupViewModel {
+  group: StatusGroup;
+  stories: StoryRowViewModel[];
+}
+
+/** View model for a single sprint tab in the story list panel */
+export interface SprintStoryViewModel {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  statusGroups: StatusGroupViewModel[];
+  totalStories: number;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart } from '@mantine/charts';
+import { AppBarChart } from '@/lib/charts';
 import type { OverheadCompositionViewModel } from '@/lib/dashboard/types';
 
 export interface OverheadCompositionChartProps {
@@ -28,8 +28,8 @@ export function OverheadCompositionChart({ composition }: OverheadCompositionCha
   }));
 
   return (
-    <BarChart
-      h={200}
+    <AppBarChart
+      height={200}
       data={chartData}
       dataKey="sprint"
       type="stacked"
@@ -44,7 +44,6 @@ export function OverheadCompositionChart({ composition }: OverheadCompositionCha
         tickMargin: 10,
       }}
       yAxisProps={{ domain: [0, 'auto'] }}
-      tooltipAnimationDuration={150}
     />
   );
 }

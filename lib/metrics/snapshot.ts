@@ -65,10 +65,65 @@ export async function computeWorkstreamMetrics(
     throw new Error(`Workstream not found: ${workstreamId}`);
   }
 
+  const now = new Date();
+  const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
+
   // 1. Fetch work items
   const workItems = await db.workItem.findMany({
     where: { sprintId, workstreamId },
   });
+
+  // 1b. Capture sprint plan snapshot for the current sprint (non-fatal)
+  if (isCurrentSprint) {
+    try {
+      const capturedAt = new Date();
+      await db.$transaction(async (tx) => {
+        for (const wi of workItems) {
+          await tx.sprintPlanSnapshot.upsert({
+            where: {
+              sprintId_workstreamId_adoId: {
+                sprintId,
+                workstreamId,
+                adoId: wi.adoId,
+              },
+            },
+            create: {
+              sprintId,
+              workstreamId,
+              adoId: wi.adoId,
+              storyPoints: wi.storyPoints,
+              state: wi.state,
+              type: wi.type,
+              capturedAt,
+            },
+            update: {
+              storyPoints: wi.storyPoints,
+              state: wi.state,
+              type: wi.type,
+              capturedAt,
+            },
+          });
+        }
+
+        const currentAdoIds = workItems.map((wi) => wi.adoId);
+        if (currentAdoIds.length > 0) {
+          await tx.sprintPlanSnapshot.deleteMany({
+            where: {
+              sprintId,
+              workstreamId,
+              adoId: { notIn: currentAdoIds },
+            },
+          });
+        } else {
+          await tx.sprintPlanSnapshot.deleteMany({
+            where: { sprintId, workstreamId },
+          });
+        }
+      });
+    } catch {
+      // Non-fatal: snapshot failure must not block metric computation
+    }
+  }
 
   // 2. Fetch SprintWorkstream (grossHours, ceremonyHours)
   const sprintWs = await db.sprintWorkstream.findUnique({
@@ -85,7 +140,24 @@ export async function computeWorkstreamMetrics(
   const actualVelocity = calculateVelocity(wiInputs);
   const overhead = calculateOverhead(wiInputs, swInput);
   const predictabilityResult = calculatePredictability(wiInputs);
-  const carryOverResult = calculateCarryOver(wiInputs);
+
+  // For completed sprints, use snapshot data for carry-over if available
+  let carryOverInput = wiInputs;
+  if (!isCurrentSprint) {
+    const snapshots = await db.sprintPlanSnapshot.findMany({
+      where: { sprintId, workstreamId },
+    });
+    if (snapshots.length > 0) {
+      carryOverInput = snapshots.map((s) => ({
+        type: s.type,
+        state: s.state,
+        storyPoints: s.storyPoints,
+        originalEstimate: null,
+        completedWork: null,
+      }));
+    }
+  }
+  const carryOverResult = calculateCarryOver(carryOverInput);
 
   // 7. Prior snapshots for rolling averages
   const priorSnapshots = await db.metricSnapshot.findMany({
@@ -106,8 +178,6 @@ export async function computeWorkstreamMetrics(
   }));
 
   const rollingAvgs = calculateRollingAverages(priorInputs);
-  const now = new Date();
-  const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
   const velocity = isCurrentSprint ? rollingAvgs.velocityAvg : actualVelocity;
 
   // 8. Thresholds for RAG

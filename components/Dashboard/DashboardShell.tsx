@@ -2,7 +2,7 @@
 
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Alert, Button, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
-import type { DashboardViewModel } from '@/lib/dashboard/types';
+import type { DashboardViewModel, SprintStoryViewModel } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { ProgramSummarySection } from './ProgramSummarySection';
 import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
@@ -13,16 +13,25 @@ export interface DashboardShellProps {
   milestonesLoading?: boolean;
   milestonesError?: string | null;
   programRollup?: ApiProgramMilestoneRollup | null;
+  sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
+  storiesLoading?: boolean;
+  storiesError?: string | null;
 }
 
 function WorkstreamSection({
   viewModel,
   milestonesLoading,
   milestonesError,
+  sprintStoriesMap,
+  storiesLoading,
+  storiesError,
 }: {
   viewModel: DashboardViewModel;
   milestonesLoading?: boolean;
   milestonesError?: string | null;
+  sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
+  storiesLoading?: boolean;
+  storiesError?: string | null;
 }) {
   if (viewModel.state !== 'success') {
     return null;
@@ -36,6 +45,9 @@ function WorkstreamSection({
       cards={workstreamCards}
       milestonesLoading={milestonesLoading}
       milestonesError={milestonesError}
+      sprintStoriesMap={sprintStoriesMap}
+      storiesLoading={storiesLoading}
+      storiesError={storiesError}
     />
   );
 }
@@ -104,6 +116,9 @@ export function DashboardShell({
   milestonesLoading,
   milestonesError,
   programRollup,
+  sprintStoriesMap,
+  storiesLoading,
+  storiesError,
 }: DashboardShellProps) {
   if (viewModel.state === 'loading') {
     return <LoadingSkeletons />;
@@ -124,6 +139,9 @@ export function DashboardShell({
         viewModel={viewModel}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
+        sprintStoriesMap={sprintStoriesMap}
+        storiesLoading={storiesLoading}
+        storiesError={storiesError}
       />
     </Stack>
   );

@@ -29,7 +29,6 @@ const fullDataCard: WorkstreamCardViewModel = {
   detail: {
     plannedPoints: '50',
     completedPoints: '45',
-    carryOverItems: '3',
     carryOverPoints: '6',
   },
   trendSprints: [
@@ -72,8 +71,7 @@ const fullDataCard: WorkstreamCardViewModel = {
     isPredicted: true,
   },
   overheadComposition: [],
-  currentSprintBugItems: [],
-  currentSprintSupportItems: [],
+  overheadItemsBySprint: [],
   milestoneGroups: [],
 };
 
@@ -89,7 +87,6 @@ export const FourWorkstreamsAllGreen = () => {
       detail: {
         plannedPoints: '38',
         completedPoints: '35',
-        carryOverItems: '2',
         carryOverPoints: '4',
       },
     },
@@ -100,7 +97,6 @@ export const FourWorkstreamsAllGreen = () => {
       detail: {
         plannedPoints: '42',
         completedPoints: '40',
-        carryOverItems: '1',
         carryOverPoints: '2',
       },
     },
@@ -111,7 +107,6 @@ export const FourWorkstreamsAllGreen = () => {
       detail: {
         plannedPoints: '30',
         completedPoints: '28',
-        carryOverItems: '0',
         carryOverPoints: '0',
       },
     },
@@ -161,7 +156,6 @@ export const NullData = () => {
     detail: {
       plannedPoints: 'N/A',
       completedPoints: 'N/A',
-      carryOverItems: 'N/A',
       carryOverPoints: 'N/A',
     },
   };
@@ -182,7 +176,6 @@ export const PartialData = () => {
     detail: {
       plannedPoints: '50',
       completedPoints: 'N/A',
-      carryOverItems: '3',
       carryOverPoints: '6',
     },
   };
@@ -216,7 +209,6 @@ export const GridWithAllVariants = () => {
       detail: {
         plannedPoints: 'N/A',
         completedPoints: 'N/A',
-        carryOverItems: 'N/A',
         carryOverPoints: 'N/A',
       },
     },

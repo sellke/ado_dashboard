@@ -7,13 +7,13 @@ import { BurnupChart } from '@/components/Dashboard/BurnupChart';
 import type { ApiBurnupPoint } from '@/lib/dashboard/types';
 import { render, screen } from '@/test-utils';
 
-jest.mock('@mantine/charts', () => ({
-  AreaChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppAreaChart: (props: Record<string, unknown>) => (
     <div
       data-testid="burnup-area-chart"
       data-series={JSON.stringify(props.series)}
       data-points={JSON.stringify(props.data)}
-      data-h={String(props.h)}
+      data-height={String(props.height)}
     />
   ),
 }));
@@ -103,14 +103,14 @@ describe('BurnupChart', () => {
       render(<BurnupChart burnupData={burnupData} />);
 
       const chart = screen.getByTestId('burnup-area-chart');
-      expect(chart.getAttribute('data-h')).toBe('160');
+      expect(chart.getAttribute('data-height')).toBe('160');
     });
 
     it('accepts custom height prop', () => {
       render(<BurnupChart burnupData={burnupData} height={200} />);
 
       const chart = screen.getByTestId('burnup-area-chart');
-      expect(chart.getAttribute('data-h')).toBe('200');
+      expect(chart.getAttribute('data-height')).toBe('200');
     });
   });
 

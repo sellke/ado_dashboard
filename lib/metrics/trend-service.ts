@@ -1,4 +1,4 @@
-import { DONE_STATES } from './types';
+import { BUG_OPEN_STATES, BUG_RESOLVED_STATES } from './types';
 
 export interface TrendSprintRef {
   id: string;
@@ -130,10 +130,12 @@ export function buildTrendSeries(params: {
     const sprintBugs = scopeBugs.filter((b) => b.sprintId === sprint.id);
     const bugsClosed = sprintBugs.filter(
       (b) =>
-        (DONE_STATES as readonly string[]).includes(b.state) &&
+        (BUG_RESOLVED_STATES as readonly string[]).includes(b.state) &&
         isDateWithinSprintWindow(b.changedDate, sprint.startDate, sprint.endDate)
     ).length;
-    const activeBugs = Math.max(sprintBugs.length - bugsClosed, 0);
+    const activeBugs = sprintBugs.filter(
+      (b) => (BUG_OPEN_STATES as readonly string[]).includes(b.state)
+    ).length;
 
     return {
       sprintId: sprint.id,

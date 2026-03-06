@@ -83,12 +83,6 @@ describe('buildTrendSeries', () => {
           changedDate: new Date('2025-12-30'),
         },
         {
-          sprintId: 's1',
-          workstreamId: 'ws-1',
-          state: 'Done',
-          changedDate: new Date('2026-01-02'),
-        },
-        {
           sprintId: 's2',
           workstreamId: 'ws-1',
           state: 'Closed',
@@ -105,7 +99,7 @@ describe('buildTrendSeries', () => {
         {
           sprintId: null,
           workstreamId: 'ws-1',
-          state: 'Done',
+          state: 'Active',
           changedDate: new Date('2026-02-01'),
         },
       ],
@@ -118,7 +112,7 @@ describe('buildTrendSeries', () => {
       velocity: 10,
       velocityRate: 10 / 60,
       activeBugs: 1,
-      bugsClosed: 1,
+      bugsClosed: 0,
       mode: 'actual',
     });
     expect(result.sprints[3]).toMatchObject({
@@ -157,7 +151,7 @@ describe('buildTrendSeries', () => {
         {
           sprintId: 's1',
           workstreamId: 'ws-1',
-          state: 'Done',
+          state: 'Resolved',
           changedDate: new Date('2026-01-03'),
         },
         {
@@ -172,7 +166,88 @@ describe('buildTrendSeries', () => {
 
     expect(result.sprints[0]).toMatchObject({
       sprintId: 's1',
+      activeBugs: 0,
+      bugsClosed: 1,
+    });
+  });
+
+  it('counts Testing state as resolved (closed)', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: 's5',
+      snapshots: [
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 8, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's5', workstreamId: 'ws-1', velocity: null, grossHours: 100, overheadHours: 20 },
+      ],
+      bugItems: [
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          state: 'Testing',
+          changedDate: new Date('2026-01-12'),
+        },
+      ],
+      workstreamId: 'ws-1',
+    });
+
+    expect(result.sprints[1]).toMatchObject({
+      sprintId: 's2',
+      activeBugs: 0,
+      bugsClosed: 1,
+    });
+  });
+
+  it('excludes bugs in states outside both open and resolved sets', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: 's5',
+      snapshots: [
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 8, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's5', workstreamId: 'ws-1', velocity: null, grossHours: 100, overheadHours: 20 },
+      ],
+      bugItems: [
+        { sprintId: 's1', workstreamId: 'ws-1', state: 'Done', changedDate: new Date('2026-01-01') },
+        { sprintId: 's1', workstreamId: 'ws-1', state: 'Removed', changedDate: new Date('2026-01-01') },
+        { sprintId: 's1', workstreamId: 'ws-1', state: 'Active', changedDate: new Date('2026-01-01') },
+      ],
+      workstreamId: 'ws-1',
+    });
+
+    expect(result.sprints[0]).toMatchObject({
+      sprintId: 's1',
       activeBugs: 1,
+      bugsClosed: 0,
+    });
+  });
+
+  it('explicitly matches New and Active for the open bucket', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: 's5',
+      snapshots: [
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 8, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's5', workstreamId: 'ws-1', velocity: null, grossHours: 100, overheadHours: 20 },
+      ],
+      bugItems: [
+        { sprintId: 's3', workstreamId: 'ws-1', state: 'New', changedDate: new Date('2026-01-25') },
+        { sprintId: 's3', workstreamId: 'ws-1', state: 'Active', changedDate: new Date('2026-01-26') },
+        { sprintId: 's3', workstreamId: 'ws-1', state: 'Resolved', changedDate: new Date('2026-01-28') },
+      ],
+      workstreamId: 'ws-1',
+    });
+
+    expect(result.sprints[2]).toMatchObject({
+      sprintId: 's3',
+      activeBugs: 2,
       bugsClosed: 1,
     });
   });

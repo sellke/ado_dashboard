@@ -1,10 +1,11 @@
 'use client';
 
 import { Card, Group, Stack, Text } from '@mantine/core';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { MilestoneGoalsPanel } from './MilestoneGoalsPanel';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
+import { SprintStoryListPanel } from './SprintStoryListPanel';
 import { VelocityTrendChart } from './VelocityTrendChart';
 
 export interface WorkstreamHealthCardProps {
@@ -12,6 +13,10 @@ export interface WorkstreamHealthCardProps {
   card: WorkstreamCardViewModel;
   milestonesLoading?: boolean;
   milestonesError?: string | null;
+  sprintStories?: SprintStoryViewModel[];
+  activeSprintId?: string;
+  storiesLoading?: boolean;
+  storiesError?: string | null;
 }
 
 /**
@@ -23,6 +28,10 @@ export function WorkstreamHealthCard({
   card,
   milestonesLoading,
   milestonesError,
+  sprintStories,
+  activeSprintId,
+  storiesLoading,
+  storiesError,
 }: WorkstreamHealthCardProps) {
   const {
     workstreamName,
@@ -32,14 +41,14 @@ export function WorkstreamHealthCard({
     trendSprints = [],
     prediction,
     milestoneGroups = [],
-    currentSprintBugItems = [],
-    currentSprintSupportItems = [],
+    overheadItemsBySprint = [],
   } = card;
 
   const hasOverheadData =
     trendSprints.some((s) => (s.overheadBreakdown ?? []).some((item) => item.hours > 0)) ||
-    currentSprintBugItems.length > 0 ||
-    currentSprintSupportItems.length > 0;
+    overheadItemsBySprint.some(
+      (s) => s.bugs.length > 0 || s.spikes.length > 0 || s.support.length > 0
+    );
 
   return (
     <Card withBorder padding="md" shadow="sm">
@@ -76,7 +85,7 @@ export function WorkstreamHealthCard({
             Planned: {detail.plannedPoints} • Completed: {detail.completedPoints}
           </Text>
           <Text size="xs" c="dimmed">
-            Carry-over: {detail.carryOverItems} items, {detail.carryOverPoints} pts
+            Carry-over: {detail.carryOverPoints} pts
           </Text>
         </Stack>
 
@@ -92,11 +101,30 @@ export function WorkstreamHealthCard({
           <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} />
         </Stack>
 
+        {(sprintStories || storiesLoading || storiesError) && (
+          <Stack
+            gap="xs"
+            mt="xs"
+            pt="xs"
+            style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+          >
+            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+              Sprint Stories
+            </Text>
+            <SprintStoryListPanel
+              sprints={sprintStories ?? []}
+              activeSprintId={activeSprintId ?? ''}
+              loading={storiesLoading}
+              error={storiesError}
+            />
+          </Stack>
+        )}
+
         {hasOverheadData && (
           <OverheadBreakdownPanel
             trendSprints={trendSprints}
-            bugItems={currentSprintBugItems}
-            supportItems={currentSprintSupportItems}
+            overheadItemsBySprint={overheadItemsBySprint}
+            activeSprintId={activeSprintId ?? ''}
           />
         )}
 

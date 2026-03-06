@@ -1,56 +1,30 @@
-# Specification Change Log
+# Changelog
 
-## 2026-02-16 - Modification
-**Modified by:** Manual edit (approved modification contract)
-**Modification Contract:** Expand dashboard scope with sprint trend metrics (4 actual sprints + Sprint 5 velocity prediction), sprint-scoped bug metrics, and a backend metric calculation service/layer.
+## 2026-03-04 - Bug State Classification Rework
 
-### Changes Made:
-- Updated core specification to include trend and bug metric requirements.
-- Locked formula definitions for velocity rate, net capacity, Sprint 5 velocity prediction, and sprint-scoped bug counting.
-- Added Story 6 for metric-calculation service/layer and API trend extensions.
-- Added Story 7 for dashboard UI integration of trend and bug metrics.
-- Updated user story overview with change-request status, dependencies, and progress recalculation.
-- Updated technical, API, and wireframe sub-specs to include additive trend payloads and new UI regions.
-- Updated spec-lite for concise implementation context.
+**Modification Contract:** Refine bug burndown state classification from generic done-like/non-done-like buckets to explicit ADO state sets. Open = `New|Active`. Resolved = `Resolved|Testing|Closed`. Chart legend and tooltip labels include constituent state names for alignment (e.g., "Open (New/Active)").
 
-### Files Updated:
-- `spec.md` - Expanded contract, formulas, scope, and story plan.
-- `spec-lite.md` - Added trend/prediction and backend calculation context.
-- `user-stories/README.md` - Added Stories 6-7 and updated dependency graph.
-- `user-stories/story-6-metric-calculation-service-and-trend-api.md` - New story.
-- `user-stories/story-7-trend-and-bug-metrics-ui-integration.md` - New story.
-- `sub-specs/technical-spec.md` - Added calculation-service architecture and formula contracts.
-- `sub-specs/api-spec.md` - Added additive trend/prediction payload requirements.
-- `sub-specs/ui-wireframes.md` - Added trend/prediction layout and state notes.
+### Changes Made
 
-### Backup Location:
-`backups/20260216-164338/`
+- **Metric definitions updated:** `activeBugs` now explicitly matches `New` or `Active` states (was: catch-all remainder of non-done-like). `bugsClosed` now matches `Resolved`, `Testing`, or `Closed` states (was: `Closed|Done|Resolved`). `Done` excluded from bug classification.
+- **`Testing` added as resolved-side state:** Bugs in `Testing` now count toward the closed/resolved bucket.
+- **`changedDate` constraint preserved:** Resolved bugs still require `changedDate` within the sprint window.
+- **Explicit exclusion:** Bugs in states outside both sets are excluded from both counts (previously caught by the catch-all remainder in `activeBugs`).
+
+### Files Updated
+
+- `spec.md` — Section 2 metric definitions and success criteria updated
+- `spec-lite.md` — Locked metric rules section updated
+- `user-stories/README.md` — Progress tracking, dependency graph, and notes updated
+- `user-stories/story-6-metric-calculation-service-and-trend-api.md` — Reopened with tasks 6.3a, 6.5a and new acceptance criteria
+- `user-stories/story-7-trend-and-bug-metrics-ui-integration.md` — Reopened with tasks 7.1a, 7.4a and new acceptance criterion
+
+### Backup Location
+
+`backups/20260304-154812/`
 
 ---
 
-## 2026-02-16 - Addition
-**Modified by:** Manual edit (approved modification contract)
-**Modification Contract:** Add a single dashboard UI action to trigger full ADO sync and automatically refresh dashboard metrics after completion.
+## 2026-02-16 - Sprint Trend and Bug Metrics Addition
 
-### Changes Made:
-- Added dashboard sync-trigger requirements to core specification.
-- Added Story 5 for sync-trigger and auto-refresh implementation.
-- Updated user story overview status/progress and dependencies.
-- Updated technical, API, and wireframe sub-specs for sync interaction behavior.
-- Updated spec-lite with new integration requirements.
-
-### Files Updated:
-- `spec.md` - Added sync action and auto-refresh requirements, success criteria, and story plan update.
-- `spec-lite.md` - Added compact requirements for sync trigger flow.
-- `user-stories/README.md` - Added Story 5 and dependency/progress updates.
-- `user-stories/story-1-dashboard-data-contract-and-shell.md` - Added linkage note to Story 5.
-- `user-stories/story-4-dashboard-state-coverage-and-storybook.md` - Added state-extension note for Story 5.
-- `user-stories/story-5-dashboard-sync-trigger-and-auto-refresh.md` - New story file (planned, 6 tasks).
-- `sub-specs/technical-spec.md` - Added sync action handler architecture and state model additions.
-- `sub-specs/api-spec.md` - Added dashboard usage contract for `POST /api/sync/ado`.
-- `sub-specs/ui-wireframes.md` - Added sync control placement and sync-state wireframe notes.
-
-### Backup Location:
-`backups/20260216-072934/`
-
----
+**Initial Change Request:** Added sprint-trend analytics, velocity prediction, and bug metrics to the dashboard specification. Stories 6 and 7 created.

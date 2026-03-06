@@ -47,6 +47,7 @@ jest.mock('@/lib/prisma', () => ({
     },
     sprint: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
     },
     thresholdConfig: {
@@ -59,6 +60,9 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
     },
     sprintWorkstream: {
+      findMany: jest.fn(),
+    },
+    sprintPlanSnapshot: {
       findMany: jest.fn(),
     },
   },
@@ -77,6 +81,8 @@ describe('GET /api/metrics', () => {
     prisma.workItem.findMany.mockResolvedValue([]);
     prisma.workstream.findMany.mockResolvedValue([{ id: 'ws-1' }]);
     prisma.sprintWorkstream.findMany.mockResolvedValue([]);
+    prisma.sprintPlanSnapshot.findMany.mockResolvedValue([]);
+    prisma.sprint.findFirst.mockResolvedValue(null);
   });
 
   it('should return formatted metrics on happy path', async () => {
@@ -111,11 +117,11 @@ describe('GET /api/metrics', () => {
     expect(data.workstreams[0].detail).toMatchObject({
       plannedPoints: 40,
       completedPoints: 34,
-      carryOverItems: 3,
       carryOverPoints: 6,
       overheadHours: 22.8,
       grossHours: 80,
     });
+    expect(data.workstreams[0].detail).not.toHaveProperty('carryOverItems');
     expect(data.workstreams[0].trends).toBeDefined();
     expect(Array.isArray(data.workstreams[0].trends.sprints)).toBe(true);
     expect(data.program).toHaveProperty('trends.sprints');
@@ -146,7 +152,7 @@ describe('GET /api/metrics', () => {
       {
         sprintId: 'sprint-0',
         workstreamId: 'ws-1',
-        state: 'Done',
+        state: 'Resolved',
         adoChangedDate: new Date('2026-01-10'),
         adoId: 1001,
         title: 'Bug 1',
@@ -162,7 +168,7 @@ describe('GET /api/metrics', () => {
       {
         sprintId: null,
         workstreamId: 'ws-1',
-        state: 'Done',
+        state: 'Resolved',
         adoChangedDate: new Date('2026-01-12'),
         adoId: 1003,
         title: 'Bug 3',
@@ -497,7 +503,7 @@ describe('GET /api/metrics', () => {
     });
   });
 
-  it('includes currentSprintOverheadItems with bugs and support arrays on each workstream', async () => {
+  it('includes overheadItemsBySprint with bugs, spikes, and support arrays for all rolling sprints', async () => {
     const rollingSprints = [
       {
         id: 's2',
@@ -596,6 +602,18 @@ describe('GET /api/metrics', () => {
           completedWork: 3,
           originalEstimate: 3,
         },
+      ])
+      .mockResolvedValueOnce([
+        {
+          sprintId: 's2',
+          workstreamId: 'ws-1',
+          adoId: 401,
+          title: 'Spike A',
+          state: 'New',
+          storyPoints: 5,
+          completedWork: null,
+          originalEstimate: 8,
+        },
       ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -605,17 +623,32 @@ describe('GET /api/metrics', () => {
 
     expect(res.status).toBe(200);
     const ws = data.workstreams[0];
-    expect(ws.currentSprintOverheadItems).toBeDefined();
-    expect(ws.currentSprintOverheadItems.bugs).toEqual([
+    expect(ws.overheadItemsBySprint).toBeDefined();
+    expect(ws.overheadItemsBySprint).toHaveLength(2);
+
+    const s2Items = ws.overheadItemsBySprint.find((s: { sprintId: string }) => s.sprintId === 's2');
+    expect(s2Items.bugs).toEqual([
       { adoId: 201, title: 'Bug A', state: 'Done', hours: 2 },
       { adoId: 202, title: 'Bug B', state: 'Active', hours: 4 },
     ]);
-    expect(ws.currentSprintOverheadItems.support).toEqual([
+    expect(s2Items.spikes).toEqual([
+      { adoId: 401, title: 'Spike A', state: 'New', hours: 8 },
+    ]);
+    expect(s2Items.support).toEqual([
       { adoId: 301, title: 'Support A', state: 'Active', hours: 5 },
+    ]);
+
+    const s1Items = ws.overheadItemsBySprint.find((s: { sprintId: string }) => s.sprintId === 's1');
+    expect(s1Items.bugs).toEqual([
+      { adoId: 101, title: 'Old Bug', state: 'Done', hours: 1 },
+    ]);
+    expect(s1Items.spikes).toEqual([]);
+    expect(s1Items.support).toEqual([
+      { adoId: 302, title: 'Old Support', state: 'Done', hours: 3 },
     ]);
   });
 
-  it('returns empty bugs and support arrays when workstream has no overhead items in selected sprint', async () => {
+  it('returns empty arrays for all categories when workstream has no overhead items', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
     prisma.sprint.findMany.mockResolvedValue([mockSprint]);
@@ -633,7 +666,7 @@ describe('GET /api/metrics', () => {
         supportHours: 2,
       },
     ]);
-    prisma.workItem.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    prisma.workItem.findMany.mockResolvedValue([]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
     const req = new Request('http://localhost/api/metrics');
@@ -642,8 +675,10 @@ describe('GET /api/metrics', () => {
 
     expect(res.status).toBe(200);
     const ws = data.workstreams[0];
-    expect(ws.currentSprintOverheadItems.bugs).toEqual([]);
-    expect(ws.currentSprintOverheadItems.support).toEqual([]);
+    expect(ws.overheadItemsBySprint).toHaveLength(1);
+    expect(ws.overheadItemsBySprint[0].bugs).toEqual([]);
+    expect(ws.overheadItemsBySprint[0].spikes).toEqual([]);
+    expect(ws.overheadItemsBySprint[0].support).toEqual([]);
   });
 
   it('uses completedWork for hours when present, falls back to originalEstimate, then null', async () => {
@@ -697,6 +732,7 @@ describe('GET /api/metrics', () => {
           originalEstimate: null,
         },
       ])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -705,15 +741,15 @@ describe('GET /api/metrics', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    const bugs = data.workstreams[0].currentSprintOverheadItems.bugs;
-    expect(bugs).toEqual([
+    const sprintItems = data.workstreams[0].overheadItemsBySprint[0];
+    expect(sprintItems.bugs).toEqual([
       { adoId: 10, title: 'Has completedWork', state: 'Done', hours: 6 },
       { adoId: 11, title: 'No completedWork', state: 'Active', hours: 3 },
       { adoId: 12, title: 'No hours at all', state: 'New', hours: null },
     ]);
   });
 
-  it('items within currentSprintOverheadItems arrays are ordered by adoId ascending', async () => {
+  it('items within overheadItemsBySprint arrays are ordered by adoId ascending', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
     prisma.sprint.findMany.mockResolvedValue([mockSprint]);
@@ -783,7 +819,8 @@ describe('GET /api/metrics', () => {
           completedWork: 1,
           originalEstimate: 1,
         },
-      ]);
+      ])
+      .mockResolvedValueOnce([]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
     const req = new Request('http://localhost/api/metrics');
@@ -791,9 +828,9 @@ describe('GET /api/metrics', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    const items = data.workstreams[0].currentSprintOverheadItems;
-    expect(items.bugs.map((b: { adoId: number }) => b.adoId)).toEqual([100, 200, 300]);
-    expect(items.support.map((s: { adoId: number }) => s.adoId)).toEqual([501, 502]);
+    const sprintItems = data.workstreams[0].overheadItemsBySprint[0];
+    expect(sprintItems.bugs.map((b: { adoId: number }) => b.adoId)).toEqual([100, 200, 300]);
+    expect(sprintItems.support.map((s: { adoId: number }) => s.adoId)).toEqual([501, 502]);
   });
 
   it('returns non-null velocityRate on trend sprints when grossHours and overheadHours are populated', async () => {

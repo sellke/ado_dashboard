@@ -30,7 +30,6 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
-    "@mantine/charts": "^8.2.1",
     "@mantine/core": "8.2.1",
     "@mantine/hooks": "8.2.1",
     "@next/bundle-analyzer": "^15.3.3",

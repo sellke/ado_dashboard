@@ -3,7 +3,7 @@
 > **Specification:** Program Dashboard UI
 > **Created:** 2026-02-12
 > **Status:** Completed ✅
-> **Change Request Date:** 2026-02-16
+> **Change Request Date:** 2026-03-04 (bug state classification rework)
 
 ## Stories Summary
 
@@ -14,10 +14,10 @@
 | 3 | Workstream Health Cards | Completed ✅ | 5 | 5/5 |
 | 4 | Dashboard State Coverage and Storybook | Completed ✅ | 5 | 5/5 |
 | 5 | Dashboard Sync Trigger and Auto-Refresh | Completed ✅ | 6 | 6/6 |
-| 6 | Metric Calculation Service and Trend API | Completed ✅ | 6 | 6/6 |
-| 7 | Trend and Bug Metrics UI Integration | Completed ✅ | 6 | 6/6 |
+| 6 | Metric Calculation Service and Trend API | Completed ✅ | 8 | 8/8 |
+| 7 | Trend and Bug Metrics UI Integration | Completed ✅ | 8 | 8/8 |
 
-**Total Progress:** 38/38 tasks (100%)
+**Total Progress:** 42/42 tasks (100%)
 
 ## Story Dependencies
 
@@ -48,3 +48,4 @@ Story 1 (Data Contract + Shell) ✅
 - Change request adds sprint-trend and bug metrics requiring backend computation and API contract expansion.
 - Bug metrics are sprint-scoped and count only bugs assigned to each sprint.
 - Sprint 5 includes predicted velocity only (`average velocity rate × current sprint net capacity hours`).
+- **2026-03-04 Change Request:** Bug state classification refined from generic done-like/non-done-like to explicit state sets: open = `New|Active`, resolved = `Resolved|Testing|Closed`. `Done` state excluded for bugs. Stories 6 and 7 reopened with rework tasks.

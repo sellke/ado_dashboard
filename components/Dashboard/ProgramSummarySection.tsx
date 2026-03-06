@@ -1,11 +1,9 @@
 'use client';
 
-import { BarChart, LineChart } from '@mantine/charts';
+import { AppBarChart, AppLineChart, ChartLegend } from '@/lib/charts';
 import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { DashboardViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
-import { ChartLegend } from './ChartLegend';
-import { PointValueTooltip } from './PointValueTooltip';
 import { RagBadge } from './RagBadge';
 
 export interface ProgramSummarySectionProps {
@@ -64,8 +62,8 @@ function averageVelocity(sprints: TrendSprintViewModel[]): number | null {
 function buildBugChartData(sprints: TrendSprintViewModel[]) {
   return sprints.map((s) => ({
     sprint: s.sprintName,
-    Open: s.rawActiveBugs,
-    Closed: s.rawBugsClosed,
+    'Open (New/Active)': s.rawActiveBugs,
+    'Closed (Resolved/Testing/Closed)': s.rawBugsClosed,
   }));
 }
 
@@ -137,8 +135,8 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                   Velocity (Points)
                 </Text>
                 <div style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
-                <LineChart
-                  h={220}
+                <AppLineChart
+                  height={220}
                   data={buildVelocityChartData(programTrendSprints, sprint5Prediction)}
                   dataKey="sprint"
                   withDots
@@ -158,11 +156,9 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                     tickMargin: 10,
                   }}
                   yAxisProps={{ domain: [0, 'auto'] }}
-                  tooltipAnimationDuration={0}
                   tooltipProps={{
                     offset: 0,
                     isAnimationActive: false,
-                    content: PointValueTooltip as never,
                   }}
                   referenceLines={
                     avgVelocity !== null
@@ -184,23 +180,22 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                 <Text size="sm" fw={500} c="dimmed">
                   Bug Burndown
                 </Text>
-                <BarChart
-                  h={220}
+                <AppBarChart
+                  height={220}
                   data={buildBugChartData(programTrendSprints)}
                   dataKey="sprint"
                   type="stacked"
                   withLegend
                   legendProps={{ verticalAlign: 'bottom', height: 30 }}
                   series={[
-                    { name: 'Closed', color: 'green.6' },
-                    { name: 'Open', color: 'red.6' },
+                    { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
+                    { name: 'Open (New/Active)', color: 'red.6' },
                   ]}
                   xAxisProps={{
                     interval: 0,
                     tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
                   }}
                   yAxisProps={{ domain: [0, 'auto'] }}
-                  tooltipAnimationDuration={150}
                   tooltipProps={{
                     position: { y: -20 },
                     offset: 10,

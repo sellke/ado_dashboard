@@ -8,13 +8,13 @@ import { render, screen } from '@/test-utils';
  * Verifies: renders chart, handles empty array, correct series, data mapping.
  */
 
-jest.mock('@mantine/charts', () => ({
-  BarChart: (props: Record<string, unknown>) => (
+jest.mock('@/lib/charts', () => ({
+  AppBarChart: (props: Record<string, unknown>) => (
     <div
       data-testid="overhead-bar-chart"
       data-series={JSON.stringify(props.series)}
       data-data={JSON.stringify(props.data)}
-      data-h={String(props.h)}
+      data-height={String(props.height)}
       data-with-legend={String(props.withLegend)}
       data-type={String(props.type)}
     />
@@ -148,7 +148,7 @@ describe('OverheadCompositionChart', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
       const chart = screen.getByTestId('overhead-bar-chart');
-      expect(chart.getAttribute('data-h')).toBe('200');
+      expect(chart.getAttribute('data-height')).toBe('200');
     });
 
     it('renders with a legend', () => {

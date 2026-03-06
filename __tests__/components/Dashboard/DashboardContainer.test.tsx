@@ -27,7 +27,6 @@ const mockSuccessResponse = {
       detail: {
         plannedPoints: 40,
         completedPoints: 34,
-        carryOverItems: 3,
         carryOverPoints: 6,
         overheadHours: 22.8,
         grossHours: 80,
@@ -145,7 +144,6 @@ describe('DashboardContainer', () => {
           detail: {
             plannedPoints: null,
             completedPoints: null,
-            carryOverItems: null,
             carryOverPoints: null,
             overheadHours: null,
             grossHours: null,

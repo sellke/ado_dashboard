@@ -1,6 +1,6 @@
 'use client';
 
-import { AreaChart } from '@mantine/charts';
+import { AppAreaChart } from '@/lib/charts';
 import type { ApiBurnupPoint } from '@/lib/dashboard/types';
 
 export interface BurnupChartProps {
@@ -25,8 +25,8 @@ export function BurnupChart({ burnupData, height = 160 }: BurnupChartProps) {
   }));
 
   return (
-    <AreaChart
-      h={height}
+    <AppAreaChart
+      height={height}
       data={chartData}
       dataKey="sprint"
       series={SERIES}
@@ -40,7 +40,6 @@ export function BurnupChart({ burnupData, height = 160 }: BurnupChartProps) {
         tickMargin: 10,
       }}
       yAxisProps={{ domain: [0, 'auto'] }}
-      tooltipAnimationDuration={150}
     />
   );
 }

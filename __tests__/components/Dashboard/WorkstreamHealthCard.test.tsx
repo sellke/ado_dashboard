@@ -9,26 +9,29 @@ import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
  * Integration tests for VelocityTrendChart and OverheadBreakdownPanel.
  */
 
-jest.mock('@mantine/charts', () => ({
-  LineChart: (props: Record<string, unknown>) => {
+jest.mock('@/lib/charts', () => ({
+  AppLineChart: (props: Record<string, unknown>) => {
     const series = props.series as Array<{ name: string }> | undefined;
-    const isOverhead = series?.some((s) => s.name === 'Meetings');
+    const isOverhead = series?.some((s) => s.name === 'Mtgs');
     return (
       <div
         data-testid={isOverhead ? 'overhead-line-chart' : 'velocity-line-chart'}
         data-series={JSON.stringify(props.series)}
         data-points={JSON.stringify(props.data)}
         data-reference-lines={JSON.stringify(props.referenceLines)}
-        data-h={String(props.h)}
+        data-height={String(props.height)}
       />
     );
   },
-  BarChart: (props: Record<string, unknown>) => (
+  AppBarChart: (props: Record<string, unknown>) => (
     <div
       data-testid="overhead-bar-chart"
       data-series={JSON.stringify(props.series)}
       data-data={JSON.stringify(props.data)}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -149,7 +152,7 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
     expect(screen.getByText(/Completed: 45/)).toBeInTheDocument();
-    expect(screen.getByText(/Carry-over: 3 items, 6 pts/)).toBeInTheDocument();
+    expect(screen.getByText(/Carry-over: 6 pts/)).toBeInTheDocument();
   });
 
   it('renders VelocityTrendChart when trend data is present', () => {
@@ -166,7 +169,7 @@ describe('WorkstreamHealthCard', () => {
     const points = JSON.parse(chart.getAttribute('data-points')!);
     expect(points).toHaveLength(3); // 2 sprints + 1 prediction
     expect(points[2].sprint).toContain('(Forecasted)');
-    expect(points[2].Predicted).toBe(48);
+    expect(points[2].Forecasted).toBe(48);
   });
 
   it('renders N/A for null detail values', () => {
@@ -175,7 +178,6 @@ describe('WorkstreamHealthCard', () => {
       detail: {
         plannedPoints: 'N/A',
         completedPoints: 'N/A',
-        carryOverItems: 'N/A',
         carryOverPoints: 'N/A',
       },
     };
@@ -184,7 +186,7 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText(/Planned: N\/A/)).toBeInTheDocument();
     expect(screen.getByText(/Completed: N\/A/)).toBeInTheDocument();
-    expect(screen.getByText(/Carry-over: N\/A items, N\/A pts/)).toBeInTheDocument();
+    expect(screen.getByText(/Carry-over: N\/A pts/)).toBeInTheDocument();
   });
 
   it('handles mixed RAG statuses', () => {
@@ -297,23 +299,24 @@ describe('WorkstreamHealthCard', () => {
 
   describe('OverheadBreakdownPanel integration', () => {
     it('renders overhead-breakdown-panel when overhead breakdown data is present', () => {
-      render(<WorkstreamHealthCard card={fullDataCard} />);
+      render(<WorkstreamHealthCard card={fullDataCard} activeSprintId="s1" />);
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
 
     it('renders "Overhead Breakdown" section header', () => {
-      render(<WorkstreamHealthCard card={fullDataCard} />);
-      expect(screen.getByText('Overhead Breakdown')).toBeInTheDocument();
+      render(<WorkstreamHealthCard card={fullDataCard} activeSprintId="s1" />);
+      expect(screen.getByText('Overhead Breakdown (Hours)')).toBeInTheDocument();
     });
 
     it('renders the overhead breakdown chart from fixture trend sprint data', () => {
-      render(<WorkstreamHealthCard card={fullDataCard} />);
+      render(<WorkstreamHealthCard card={fullDataCard} activeSprintId="s1" />);
       expect(screen.getByTestId('overhead-line-chart')).toBeInTheDocument();
     });
 
-    it('renders bug and support item tables', () => {
-      render(<WorkstreamHealthCard card={fullDataCard} />);
+    it('renders bug, spike, and support item tables', () => {
+      render(<WorkstreamHealthCard card={fullDataCard} activeSprintId="s1" />);
       expect(screen.getByTestId('bug-items')).toBeInTheDocument();
+      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
       expect(screen.getByTestId('support-items')).toBeInTheDocument();
     });
 
@@ -324,8 +327,7 @@ describe('WorkstreamHealthCard', () => {
           ...s,
           overheadBreakdown: [],
         })),
-        currentSprintBugItems: [],
-        currentSprintSupportItems: [],
+        overheadItemsBySprint: [],
       };
 
       render(<WorkstreamHealthCard card={noOverheadCard} />);
@@ -338,13 +340,26 @@ describe('WorkstreamHealthCard', () => {
           ...s,
           overheadBreakdown: [],
         })),
-        currentSprintBugItems: [
-          { adoId: '#99', title: 'Crash on load', state: 'Active', hours: '1 hr', isClosed: false },
+        overheadItemsBySprint: [
+          {
+            sprintId: 's1',
+            bugs: [
+              {
+                adoId: '#99',
+                title: 'Crash on load',
+                state: 'Active',
+                hours: '1 hr',
+                isClosed: false,
+                adoUrl: 'https://dev.azure.com/test/99',
+              },
+            ],
+            spikes: [],
+            support: [],
+          },
         ],
-        currentSprintSupportItems: [],
       });
 
-      render(<WorkstreamHealthCard card={bugOnlyCard} />);
+      render(<WorkstreamHealthCard card={bugOnlyCard} activeSprintId="s1" />);
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
 
@@ -354,13 +369,26 @@ describe('WorkstreamHealthCard', () => {
           ...s,
           overheadBreakdown: [],
         })),
-        currentSprintBugItems: [],
-        currentSprintSupportItems: [
-          { adoId: '#55', title: 'Deploy request', state: 'Done', hours: '2 hrs', isClosed: true },
+        overheadItemsBySprint: [
+          {
+            sprintId: 's1',
+            bugs: [],
+            spikes: [],
+            support: [
+              {
+                adoId: '#55',
+                title: 'Deploy request',
+                state: 'Done',
+                hours: '2 hrs',
+                isClosed: true,
+                adoUrl: 'https://dev.azure.com/test/55',
+              },
+            ],
+          },
         ],
       });
 
-      render(<WorkstreamHealthCard card={supportOnlyCard} />);
+      render(<WorkstreamHealthCard card={supportOnlyCard} activeSprintId="s1" />);
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
   });

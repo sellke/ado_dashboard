@@ -1,6 +1,6 @@
 /**
  * Tests for CurrentSprintItemTables component.
- * Verifies: bug/support sections, item format, closed styling, empty states.
+ * Verifies: bug/spike/support sections, item format, ADO links, closed styling, empty states.
  */
 
 import { createOverheadItemViewModel } from '@/__tests__/components/Dashboard/__fixtures__/dashboard-fixtures';
@@ -25,7 +25,7 @@ describe('CurrentSprintItemTables', () => {
         }),
       ];
 
-      render(<CurrentSprintItemTables bugItems={bugItems} supportItems={[]} />);
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('#12345 — Login crash (4.5 hrs) [Active]')).toBeInTheDocument();
     });
@@ -42,12 +42,32 @@ describe('CurrentSprintItemTables', () => {
         makeItem({ adoId: '#200', title: 'Bug B', state: 'Closed', hours: 'N/A', isClosed: true }),
       ];
 
-      render(<CurrentSprintItemTables bugItems={bugItems} supportItems={[]} />);
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('Bugs')).toBeInTheDocument();
       expect(screen.getByText('#100 — Bug A (2 hrs) [Active]')).toBeInTheDocument();
       expect(screen.getByText('#200 — Bug B (N/A) [Closed]')).toBeInTheDocument();
       expect(screen.getByTestId('bug-items')).toBeInTheDocument();
+    });
+  });
+
+  describe('spike items', () => {
+    it('renders spike items in Spikes section', () => {
+      const spikeItems: OverheadItemViewModel[] = [
+        makeItem({
+          adoId: '#44444',
+          title: 'Perf investigation',
+          state: 'New',
+          hours: '8 hrs',
+          isClosed: false,
+        }),
+      ];
+
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={spikeItems} supportItems={[]} />);
+
+      expect(screen.getByText('Spikes')).toBeInTheDocument();
+      expect(screen.getByText('#44444 — Perf investigation (8 hrs) [New]')).toBeInTheDocument();
+      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
     });
   });
 
@@ -63,11 +83,35 @@ describe('CurrentSprintItemTables', () => {
         }),
       ];
 
-      render(<CurrentSprintItemTables bugItems={[]} supportItems={supportItems} />);
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={supportItems} />);
 
       expect(screen.getByText('Support')).toBeInTheDocument();
       expect(screen.getByText('#11111 — Infra request (2 hrs) [Done]')).toBeInTheDocument();
       expect(screen.getByTestId('support-items')).toBeInTheDocument();
+    });
+  });
+
+  describe('ADO links', () => {
+    it('renders items as clickable Anchor elements with correct href', () => {
+      const bugItems: OverheadItemViewModel[] = [
+        makeItem({
+          adoId: '#12345',
+          title: 'Login crash',
+          state: 'Active',
+          hours: '4.5 hrs',
+          isClosed: false,
+          adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
+        }),
+      ];
+
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
+
+      const link = screen.getByText('#12345 — Login crash (4.5 hrs) [Active]');
+      expect(link.closest('a')).toHaveAttribute(
+        'href',
+        'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345'
+      );
+      expect(link.closest('a')).toHaveAttribute('target', '_blank');
     });
   });
 
@@ -90,7 +134,7 @@ describe('CurrentSprintItemTables', () => {
         }),
       ];
 
-      render(<CurrentSprintItemTables bugItems={bugItems} supportItems={[]} />);
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
       const closedBug = screen.getByText('#12345 — Login crash (4.5 hrs) [Closed]');
       const openBug = screen.getByText('#67890 — Slow query (N/A) [Active]');
@@ -102,38 +146,49 @@ describe('CurrentSprintItemTables', () => {
 
   describe('empty states', () => {
     it('shows "No bug items" when bugItems is empty', () => {
-      render(<CurrentSprintItemTables bugItems={[]} supportItems={[]} />);
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('No bug items')).toBeInTheDocument();
+    });
+
+    it('shows "No spike items" when spikeItems is empty', () => {
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />);
+
+      expect(screen.getByText('No spike items')).toBeInTheDocument();
     });
 
     it('shows "No support items" when supportItems is empty', () => {
-      render(<CurrentSprintItemTables bugItems={[]} supportItems={[]} />);
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('No support items')).toBeInTheDocument();
     });
 
-    it('shows both empty states when both arrays are empty', () => {
-      render(<CurrentSprintItemTables bugItems={[]} supportItems={[]} />);
+    it('shows all three empty states when all arrays are empty', () => {
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('No bug items')).toBeInTheDocument();
+      expect(screen.getByText('No spike items')).toBeInTheDocument();
       expect(screen.getByText('No support items')).toBeInTheDocument();
     });
 
-    it('component renders (does not return null) when both arrays are empty', () => {
-      const { container } = render(<CurrentSprintItemTables bugItems={[]} supportItems={[]} />);
+    it('component renders (does not return null) when all arrays are empty', () => {
+      const { container } = render(
+        <CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />
+      );
 
       expect(container.firstChild).not.toBeNull();
       expect(screen.getByTestId('bug-items')).toBeInTheDocument();
+      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
       expect(screen.getByTestId('support-items')).toBeInTheDocument();
     });
   });
 
   describe('section headers', () => {
-    it('renders Bugs and Support section headers', () => {
-      render(<CurrentSprintItemTables bugItems={[]} supportItems={[]} />);
+    it('renders Bugs, Spikes, and Support section headers in correct order', () => {
+      render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('Bugs')).toBeInTheDocument();
+      expect(screen.getByText('Spikes')).toBeInTheDocument();
       expect(screen.getByText('Support')).toBeInTheDocument();
     });
   });

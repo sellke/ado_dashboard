@@ -1,25 +1,27 @@
 'use client';
 
 import { Stack, Text } from '@mantine/core';
-import type { OverheadItemViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
+import type { OverheadSprintViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
 import { CurrentSprintItemTables } from './CurrentSprintItemTables';
 import { OverheadBreakdownChart } from './OverheadBreakdownChart';
 
 export interface OverheadBreakdownPanelProps {
   trendSprints: TrendSprintViewModel[];
-  bugItems: OverheadItemViewModel[];
-  supportItems: OverheadItemViewModel[];
+  overheadItemsBySprint: OverheadSprintViewModel[];
+  activeSprintId: string;
 }
 
 /**
  * Umbrella panel that composes OverheadBreakdownChart and CurrentSprintItemTables.
- * Purely presentational — rendered inline below velocity/bug sections in WorkstreamHealthCard.
+ * Finds the selected sprint's items from overheadItemsBySprint and passes them down.
  */
 export function OverheadBreakdownPanel({
   trendSprints,
-  bugItems,
-  supportItems,
+  overheadItemsBySprint,
+  activeSprintId,
 }: OverheadBreakdownPanelProps) {
+  const selected = overheadItemsBySprint.find((s) => s.sprintId === activeSprintId);
+
   return (
     <Stack
       gap="xs"
@@ -32,7 +34,11 @@ export function OverheadBreakdownPanel({
         Overhead Breakdown (Hours)
       </Text>
       <OverheadBreakdownChart trendSprints={trendSprints} />
-      <CurrentSprintItemTables bugItems={bugItems} supportItems={supportItems} />
+      <CurrentSprintItemTables
+        bugItems={selected?.bugs ?? []}
+        spikeItems={selected?.spikes ?? []}
+        supportItems={selected?.support ?? []}
+      />
     </Stack>
   );
 }

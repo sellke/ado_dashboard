@@ -17,7 +17,12 @@ import {
   mapProgramMilestoneRollup,
   toRagStatus,
 } from '@/lib/dashboard/adapter';
-import type { ApiOverheadItem, ApiResponse, ApiTrendSprint } from '@/lib/dashboard/types';
+import type {
+  ApiOverheadItem,
+  ApiOverheadItemsBySprint,
+  ApiResponse,
+  ApiTrendSprint,
+} from '@/lib/dashboard/types';
 import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 
 describe('dashboard adapter', () => {
@@ -41,7 +46,6 @@ describe('dashboard adapter', () => {
         detail: {
           plannedPoints: 40,
           completedPoints: 34,
-          carryOverItems: 3,
           carryOverPoints: 6,
           overheadHours: 22.8,
           grossHours: 80,
@@ -210,7 +214,6 @@ describe('dashboard adapter', () => {
             detail: {
               plannedPoints: null,
               completedPoints: null,
-              carryOverItems: null,
               carryOverPoints: null,
               overheadHours: null,
               grossHours: null,
@@ -344,7 +347,7 @@ describe('dashboard adapter', () => {
                     bugs: [
                       { adoId: 12345, title: 'Login crash', state: 'Closed' },
                       { adoId: 67890, title: 'Slow query', state: 'Active' },
-                      { adoId: 11111, title: 'Memory leak', state: 'Done' },
+                      { adoId: 11111, title: 'Memory leak', state: 'Testing' },
                       { adoId: 22222, title: 'UI glitch', state: 'Resolved' },
                     ],
                   },
@@ -558,6 +561,13 @@ describe('dashboard adapter', () => {
       expect(vm.adoId).toBe('#12345');
     });
 
+    it('constructs adoUrl from numeric adoId', () => {
+      const vm = mapOverheadItem(baseItem);
+      expect(vm.adoUrl).toBe(
+        'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345'
+      );
+    });
+
     it('formats hours as "4.5 hrs" when completedWork is provided', () => {
       const vm = mapOverheadItem(baseItem);
       expect(vm.hours).toBe('4.5 hrs');
@@ -695,7 +705,19 @@ describe('dashboard adapter', () => {
   });
 
   describe('mapApiResponseToDashboardViewModel - overhead integration', () => {
-    it('populates overheadComposition, currentSprintBugItems, currentSprintSupportItems on workstream cards', () => {
+    it('populates overheadComposition and overheadItemsBySprint on workstream cards', () => {
+      const overheadItemsBySprint: ApiOverheadItemsBySprint[] = [
+        {
+          sprintId: 'sprint-a',
+          bugs: [
+            { adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 },
+            { adoId: 67890, title: 'Slow query', state: 'Active', hours: null },
+          ],
+          spikes: [{ adoId: 99999, title: 'Perf spike', state: 'New', hours: 3 }],
+          support: [{ adoId: 11111, title: 'Infra request', state: 'Done', hours: 2 }],
+        },
+      ];
+
       const responseWithOverhead: ApiResponse = {
         ...fullApiResponse,
         workstreams: [
@@ -722,13 +744,7 @@ describe('dashboard adapter', () => {
                 },
               ],
             },
-            currentSprintOverheadItems: {
-              bugs: [
-                { adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 },
-                { adoId: 67890, title: 'Slow query', state: 'Active', hours: null },
-              ],
-              support: [{ adoId: 11111, title: 'Infra request', state: 'Done', hours: 2 }],
-            },
+            overheadItemsBySprint,
           },
         ],
       };
@@ -746,39 +762,52 @@ describe('dashboard adapter', () => {
         overheadPercent: '25%',
       });
 
-      expect(ws.currentSprintBugItems).toHaveLength(2);
-      expect(ws.currentSprintBugItems[0]).toEqual({
+      expect(ws.overheadItemsBySprint).toHaveLength(1);
+      const sprint = ws.overheadItemsBySprint[0];
+      expect(sprint.sprintId).toBe('sprint-a');
+
+      expect(sprint.bugs).toHaveLength(2);
+      expect(sprint.bugs[0]).toEqual({
         adoId: '#12345',
         title: 'Login crash',
         state: 'Closed',
         hours: '4.5 hrs',
         isClosed: true,
+        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
       });
-      expect(ws.currentSprintBugItems[1]).toEqual({
+      expect(sprint.bugs[1]).toEqual({
         adoId: '#67890',
         title: 'Slow query',
         state: 'Active',
         hours: 'N/A',
         isClosed: false,
+        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890',
       });
 
-      expect(ws.currentSprintSupportItems).toHaveLength(1);
-      expect(ws.currentSprintSupportItems[0]).toEqual({
+      expect(sprint.spikes).toHaveLength(1);
+      expect(sprint.spikes[0]).toMatchObject({
+        adoId: '#99999',
+        title: 'Perf spike',
+        adoUrl: expect.stringContaining('/99999'),
+      });
+
+      expect(sprint.support).toHaveLength(1);
+      expect(sprint.support[0]).toEqual({
         adoId: '#11111',
         title: 'Infra request',
         state: 'Done',
         hours: '2 hrs',
         isClosed: true,
+        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111',
       });
     });
 
-    it('returns empty arrays when currentSprintOverheadItems is missing', () => {
+    it('returns empty arrays when overheadItemsBySprint is missing', () => {
       const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
       const ws = vm.workstreamCards[0];
 
       expect(ws.overheadComposition).toEqual([]);
-      expect(ws.currentSprintBugItems).toEqual([]);
-      expect(ws.currentSprintSupportItems).toEqual([]);
+      expect(ws.overheadItemsBySprint).toEqual([]);
     });
   });
 

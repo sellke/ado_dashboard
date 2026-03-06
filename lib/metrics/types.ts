@@ -12,6 +12,12 @@
 export const DONE_STATES = ['Closed', 'Done', 'Resolved'] as const;
 export type DoneState = (typeof DONE_STATES)[number];
 
+/** Bug-specific state sets (explicit ADO state classification). */
+export const BUG_OPEN_STATES = ['New', 'Active'] as const;
+export const BUG_RESOLVED_STATES = ['Resolved', 'Testing', 'Closed'] as const;
+export type BugOpenState = (typeof BUG_OPEN_STATES)[number];
+export type BugResolvedState = (typeof BUG_RESOLVED_STATES)[number];
+
 // ============================================================================
 // Input types for pure calculator functions
 // ============================================================================
@@ -38,6 +44,13 @@ export interface ThresholdConfigInput {
   greenMax: number;
   amberMin: number;
   amberMax: number;
+}
+
+/** Minimal shape for sprint plan snapshot rows used by carry-over calculation */
+export interface SprintPlanSnapshotInput {
+  storyPoints: number | null;
+  state: string;
+  type: string;
 }
 
 /** Prior sprint snapshot shape for rolling average calculation */

@@ -4,7 +4,8 @@
  * No metric math - only formatting and mapping.
  */
 
-import { DONE_STATES } from '../metrics/types';
+import { buildAdoWorkItemUrl } from '../ado/urls';
+import { BUG_RESOLVED_STATES, DONE_STATES } from '../metrics/types';
 import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '../milestones/types';
 import type {
   ApiMetric,
@@ -20,6 +21,7 @@ import type {
   OverheadCategory,
   OverheadCompositionViewModel,
   OverheadItemViewModel,
+  OverheadSprintViewModel,
   RagStatus,
   TrendBugViewModel,
   TrendSprintViewModel,
@@ -253,6 +255,7 @@ export function mapOverheadItem(item: ApiOverheadItem): OverheadItemViewModel {
     state: item.state,
     hours: formatHours(item.hours),
     isClosed: (DONE_STATES as readonly string[]).includes(item.state),
+    adoUrl: buildAdoWorkItemUrl(item.adoId),
   };
 }
 
@@ -273,6 +276,7 @@ export function mapOverheadComposition(sprints: ApiTrendSprint[]): OverheadCompo
     });
 }
 
+/** Maps a bug item to view model. Uses BUG_RESOLVED_STATES (Resolved|Testing|Closed) for isClosed. */
 function mapBugToViewModel(bug: {
   adoId: number;
   title: string;
@@ -281,7 +285,7 @@ function mapBugToViewModel(bug: {
   return {
     adoId: String(bug.adoId),
     title: bug.title,
-    isClosed: (DONE_STATES as readonly string[]).includes(bug.state),
+    isClosed: (BUG_RESOLVED_STATES as readonly string[]).includes(bug.state),
   };
 }
 
@@ -521,7 +525,6 @@ export function mapApiResponseToDashboardViewModel(
       detail: {
         plannedPoints: formatDetailValue(d.plannedPoints),
         completedPoints: formatDetailValue(d.completedPoints),
-        carryOverItems: formatDetailValue(d.carryOverItems),
         carryOverPoints: formatDetailValue(d.carryOverPoints),
       },
       trendSprints: (ws.trends?.sprints ?? []).map(mapTrendSprint),
@@ -536,9 +539,13 @@ export function mapApiResponseToDashboardViewModel(
           }
         : null,
       overheadComposition: mapOverheadComposition(ws.trends?.sprints ?? []),
-      currentSprintBugItems: (ws.currentSprintOverheadItems?.bugs ?? []).map(mapOverheadItem),
-      currentSprintSupportItems: (ws.currentSprintOverheadItems?.support ?? []).map(
-        mapOverheadItem
+      overheadItemsBySprint: (ws.overheadItemsBySprint ?? []).map(
+        (sprintItems): OverheadSprintViewModel => ({
+          sprintId: sprintItems.sprintId,
+          bugs: sprintItems.bugs.map(mapOverheadItem),
+          spikes: sprintItems.spikes.map(mapOverheadItem),
+          support: sprintItems.support.map(mapOverheadItem),
+        })
       ),
       milestoneGroups,
     };

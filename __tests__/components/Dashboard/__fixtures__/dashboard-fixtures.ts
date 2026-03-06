@@ -7,12 +7,14 @@ import { mapApiResponseToDashboardViewModel } from '@/lib/dashboard/adapter';
 import type {
   ApiMetric,
   ApiOverheadItem,
+  ApiOverheadItemsBySprint,
   ApiResponse,
   ApiWorkstream,
   DashboardViewModel,
   MetricTileViewModel,
   OverheadCompositionViewModel,
   OverheadItemViewModel,
+  OverheadSprintViewModel,
   WorkstreamCardViewModel,
 } from '@/lib/dashboard/types';
 
@@ -56,6 +58,8 @@ export function createOverheadItemViewModel(
     state: 'Active',
     hours: '4.5 hrs',
     isClosed: false,
+    adoUrl:
+      'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
     ...overrides,
   };
 }
@@ -111,7 +115,6 @@ export function createWorkstreamCard(
     detail: {
       plannedPoints: '50',
       completedPoints: '45',
-      carryOverItems: '3',
       carryOverPoints: '6',
     },
     trendSprints: [
@@ -175,30 +178,36 @@ export function createWorkstreamCard(
       }),
     ],
     milestoneGroups: [],
-    currentSprintBugItems: [
-      createOverheadItemViewModel({
-        adoId: '#12345',
-        title: 'Login crash',
-        state: 'Closed',
-        hours: '4.5 hrs',
-        isClosed: true,
-      }),
-      createOverheadItemViewModel({
-        adoId: '#67890',
-        title: 'Slow query',
-        state: 'Active',
-        hours: 'N/A',
-        isClosed: false,
-      }),
-    ],
-    currentSprintSupportItems: [
-      createOverheadItemViewModel({
-        adoId: '#11111',
-        title: 'Infra request',
-        state: 'Done',
-        hours: '2 hrs',
-        isClosed: true,
-      }),
+    overheadItemsBySprint: [
+      {
+        sprintId: 's1',
+        bugs: [
+          createOverheadItemViewModel({
+            adoId: '#12345',
+            title: 'Login crash',
+            state: 'Closed',
+            hours: '4.5 hrs',
+            isClosed: true,
+          }),
+          createOverheadItemViewModel({
+            adoId: '#67890',
+            title: 'Slow query',
+            state: 'Active',
+            hours: 'N/A',
+            isClosed: false,
+          }),
+        ],
+        spikes: [],
+        support: [
+          createOverheadItemViewModel({
+            adoId: '#11111',
+            title: 'Infra request',
+            state: 'Done',
+            hours: '2 hrs',
+            isClosed: true,
+          }),
+        ],
+      },
     ],
     ...overrides,
   };
@@ -342,20 +351,23 @@ function createApiWorkstream(overrides: Partial<ApiWorkstream> = {}): ApiWorkstr
     detail: {
       plannedPoints: 50,
       completedPoints: 45,
-      carryOverItems: 3,
       carryOverPoints: 6,
       overheadHours: 22,
       grossHours: 80,
     },
-    currentSprintOverheadItems: {
-      bugs: [
-        createApiOverheadItem({ adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 }),
-        createApiOverheadItem({ adoId: 67890, title: 'Slow query', state: 'Active', hours: null }),
-      ],
-      support: [
-        createApiOverheadItem({ adoId: 11111, title: 'Infra request', state: 'Done', hours: 2 }),
-      ],
-    },
+    overheadItemsBySprint: [
+      {
+        sprintId: 's1',
+        bugs: [
+          createApiOverheadItem({ adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 }),
+          createApiOverheadItem({ adoId: 67890, title: 'Slow query', state: 'Active', hours: null }),
+        ],
+        spikes: [],
+        support: [
+          createApiOverheadItem({ adoId: 11111, title: 'Infra request', state: 'Done', hours: 2 }),
+        ],
+      },
+    ],
     ...overrides,
   };
 }
