@@ -1,12 +1,13 @@
 /**
  * Tests for CurrentSprintItemTables component.
- * Verifies: bug/spike/support sections, item format, ADO links, closed styling, empty states.
+ * Verifies: bug/spike/support sections, item row format (matching story row layout),
+ * ADO links, closed styling, empty states, state badge colors.
  */
 
 import { createOverheadItemViewModel } from '@/__tests__/components/Dashboard/__fixtures__/dashboard-fixtures';
 import { CurrentSprintItemTables } from '@/components/Dashboard/CurrentSprintItemTables';
 import type { OverheadItemViewModel } from '@/lib/dashboard/types';
-import { render, screen } from '@/test-utils';
+import { render, screen, within } from '@/test-utils';
 
 function makeItem(overrides: Partial<OverheadItemViewModel> = {}): OverheadItemViewModel {
   return createOverheadItemViewModel(overrides);
@@ -14,7 +15,7 @@ function makeItem(overrides: Partial<OverheadItemViewModel> = {}): OverheadItemV
 
 describe('CurrentSprintItemTables', () => {
   describe('bug items', () => {
-    it('renders bug items with format: adoId — title (hours) [state]', () => {
+    it('renders bug item with adoId, title, hours, and state badge', () => {
       const bugItems: OverheadItemViewModel[] = [
         makeItem({
           adoId: '#12345',
@@ -27,7 +28,11 @@ describe('CurrentSprintItemTables', () => {
 
       render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
-      expect(screen.getByText('#12345 — Login crash (4.5 hrs) [Active]')).toBeInTheDocument();
+      const section = screen.getByTestId('bug-items');
+      expect(within(section).getByText('#12345')).toBeInTheDocument();
+      expect(within(section).getByText('Login crash')).toBeInTheDocument();
+      expect(within(section).getByText('4.5 hrs')).toBeInTheDocument();
+      expect(within(section).getByText('Active')).toBeInTheDocument();
     });
 
     it('renders multiple bug items in Bugs section', () => {
@@ -45,8 +50,10 @@ describe('CurrentSprintItemTables', () => {
       render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
       expect(screen.getByText('Bugs')).toBeInTheDocument();
-      expect(screen.getByText('#100 — Bug A (2 hrs) [Active]')).toBeInTheDocument();
-      expect(screen.getByText('#200 — Bug B (N/A) [Closed]')).toBeInTheDocument();
+      expect(screen.getByText('#100')).toBeInTheDocument();
+      expect(screen.getByText('Bug A')).toBeInTheDocument();
+      expect(screen.getByText('#200')).toBeInTheDocument();
+      expect(screen.getByText('Bug B')).toBeInTheDocument();
       expect(screen.getByTestId('bug-items')).toBeInTheDocument();
     });
   });
@@ -66,8 +73,11 @@ describe('CurrentSprintItemTables', () => {
       render(<CurrentSprintItemTables bugItems={[]} spikeItems={spikeItems} supportItems={[]} />);
 
       expect(screen.getByText('Spikes')).toBeInTheDocument();
-      expect(screen.getByText('#44444 — Perf investigation (8 hrs) [New]')).toBeInTheDocument();
-      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
+      const section = screen.getByTestId('spike-items');
+      expect(within(section).getByText('#44444')).toBeInTheDocument();
+      expect(within(section).getByText('Perf investigation')).toBeInTheDocument();
+      expect(within(section).getByText('8 hrs')).toBeInTheDocument();
+      expect(within(section).getByText('New')).toBeInTheDocument();
     });
   });
 
@@ -86,8 +96,11 @@ describe('CurrentSprintItemTables', () => {
       render(<CurrentSprintItemTables bugItems={[]} spikeItems={[]} supportItems={supportItems} />);
 
       expect(screen.getByText('Support')).toBeInTheDocument();
-      expect(screen.getByText('#11111 — Infra request (2 hrs) [Done]')).toBeInTheDocument();
-      expect(screen.getByTestId('support-items')).toBeInTheDocument();
+      const section = screen.getByTestId('support-items');
+      expect(within(section).getByText('#11111')).toBeInTheDocument();
+      expect(within(section).getByText('Infra request')).toBeInTheDocument();
+      expect(within(section).getByText('2 hrs')).toBeInTheDocument();
+      expect(within(section).getByText('Done')).toBeInTheDocument();
     });
   });
 
@@ -106,12 +119,12 @@ describe('CurrentSprintItemTables', () => {
 
       render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
-      const link = screen.getByText('#12345 — Login crash (4.5 hrs) [Active]');
-      expect(link.closest('a')).toHaveAttribute(
+      const link = screen.getByRole('link', { name: /Open Login crash in Azure DevOps/i });
+      expect(link).toHaveAttribute(
         'href',
         'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345'
       );
-      expect(link.closest('a')).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('target', '_blank');
     });
   });
 
@@ -136,11 +149,11 @@ describe('CurrentSprintItemTables', () => {
 
       render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
 
-      const closedBug = screen.getByText('#12345 — Login crash (4.5 hrs) [Closed]');
-      const openBug = screen.getByText('#67890 — Slow query (N/A) [Active]');
+      const closedLink = screen.getByRole('link', { name: /Open Login crash in Azure DevOps/i });
+      const openLink = screen.getByRole('link', { name: /Open Slow query in Azure DevOps/i });
 
-      expect(closedBug).toHaveStyle({ textDecoration: 'line-through' });
-      expect(openBug).not.toHaveStyle({ textDecoration: 'line-through' });
+      expect(closedLink).toHaveStyle({ textDecoration: 'line-through' });
+      expect(openLink).not.toHaveStyle({ textDecoration: 'line-through' });
     });
   });
 
@@ -190,6 +203,24 @@ describe('CurrentSprintItemTables', () => {
       expect(screen.getByText('Bugs')).toBeInTheDocument();
       expect(screen.getByText('Spikes')).toBeInTheDocument();
       expect(screen.getByText('Support')).toBeInTheDocument();
+    });
+  });
+
+  describe('state badge colors', () => {
+    it('renders Active state with blue badge', () => {
+      const bugItems = [makeItem({ state: 'Active', isClosed: false })];
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
+
+      const badge = screen.getByText('Active');
+      expect(badge.closest('.mantine-Badge-root')).toBeInTheDocument();
+    });
+
+    it('renders Closed state with green badge', () => {
+      const bugItems = [makeItem({ state: 'Closed', isClosed: true })];
+      render(<CurrentSprintItemTables bugItems={bugItems} spikeItems={[]} supportItems={[]} />);
+
+      const badge = screen.getByText('Closed');
+      expect(badge.closest('.mantine-Badge-root')).toBeInTheDocument();
     });
   });
 });

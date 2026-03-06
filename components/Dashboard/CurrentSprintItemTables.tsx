@@ -1,12 +1,56 @@
 'use client';
 
-import { Anchor, Box, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Box, Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { OverheadItemViewModel } from '@/lib/dashboard/types';
+
+const STATE_COLOR: Record<string, string> = {
+  New: 'gray',
+  Active: 'blue',
+  Resolved: 'yellow',
+  Closed: 'green',
+  Done: 'green',
+};
 
 export interface CurrentSprintItemTablesProps {
   bugItems: OverheadItemViewModel[];
   spikeItems: OverheadItemViewModel[];
   supportItems: OverheadItemViewModel[];
+}
+
+function ItemRow({ item }: { item: OverheadItemViewModel }) {
+  return (
+    <Anchor
+      href={item.adoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      underline="hover"
+      aria-label={`Open ${item.title} in Azure DevOps`}
+      style={{ display: 'block' }}
+      td={item.isClosed ? 'line-through' : undefined}
+      c={item.isClosed ? 'dimmed' : undefined}
+    >
+      <Group justify="space-between" wrap="nowrap" gap="xs" py={2}>
+        <Group gap="xs" wrap="nowrap" style={{ minWidth: 0, flex: 1 }}>
+          <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+            {item.adoId}
+          </Text>
+          <Tooltip label={item.title} multiline maw={360} openDelay={300}>
+            <Text size="xs" truncate style={{ minWidth: 0 }}>
+              {item.title}
+            </Text>
+          </Tooltip>
+        </Group>
+        <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+          <Text size="xs" c="dimmed">
+            {item.hours}
+          </Text>
+          <Badge size="xs" variant="light" color={STATE_COLOR[item.state] ?? 'gray'}>
+            {item.state}
+          </Badge>
+        </Group>
+      </Group>
+    </Anchor>
+  );
 }
 
 function ItemList({
@@ -25,23 +69,11 @@ function ItemList({
           {emptyLabel}
         </Text>
       ) : (
-        <Box component="ul" m={0} p={0} style={{ listStyle: 'none' }}>
+        <Stack gap={0}>
           {items.map((item) => (
-            <Box key={item.adoId} component="li" mb={2}>
-              <Anchor
-                href={item.adoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="xs"
-                td={item.isClosed ? 'line-through' : undefined}
-                c={item.isClosed ? 'dimmed' : undefined}
-                truncate
-              >
-                {item.adoId} — {item.title} ({item.hours}) [{item.state}]
-              </Anchor>
-            </Box>
+            <ItemRow key={item.adoId} item={item} />
           ))}
-        </Box>
+        </Stack>
       )}
     </Box>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Anchor, Badge, Group, Skeleton, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Group, Skeleton, Stack, Text, Tooltip } from '@mantine/core';
 import type { SprintStoryViewModel, StatusGroupViewModel, StoryRowViewModel } from '@/lib/dashboard/types';
 import type { StatusGroup } from '@/lib/sprints/status-mapping';
 
@@ -33,9 +33,11 @@ function StoryRow({ story }: { story: StoryRowViewModel }) {
           <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
             {story.adoId}
           </Text>
-          <Text size="xs" truncate style={{ minWidth: 0 }}>
-            {story.title}
-          </Text>
+          <Tooltip label={story.title} multiline maw={360} openDelay={300}>
+            <Text size="xs" truncate style={{ minWidth: 0 }}>
+              {story.title}
+            </Text>
+          </Tooltip>
         </Group>
         <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
           <Text size="xs" c="dimmed">
