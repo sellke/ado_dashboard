@@ -12,11 +12,11 @@
 
 ## Acceptance Criteria
 
-- [x] Given the dashboard loads, when `WorkstreamHealthCard` renders, then `MilestoneGoalsPanel` appears (not the old `MilestonePanel`)
-- [x] Given the dashboard page, when it fetches data, then it calls the updated `GET /api/milestones` and passes the `programRollup` to `ProgramSummarySection`
-- [x] Given `DashboardContainer`, when it receives the API response, then it passes `milestoneGroups` through to each `WorkstreamCardViewModel` via the adapter
-- [x] Given `MilestonePanel` and `MilestoneFormModal`, when the dashboard renders, then neither component is imported or rendered (they remain in the codebase but are unused)
-- [x] Given the full page render, when viewed in the browser, then the milestones section shows correct ADO-sourced goal data
+- [ ] Given the dashboard loads, when `WorkstreamHealthCard` renders, then `MilestoneGoalsPanel` appears (not the old `MilestonePanel`)
+- [ ] Given the dashboard page, when it fetches data, then it calls the updated `GET /api/milestones` and passes the `programRollup` to `ProgramSummarySection`
+- [ ] Given `DashboardContainer`, when it receives the API response, then it passes `milestoneGroups` through to each `WorkstreamCardViewModel` via the adapter
+- [ ] Given `MilestonePanel` and `MilestoneFormModal`, when the dashboard renders, then neither component is imported or rendered (they remain in the codebase but are unused)
+- [ ] Given the full page render, when viewed in the browser, then the milestones section shows correct ADO-sourced goal data
 
 ## Implementation Tasks
 
@@ -34,7 +34,6 @@
 - `app/dashboard/page.tsx` should fetch milestones in parallel with metrics using `Promise.all`
 - Loading and error states: milestones API failure should show error in `MilestoneGoalsPanel` but not block the rest of the dashboard
 - The `programRollup` integration with `ProgramSummarySection` is a stub in this story — just ensure the data is plumbed through (full 1B integration handled in Phase 1B spec)
-- **Q4 ADP Context:** Story 10 completes the `programRollup` integration that was stubbed in this story — `ProgramSummarySection` will render the quarterly rollup tiles instead of suppressing the data.
 
 ## Definition of Done
 

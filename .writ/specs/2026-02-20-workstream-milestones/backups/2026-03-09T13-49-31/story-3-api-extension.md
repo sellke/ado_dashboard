@@ -42,7 +42,6 @@
   ```
 - This is a breaking change to the response shape — update all callers (`MilestonePanel`, dashboard page) to handle the new wrapper object
 - The existing `POST /api/milestones` endpoint is unchanged (kept for any internal use)
-- **Q4 ADP Context:** Story 9 adds `deriveMilestoneStatus()` to the GET handler (replacing raw DB status) and adds `quarter` to the response shape. Story 10 ensures the `programRollup` data computed here is surfaced in the UI.
 
 ## Definition of Done
 

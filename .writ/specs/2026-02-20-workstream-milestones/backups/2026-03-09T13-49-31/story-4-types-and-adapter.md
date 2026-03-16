@@ -36,7 +36,6 @@
 - `adoFeatureId` formatting: `adoFeatureId != null ? '#' + adoFeatureId : null`
 - `percentComplete` formatting: `percentComplete != null ? Math.round(percentComplete) + '%' : 'N/A'`
 - Milestone data comes from the new `/api/milestones` response — the adapter reads from `DashboardData` which is populated by the dashboard page fetch
-- **Q4 ADP Context:** Story 8 adds a `quarter` field to view models and updates the rollup mapping to group by explicit `Qx` tag. The adapter architecture from this story is preserved — only the grouping logic and types are extended.
 
 ## Definition of Done
 

@@ -39,7 +39,6 @@
 - `MilestoneGoalsPanel` month group header: `Text fw={700}` + `Badge` with group completion percent + current month indicator
 - Past month groups: collapsed by default using Mantine `Collapse` or `Accordion`
 - Consistent with existing `OverheadBreakdownPanel` and `WorkstreamHealthCard` visual patterns
-- **Q4 ADP Context:** Story 9 fixes the status check in `FeatureMilestoneCard` (currently checks `'Complete'` but API returns `'Done'`). The component architecture from this story is preserved — only the status string comparison changes.
 
 ## Definition of Done
 

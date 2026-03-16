@@ -2,7 +2,7 @@
 
 ## Overview
 
-Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change, answer 2-3 fast questions, ship code with TDD and lint verification — no spec files, no multi-gate ceremony.
+Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change, ship code with TDD and lint verification — no spec files, no multi-gate ceremony, no pre-flight questions.
 
 Use `/prototype` when the cost of creating a specification exceeds the value of the change itself. For anything that touches core architecture, requires cross-team coordination, or spans many files, use `/create-spec` + `/implement-story` instead.
 
@@ -11,134 +11,72 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 | | `/prototype` | `/implement-story --quick` |
 |---|---|---|
 | **Spec required?** | No — operates without any spec | Yes — requires an existing story file |
-| **Input** | Freeform description + 2-3 questions | Story file with tasks and acceptance criteria |
-| **Pipeline** | Contract → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
+| **Input** | Description (inline, attached file, or conversation context) | Story file with tasks and acceptance criteria |
+| **Pipeline** | Scan → [Visual Preview] → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
 | **Best for** | Ad-hoc changes, bug fixes, small features | Prototyping a specific story within a larger spec |
 
 ## Invocation
 
 | Invocation | Behavior |
 |---|---|
-| `/prototype` | Interactive — asks what you want to build (full quick contract) |
-| `/prototype "description"` | Pre-filled — skips the "what" question, asks only about scope and constraints |
+| `/prototype` | Uses the conversation context — attached files, preceding messages, or user's description |
+| `/prototype "description"` | Explicit inline description |
+| `/prototype @issue-file.md` | Reads the attached issue/file as the change description |
+
+All invocations go straight to Context Scan — no interactive questions. The description, constraints, and scope are extracted from whatever the user provides. If the input is ambiguous or insufficient, the agent asks a single clarifying question in natural language rather than presenting a menu.
 
 ## Pipeline
 
 ```
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│  QUICK        │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
-│  CONTRACT     │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
-│ (2-3 Q's)     │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
-└───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
-                           │
-                           │ complexity detected?
-                           ▼
-                    ESCALATE → suggest /create-spec
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│  CONTEXT      │──▶│  VISUAL       │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
+│  SCAN         │   │  PREVIEW      │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
+│ (auto)        │   │  (UI only)    │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
+└───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
+                           │                   │
+                     skip if no UI        complexity detected?
+                                               ▼
+                                        ESCALATE → suggest /create-spec
 ```
 
 ## Command Process
 
-### Step 1: Quick Contract
+### Step 1: Extract Intent
 
-The quick contract establishes just enough shared understanding to code confidently. No spec files are created — the contract lives in conversation context only.
+Parse the change description from the user's input. The description can come from:
 
----
+1. **Inline text** — `/prototype "fix pagination off-by-one"`
+2. **Attached file** — `/prototype @issue-file.md` (read the file for description, relevant files, constraints)
+3. **Conversation context** — `/prototype` with preceding messages describing the change
+4. **Bare invocation** — `/prototype` with no context → ask one natural-language question: "What do you want to build or change?"
 
-#### Path A: No Arguments (`/prototype`)
+Extract from the input:
+- **What** — the change to make
+- **Where** — any files or areas mentioned (hints for the context scan, not constraints)
+- **Watch-outs** — any constraints, compatibility requirements, or design notes the user mentioned
 
-All three questions are asked:
-
-```
-AskQuestion({
-  title: "Prototype — Quick Contract",
-  questions: [
-    {
-      id: "change_description",
-      prompt: "What do you want to build or change?",
-      options: [
-        { id: "describe", label: "I'll describe it (free text follow-up)" },
-        { id: "bug_fix", label: "Fix a bug" },
-        { id: "small_feature", label: "Add a small feature" },
-        { id: "refactor", label: "Refactor / improve existing code" },
-        { id: "utility", label: "Add a utility or helper" }
-      ]
-    },
-    {
-      id: "scope",
-      prompt: "What area of the codebase does this touch?",
-      options: [
-        { id: "single_file", label: "Single file" },
-        { id: "one_module", label: "One module / directory" },
-        { id: "few_files", label: "A few related files (2-4)" },
-        { id: "cross_cutting", label: "Cross-cutting (multiple areas)" },
-        { id: "unsure", label: "Not sure — let the agent figure it out" }
-      ]
-    },
-    {
-      id: "constraints",
-      prompt: "Any constraints or things to watch out for?",
-      options: [
-        { id: "none", label: "No constraints — just make it work" },
-        { id: "backwards_compat", label: "Must be backwards-compatible" },
-        { id: "perf_sensitive", label: "Performance-sensitive area" },
-        { id: "shared_code", label: "Touches shared/imported code" },
-        { id: "other", label: "Other (I'll explain)" }
-      ]
-    }
-  ]
-})
-```
-
-**Follow-ups:**
-- If `change_description` is "describe" → ask free-text: "Describe what you want to build in a sentence or two."
-- If `constraints` is "other" → ask free-text: "What constraints should the agent be aware of?"
-
----
-
-#### Path B: With Description (`/prototype "add dark mode toggle to settings"`)
-
-The description is captured from the argument. Skip the first question and ask only scope and constraints:
-
-```
-AskQuestion({
-  title: "Prototype — Quick Contract",
-  questions: [
-    {
-      id: "scope",
-      prompt: "What area of the codebase does this touch?",
-      options: [
-        { id: "single_file", label: "Single file" },
-        { id: "one_module", label: "One module / directory" },
-        { id: "few_files", label: "A few related files (2-4)" },
-        { id: "cross_cutting", label: "Cross-cutting (multiple areas)" },
-        { id: "unsure", label: "Not sure — let the agent figure it out" }
-      ]
-    },
-    {
-      id: "constraints",
-      prompt: "Any constraints or things to watch out for?",
-      options: [
-        { id: "none", label: "No constraints — just make it work" },
-        { id: "backwards_compat", label: "Must be backwards-compatible" },
-        { id: "perf_sensitive", label: "Performance-sensitive area" },
-        { id: "shared_code", label: "Touches shared/imported code" },
-        { id: "other", label: "Other (I'll explain)" }
-      ]
-    }
-  ]
-})
-```
-
----
+If the user provided an issue file, it likely contains all three. If they gave a one-liner, the context scan discovers the rest.
 
 ### Step 2: Context Scan
 
-Before spawning the coding agent, gather lightweight context:
+Gather lightweight context from the codebase before coding:
 
-1. **Scan the target area** — if the user specified a module or directory, read its structure and key files
+1. **Scan the target area** — read relevant files mentioned in the description or issue, plus their surrounding module
 2. **Detect tech stack** — identify language, framework, test runner, linter configuration
-3. **Find related patterns** — look for similar implementations in the codebase to guide the agent
-4. **Check for test conventions** — identify test file locations and patterns
+3. **Find related patterns** — look for similar implementations in the codebase to guide the approach
+4. **Check for test conventions** — identify test file locations and naming patterns
+5. **Discover scope** — determine which files need modification (the agent figures this out, not the user)
+6. **Sniff nearby rules** — scan files in the target area for permission checks, validation logic, state machines, or business rules the change must respect. Include any discovered rules in the context passed to the coding agent.
+7. **Detect UI surface** — determine whether this change touches user-facing UI (see below)
+
+**UI detection heuristic** — classify the change as UI-touching if ANY of:
+- Files to modify match frontend patterns: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
+- Target area includes: `components/`, `pages/`, `app/`, `views/`, `layouts/`, `screens/`
+- Description contains visual language: "button", "modal", "layout", "form", "page", "dashboard", "sidebar", "card", "table", "nav", "header", "footer", "responsive", "style", "CSS", "UI", "design"
+
+If UI-touching → set `ui_change: true` in context. This triggers the Visual Preview step.
+
+**Figma MCP detection** — if the `cursor-ide-browser` MCP is available AND a `design-system.md` or Figma MCP server is configured, note this in the context. Design tokens will be passed to the coding agent so it generates token-referenced code (`text-primary`) instead of hardcoded values (`text-gray-900`).
 
 Output a brief context summary (not shown to user — passed to coding agent):
 
@@ -148,13 +86,64 @@ Context:
 - Target area: src/components/settings/
 - Related patterns: existing toggle components use `useLocalStorage` hook
 - Test location: __tests__/components/settings/
+- Files to modify: [list]
+- Nearby rules: [e.g., "requireAuth middleware on this route", "max 10 items enforced in useCart hook", or "none found"]
+- UI change: true
+- Design tokens: .writ/docs/design-system.md (loaded)
 ```
+
+### Step 2.5: Visual Preview (UI Changes Only)
+
+**Skip this step entirely if `ui_change: false`.** For API-only, backend, utility, or non-visual changes, go directly to Step 3.
+
+When a change touches user-facing UI, generate a quick visual preview *before* writing production code. This lets the user see the intended direction and course-correct early — a 30-second preview that saves 10-15 minutes of rework.
+
+**How it works:**
+
+1. **Generate a canvas-based HTML mockup** using the `cursor-ide-browser` canvas tool. The canvas should be a live, interactive HTML page that approximates the intended UI change — layout, key components, interaction states. Use the project's CSS framework (Tailwind, CSS Modules, etc.) and any design tokens found in Step 2.
+
+2. **Keep it low-fidelity but structurally accurate.** The goal is layout, hierarchy, and flow — not pixel-perfect polish. Use placeholder content, approximate colors, and real component names as labels. Think wireframe-in-code, not production UI.
+
+3. **Present the canvas to the user** with a brief description of what they're seeing:
+
+```
+🎨 Visual Preview
+
+Here's a quick mockup of the [change description]:
+[Canvas opens in browser — live HTML preview]
+
+Key decisions shown:
+- [Layout choice, e.g., "sidebar nav with collapsible sections"]
+- [Component structure, e.g., "card grid with 3 columns on desktop, stacks on mobile"]
+- [Interaction pattern, e.g., "modal triggered by the settings icon"]
+
+Does this match what you had in mind? I can adjust the layout,
+component structure, or interaction pattern before I write the
+production code.
+```
+
+4. **Wait for user response:**
+   - **Approval** (explicit or implicit — e.g., "looks good", "yes", "go ahead") → proceed to Step 3 with the visual as a reference
+   - **Adjustment** (e.g., "make it a dropdown instead of a modal", "use tabs not cards") → regenerate the canvas with the feedback, then re-present
+   - **Skip** (e.g., "just build it", "skip the preview") → proceed to Step 3 without visual reference
+
+**Canvas guidelines:**
+- Use the project's actual component library names and CSS framework in the mockup
+- Reference design tokens from `design-system.md` if available
+- Include responsive behavior if the description mentions mobile or the project uses responsive patterns
+- Show multiple states if relevant (empty, loading, error, populated)
+- Keep it to a single focused screen — don't mock the entire app
+
+**What the canvas is NOT:**
+- Not a design deliverable — it's a conversation starter
+- Not production code — the coding agent builds the real implementation
+- Not required — if the change is small enough that the user would rather just see the code, they can skip it
 
 ### Step 3: Spawn Coding Agent
 
 > **Agent:** `agents/coding-agent.md` (prototype mode)
 
-Spawn the coding agent with the prototype contract and codebase context. The agent follows TDD — tests first, then implementation.
+Spawn the coding agent with the extracted intent and codebase context. The agent follows TDD — tests first, then implementation. If a visual preview was approved in Step 2.5, include it as a reference.
 
 ```
 Task({
@@ -162,22 +151,41 @@ Task({
   description: "Prototype: [brief description]",
   prompt: `You are the Coding Agent running in **prototype mode** — a lightweight pipeline for small-to-medium changes.
 
-## Prototype Contract
+## Change Description
 
-**Change:** {change_description}
-**Scope:** {scope}
-**Constraints:** {constraints}
+{change_description}
+
+## Watch-outs
+
+{constraints_if_any, or "None specified — use your judgment."}
 
 ## Codebase Context
 
 {context_scan_output}
 
+## Approved Visual Reference
+
+{If visual preview was approved: "A canvas mockup was approved by the user. The HTML source is at {canvas_file_path}. Read it for layout structure, component hierarchy, and design decisions. Match the approved layout and interaction patterns in your implementation."
+
+If no visual preview: "No visual preview was generated for this change."}
+
+## Design Tokens
+
+{If design-system.md exists: "Reference these design tokens in your implementation. Use token names (e.g., `text-primary`, `rounded-lg`, `shadow-sm`) instead of hardcoded values."
+
+If Figma MCP is available: "Figma MCP is configured. Query it for component specs and design tokens when implementing UI components."
+
+Otherwise: "No design system found — use your judgment for styling, matching existing codebase patterns."}
+
 ## Instructions
 
 1. **Write tests first** (TDD) — cover the core behavior and obvious edge cases
 2. **Implement the change** — match existing codebase patterns and conventions
-3. **Keep it focused** — this is a prototype, not a full feature build
-4. **Document only if non-obvious** — skip docs for straightforward changes
+3. **If a visual reference was approved**, match its layout structure and component hierarchy — the user already signed off on the direction
+4. **Respect nearby rules** — if the context scan found permission checks, validation, or state logic in the target area, honor them. Don't bypass auth, skip validation, or ignore state transitions just because this is a prototype.
+5. **Don't ship only the happy path** — if this touches UI, handle what the user sees on error, on empty, and on success. If it touches data, handle invalid input. A prototype that crashes on edge cases isn't lightweight — it's broken.
+6. **Keep it focused** — this is a prototype, not a full feature build
+7. **Document only if non-obvious** — skip docs for straightforward changes
 
 ## Scope Detection (IMPORTANT)
 
@@ -211,6 +219,9 @@ Return your results in this exact structure:
 
 ### Scope Flags
 [NONE | List any scope detection flags that triggered]
+
+### Experience Gaps
+[NONE | List any user-facing states not handled — e.g., "no empty state for the list", "no error feedback on failed save", "no loading indicator during fetch". Flag these honestly rather than shipping silently.]
 
 ### Concerns
 [Any risks, edge cases not covered, or follow-up work needed]
@@ -253,6 +264,7 @@ Present the final results to the user.
 **Tests:** [N] passing
 **Lint:** ✅ clean
 **Typecheck:** ✅ clean
+**Visual preview:** ✅ approved (or "skipped — no UI changes")
 
 Ready to commit. Run `git add -A && git commit -m "feat: [description]"` or ask me to commit.
 ```
@@ -330,8 +342,7 @@ Options:
 3. Discard changes
 ```
 
-**User cancels during contract:**
-No files have been created or modified. Clean exit.
+**Insufficient context:** If the user's input doesn't give enough to act on, ask a single natural-language clarifying question. Don't present menus — just ask what you need to know.
 
 ## When to Use /prototype vs Other Commands
 
@@ -340,6 +351,7 @@ No files have been created or modified. Clean exit.
 | Quick bug fix | `/prototype "fix off-by-one in pagination"` |
 | Add a utility function | `/prototype "add string truncation helper"` |
 | Small UI tweak | `/prototype "add loading spinner to save button"` |
+| Bug with issue file | `/prototype @issue-file.md` |
 | Multi-file feature with dependencies | `/create-spec` + `/implement-story` |
 | Refactoring a specific file | `/refactor` |
 | Exploring an approach before committing | `/prototype` (then escalate if it works out) |

@@ -1,7 +1,6 @@
 # Phase 1E: API Specification
 
 > See [spec.md](../spec.md) for the full specification.
-> Updated: 2026-03-09
 
 ## Existing Endpoints (Unchanged Signature)
 
@@ -43,15 +42,14 @@ interface ApiMilestoneWithProgress {
   title: string;
   workstreamId: string;
   targetMonth: string;         // ISO date string
-  status: string;              // "NotStarted" | "InProgress" | "Done" — derived from progress at API time
+  status: string;              // "NotStarted" | "InProgress" | "Done"
   adoFeatureId: number | null;
-  quarter: string | null;      // "Q4" — from explicit Qx tag (Phase 2)
   notes: string | null;
   createdAt: string;
   updatedAt: string;
   workstream: { id: string; name: string };
 
-  // Progress fields
+  // New progress fields
   completedPoints: number;
   totalPoints: number;
   percentComplete: number | null;  // null if totalPoints === 0
@@ -68,12 +66,11 @@ interface ApiMilestoneWithProgress {
 
 ```typescript
 interface ApiProgramMilestoneRollup {
-  currentMonth: string;                     // "March 2026"
+  currentMonth: string;                     // "February 2026"
   currentMonthCompletionPercent: number | null;
   currentMonthTotalSP: number;
   currentMonthCompletedSP: number;
-  quarter: string | null;                   // "Q4" — from explicit Qx tag (Phase 2)
-  quarterlyMilestones: {                    // Grouped by Qx tag, not inferred from month
+  quarterlyMilestones: {
     total: number;
     complete: number;       // percentComplete === 100
     inProgress: number;     // 0 < percentComplete < 100
@@ -133,8 +130,6 @@ The Feature Goal Sync is included in the `Full` sync type. No new sync API endpo
 
 **POST /api/sync/ado** with `{ "syncType": "Full" }` now includes the milestone features sync step.
 
-**Tag filtering (Phase 2):** WIQL uses `CONTAINS 'ADP-'`. After fetch, strict parsing rejects any tag not matching `/^ADP-(JAN|FEB|...|DEC)$/i`. Quarter tags (`/^Q[1-4]$/i`) are parsed separately.
-
 ---
 
 ## Milestone → WorkItem Data Flow
@@ -148,7 +143,6 @@ GET /api/milestones
        include: { sprint: { select: { id, name, startDate } } }
      })
   4. For each milestone: computeMilestoneProgress(featureAdoId, childStories, sprints)
-  5. For each milestone: status = deriveMilestoneStatus(percentComplete) (Phase 2)
-  6. programRollup = computeProgramMilestoneRollup(milestonesWithProgress) — grouped by Qx tag
-  7. Return { milestones: [...], programRollup }
+  5. programRollup = computeProgramMilestoneRollup(milestonesWithProgress)
+  6. Return { milestones: [...], programRollup }
 ```

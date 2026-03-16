@@ -29,13 +29,12 @@
 
 ## Notes
 
-- WIQL (Phase 1): `SELECT [System.Id] FROM WorkItems WHERE [System.AreaPath] UNDER '{areaPath}' AND [System.WorkItemType] = 'Feature' AND [System.Tags] CONTAINS '-Goal' ORDER BY [System.Id]` — replaced by `ADP-` filter in Story 7
+- WIQL: `SELECT [System.Id] FROM WorkItems WHERE [System.AreaPath] UNDER '{areaPath}' AND [System.WorkItemType] = 'Feature' AND [System.Tags] CONTAINS '-Goal' ORDER BY [System.Id]`
 - `parseGoalTag` must handle all 12 month abbreviations; if the parsed month is in the past relative to today, roll forward to next year
 - Reuse `upsertWorkItems` from `lib/sync/work-items.ts` for the WorkItem upsert step
 - Milestone status at sync time: compute from child story progress — or default to `NotStarted` at sync, let progress calculator update status separately (simpler for Story 1)
 - The new sync step is additive — existing Full sync still runs Iterations, WorkItems, Capacity first
 - Add a new `SyncType` enum value if needed (e.g., `Milestones`) or include in `Full` only
-- **Q4 ADP Context:** This story established the original `-Goal` tag sync. Story 7 (ADP Tag Migration) will replace the tag format with the strict `ADP-{MON}` convention and add `Qx` quarter tag support. The sync architecture from this story remains — only the WIQL filter and tag parser change.
 
 ## Definition of Done
 

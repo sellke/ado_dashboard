@@ -49,7 +49,6 @@
   ```
 - Quarter = current fiscal quarter (Q4 FY26 = Jan-Mar 2026); use calendar quarter if fiscal quarter not configured
 - Pure functions only — no Prisma imports in this file
-- **Q4 ADP Context:** The progress calculator is tag-format-agnostic — it works on parent/child WorkItem relationships. Story 8 changes how quarterly roll-up groups milestones (by explicit `Qx` tag instead of inferred quarter), but the core SP computation from this story is unchanged.
 
 ## Definition of Done
 
