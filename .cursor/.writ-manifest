@@ -1,16 +1,17 @@
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
-# version: c55bd47
-# date: 2026-03-16T12:54:26Z
+# version: 63c6a47
+# date: 2026-03-18T12:23:33Z
 # source: https://github.com/sellke/writ.git
+7f3b092af094a68dfa31931a19c11036de44c65c54e761fbcf22fd534bfbef14  commands/assess-spec.md
 11dfbf0afd5e0ecaed4ab560ad0b1e6a99b5a480bd7d6ebd31829a00bdfcc96c  commands/create-adr.md
 f2c078448b53aa91d414b7e74b0222f07b7750446f01c75ead5552c302a522a2  commands/create-issue.md
 f4b3695625c428aecff9c8109b5a828dd0a3759ba92ee58524a1678615ea1426  commands/create-spec.md
 a02efdaff11ee2a44867f08b4d0a691c4e8bb9b01d4f033b8b2af5566a7b5c5e  commands/design.md
 944685401b754c4c29756ad81f9d93daa50e200cb608ad315cb343b9c87af364  commands/edit-spec.md
 24e827afc4d3c616f4595012618eeb6bad5c03295a6fce0a74a5355f2f3141e4  commands/explain-code.md
-f4cb92401ce0c85e7b3c027da8c5582bd57aac010e8e21da5e729fdf91158816  commands/implement-spec.md
+98879051426df93a6c53ea9e92adf81c3bf9a3c65581d84aa22c1a11e8be601a  commands/implement-spec.md
 45dc914daac983bfe5e0483ab5b2ca02d7673385d06421e46fbce07e73baef8c  commands/implement-story.md
 29a89e8dbd9235b71ebbf96b3ce5c88c0c253ac1bed19e73ebd0ccfa18e66e70  commands/initialize.md
 715ca2b8c9018d015d56e0497976861d1f2e42e1c2177c756c352258fc5f3669  commands/migrate.md
