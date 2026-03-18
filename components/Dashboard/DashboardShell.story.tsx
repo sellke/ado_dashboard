@@ -11,6 +11,16 @@ export default {
   component: DashboardShell,
 };
 
+const enrichedDefaults = {
+  velocityAvg: null as number | null,
+  overheadPercentAvg: null as number | null,
+  carryOverRateAvg: null as number | null,
+  plannedPoints: null as number | null,
+  completedPoints: null as number | null,
+  carryOverPoints: null as number | null,
+  grossHours: null as number | null,
+};
+
 const createMetric = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel =>
   createMetricTile(overrides);
 
@@ -104,6 +114,7 @@ export const SuccessTrendRich = () => {
         rawActiveBugs: 13,
         rawBugsClosed: 17,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's2',
@@ -117,6 +128,7 @@ export const SuccessTrendRich = () => {
         rawActiveBugs: 10,
         rawBugsClosed: 18,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's3',
@@ -130,6 +142,7 @@ export const SuccessTrendRich = () => {
         rawActiveBugs: 9,
         rawBugsClosed: 19,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's4',
@@ -143,6 +156,7 @@ export const SuccessTrendRich = () => {
         rawActiveBugs: 8,
         rawBugsClosed: 20,
         bugs: [],
+        ...enrichedDefaults,
       },
     ],
     sprint5Prediction: {
@@ -174,6 +188,7 @@ export const SuccessTrendPartialData = () => {
         rawActiveBugs: 0,
         rawBugsClosed: 0,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's2',
@@ -187,6 +202,7 @@ export const SuccessTrendPartialData = () => {
         rawActiveBugs: 10,
         rawBugsClosed: 18,
         bugs: [],
+        ...enrichedDefaults,
       },
     ],
     sprint5Prediction: {
@@ -212,6 +228,7 @@ export const SuccessTrendPartialData = () => {
             rawActiveBugs: 0,
             rawBugsClosed: 0,
             bugs: [],
+            ...enrichedDefaults,
           },
           {
             sprintId: 's2',
@@ -225,6 +242,7 @@ export const SuccessTrendPartialData = () => {
             rawActiveBugs: 3,
             rawBugsClosed: 4,
             bugs: [],
+            ...enrichedDefaults,
           },
         ],
       }),

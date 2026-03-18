@@ -827,6 +827,7 @@ describe('dashboard adapter', () => {
       totalPoints: 100,
       percentComplete: 73,
       burnupData: [],
+      quarter: null,
     };
 
     it('formats percentComplete as "73%"', () => {
@@ -916,6 +917,7 @@ describe('dashboard adapter', () => {
         totalSP: number;
       }[],
       status: 'InProgress',
+      quarter: null,
     });
 
     it('returns empty array for empty input', () => {
@@ -1007,6 +1009,7 @@ describe('dashboard adapter', () => {
         inProgress: 5,
         notStarted: 2,
       },
+      quarter: null,
     };
 
     it('formats currentMonthCompletionPercent as percent', () => {
@@ -1052,6 +1055,7 @@ describe('dashboard adapter', () => {
       totalPoints: 100,
       percentComplete: 73,
       burnupData: [],
+      quarter: null,
     };
 
     it('populates milestoneGroups on workstreamCards when milestones provided', () => {
@@ -1287,6 +1291,105 @@ describe('dashboard adapter', () => {
 
       expect(sprint.overheadBreakdown).toHaveLength(4);
       sprint.overheadBreakdown!.forEach((item) => expect(item.hours).toBe(0));
+    });
+  });
+
+  describe('enriched trend sprint fields (sprint-tabs spec)', () => {
+    it('maps enriched snapshot fields to TrendSprintViewModel', () => {
+      const responseWithEnriched: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0]!,
+            trends: {
+              sprints: [
+                {
+                  sprintId: 'sprint-a',
+                  sprintName: 'Sprint 1',
+                  velocity: 30,
+                  velocityRate: 0.5,
+                  activeBugs: 2,
+                  bugsClosed: 3,
+                  mode: 'actual' as const,
+                  velocityAvg: 32.5,
+                  overheadPercentAvg: 24.8,
+                  carryOverRateAvg: 9.5,
+                  plannedPoints: 40,
+                  completedPoints: 36,
+                  carryOverPoints: 4,
+                  grossHours: 75,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(responseWithEnriched);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.velocityAvg).toBe(32.5);
+      expect(sprint.overheadPercentAvg).toBe(24.8);
+      expect(sprint.carryOverRateAvg).toBe(9.5);
+      expect(sprint.plannedPoints).toBe(40);
+      expect(sprint.completedPoints).toBe(36);
+      expect(sprint.carryOverPoints).toBe(4);
+      expect(sprint.grossHours).toBe(75);
+    });
+
+    it('defaults enriched fields to null when not present in API response', () => {
+      const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.velocityAvg).toBeNull();
+      expect(sprint.overheadPercentAvg).toBeNull();
+      expect(sprint.carryOverRateAvg).toBeNull();
+      expect(sprint.plannedPoints).toBeNull();
+      expect(sprint.completedPoints).toBeNull();
+      expect(sprint.carryOverPoints).toBeNull();
+      expect(sprint.grossHours).toBeNull();
+    });
+
+    it('maps explicit null enriched fields to null', () => {
+      const responseWithNulls: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0]!,
+            trends: {
+              sprints: [
+                {
+                  sprintId: 'sprint-a',
+                  sprintName: 'Sprint 1',
+                  velocity: 30,
+                  velocityRate: 0.5,
+                  activeBugs: 2,
+                  bugsClosed: 3,
+                  mode: 'actual' as const,
+                  velocityAvg: null,
+                  overheadPercentAvg: null,
+                  carryOverRateAvg: null,
+                  plannedPoints: null,
+                  completedPoints: null,
+                  carryOverPoints: null,
+                  grossHours: null,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(responseWithNulls);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.velocityAvg).toBeNull();
+      expect(sprint.overheadPercentAvg).toBeNull();
+      expect(sprint.carryOverRateAvg).toBeNull();
+      expect(sprint.plannedPoints).toBeNull();
+      expect(sprint.completedPoints).toBeNull();
+      expect(sprint.carryOverPoints).toBeNull();
+      expect(sprint.grossHours).toBeNull();
     });
   });
 });

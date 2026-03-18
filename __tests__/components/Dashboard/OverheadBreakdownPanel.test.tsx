@@ -43,6 +43,13 @@ function makeTrendSprint(
       { category: 'Bugs', hours: breakdown.Bugs ?? 5 },
       { category: 'Support', hours: breakdown.Support ?? 3 },
     ],
+    velocityAvg: null,
+    overheadPercentAvg: null,
+    carryOverRateAvg: null,
+    plannedPoints: null,
+    completedPoints: null,
+    carryOverPoints: null,
+    grossHours: null,
   };
 }
 

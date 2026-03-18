@@ -33,7 +33,7 @@ function formatStatus(status: string): string {
 }
 
 export function FeatureMilestoneCard({ milestone }: FeatureMilestoneCardProps) {
-  const isComplete = milestone.status === 'Complete';
+  const isComplete = milestone.status === 'Done';
 
   return (
     <Paper

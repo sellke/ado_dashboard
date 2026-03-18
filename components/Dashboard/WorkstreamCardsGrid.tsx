@@ -27,6 +27,7 @@ export function WorkstreamCardsGrid({
   const [activeSprintId, setActiveSprintId] = useState<string>('');
 
   const sprints = deriveSprintList(sprintStoriesMap);
+  const currentSprintId = sprints.find((s) => s.isCurrent)?.id ?? undefined;
 
   useEffect(() => {
     if (sprints.length === 0) return;
@@ -67,6 +68,7 @@ export function WorkstreamCardsGrid({
             milestonesError={milestonesError}
             sprintStories={sprintStoriesMap?.[card.workstreamId]}
             activeSprintId={activeSprintId}
+            currentSprintId={currentSprintId}
             storiesLoading={storiesLoading}
             storiesError={storiesError}
           />

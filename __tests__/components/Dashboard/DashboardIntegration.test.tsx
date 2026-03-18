@@ -278,6 +278,44 @@ describe('DashboardContainer integration', () => {
       expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
     });
 
+    it('refetches milestones after successful sync so new milestones appear', async () => {
+      const fullResponse = createApiResponse();
+      const fetchMock = global.fetch as jest.Mock;
+      let milestonesCallCount = 0;
+      fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+        if (url.includes('/api/milestones') && !url.includes('/api/milestones/')) {
+          milestonesCallCount += 1;
+          if (milestonesCallCount === 1) return mockMilestonesEmpty();
+          return mockMilestonesWithData();
+        }
+        if (url.includes('/api/sync/ado') && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                success: true,
+                syncLogId: 'log-1',
+                summary: { status: 'Success' },
+              }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(fullResponse),
+        });
+      });
+
+      render(<DashboardContainer />);
+
+      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(screen.queryByText('Platform Phase 1')).not.toBeInTheDocument();
+
+      const syncButton = screen.getByRole('button', { name: /sync now/i });
+      await userEvent.click(syncButton);
+
+      expect(await screen.findByText('Platform Phase 1')).toBeInTheDocument();
+    });
+
     it('disables Sync Now and shows in-flight feedback while sync is in progress', async () => {
       let resolveSync: (value: unknown) => void;
       const syncPromise = new Promise((resolve) => {

@@ -98,35 +98,6 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     [metricsUrl]
   );
 
-  /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics. Handles in-flight state, sync failure, and partial success (sync OK, metrics refetch failed). */
-  const handleSync = useCallback(async () => {
-    setSyncError(null);
-    setSyncPartialSuccess(false);
-    setSyncInProgress(true);
-
-    try {
-      const res = await fetch(SYNC_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ syncType: 'Full' }),
-      });
-      const data = (await res.json()) as { success?: boolean; error?: string };
-
-      if (!res.ok || !data.success) {
-        const msg = data?.error ?? `Request failed: ${res.status}`;
-        setSyncError(msg);
-        return;
-      }
-
-      await fetchMetrics({ skipLoadingState: true });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Sync request failed';
-      setSyncError(message);
-    } finally {
-      setSyncInProgress(false);
-    }
-  }, [fetchMetrics]);
-
   const fetchMilestones = useCallback(async () => {
     setMilestonesLoading(true);
     setMilestonesError(null);
@@ -158,6 +129,38 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       setMilestonesLoading(false);
     }
   }, []);
+
+  /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics and milestones. */
+  const handleSync = useCallback(async () => {
+    setSyncError(null);
+    setSyncPartialSuccess(false);
+    setSyncInProgress(true);
+
+    try {
+      const res = await fetch(SYNC_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ syncType: 'Full' }),
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string };
+
+      if (!res.ok || !data.success) {
+        const msg = data?.error ?? `Request failed: ${res.status}`;
+        setSyncError(msg);
+        return;
+      }
+
+      await Promise.all([
+        fetchMetrics({ skipLoadingState: true }),
+        fetchMilestones(),
+      ]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sync request failed';
+      setSyncError(message);
+    } finally {
+      setSyncInProgress(false);
+    }
+  }, [fetchMetrics, fetchMilestones]);
 
   const fetchSprintStories = useCallback(
     async (workstreamIds: string[]) => {
@@ -215,7 +218,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       </Group>
       <DashboardShell
         viewModel={viewModel}
-        onRetry={() => fetchMetrics()}
+        onRetry={() => { fetchMetrics(); fetchMilestones(); }}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
         programRollup={programRollup}

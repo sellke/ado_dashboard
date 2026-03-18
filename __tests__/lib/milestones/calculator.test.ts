@@ -56,6 +56,7 @@ function makeMilestoneInput(
       percentComplete,
       burnupData: [],
     },
+    quarter: null,
   };
 }
 
@@ -346,6 +347,7 @@ describe('computeProgramMilestoneRollup', () => {
             percentComplete: 50,
             burnupData: [],
           },
+          quarter: null,
         },
         {
           targetMonth: new Date('2026-02-01T00:00:00.000Z'),
@@ -356,6 +358,7 @@ describe('computeProgramMilestoneRollup', () => {
             percentComplete: 50,
             burnupData: [],
           },
+          quarter: null,
         },
       ];
       const result = computeProgramMilestoneRollup(milestones2, TODAY);
@@ -379,6 +382,7 @@ describe('computeProgramMilestoneRollup', () => {
         {
           targetMonth: new Date('2026-02-01T00:00:00.000Z'),
           progress: null,
+          quarter: null,
         },
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
@@ -386,27 +390,28 @@ describe('computeProgramMilestoneRollup', () => {
     });
   });
 
-  describe('quarterly milestones — Q1 2026 (Jan-Mar)', () => {
-    it('counts milestones in the current calendar quarter with correct statuses', () => {
-      // AC: program roll-up returns correct quarterlyMilestones.total/complete/inProgress/notStarted
+  describe('quarterly milestones — driven by Qx tags', () => {
+    it('counts milestones with quarter tags with correct statuses', () => {
       const milestones: MilestoneProgressInput[] = [
-        makeMilestoneInput('2026-01-01T00:00:00.000Z', 100), // Q1 — complete
-        makeMilestoneInput('2026-02-01T00:00:00.000Z', 50), //  Q1 — inProgress
-        makeMilestoneInput('2026-03-01T00:00:00.000Z', 0), //   Q1 — notStarted
-        makeMilestoneInput('2026-04-01T00:00:00.000Z', 100), // Q2 — excluded
+        { ...makeMilestoneInput('2026-01-01T00:00:00.000Z', 100), quarter: 'Q4' },
+        { ...makeMilestoneInput('2026-02-01T00:00:00.000Z', 50), quarter: 'Q4' },
+        { ...makeMilestoneInput('2026-03-01T00:00:00.000Z', 0), quarter: 'Q4' },
+        makeMilestoneInput('2026-04-01T00:00:00.000Z', 100), // no quarter — excluded
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
       expect(result.quarterlyMilestones.total).toBe(3);
       expect(result.quarterlyMilestones.complete).toBe(1);
       expect(result.quarterlyMilestones.inProgress).toBe(1);
       expect(result.quarterlyMilestones.notStarted).toBe(1);
+      expect(result.quarter).toBe('Q4');
     });
 
-    it('treats null percentComplete as notStarted', () => {
+    it('treats null percentComplete (quarter-tagged) as notStarted', () => {
       const milestones: MilestoneProgressInput[] = [
         {
           targetMonth: new Date('2026-02-01T00:00:00.000Z'),
           progress: null,
+          quarter: 'Q4',
         },
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
@@ -415,34 +420,36 @@ describe('computeProgramMilestoneRollup', () => {
       expect(result.quarterlyMilestones.inProgress).toBe(0);
     });
 
-    it('treats percentComplete=0 as notStarted', () => {
+    it('treats percentComplete=0 (quarter-tagged) as notStarted', () => {
       const milestones: MilestoneProgressInput[] = [
-        makeMilestoneInput('2026-02-01T00:00:00.000Z', 0),
+        { ...makeMilestoneInput('2026-02-01T00:00:00.000Z', 0), quarter: 'Q4' },
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
       expect(result.quarterlyMilestones.notStarted).toBe(1);
     });
 
-    it('returns zero counts when no milestones fall in the current quarter', () => {
+    it('returns zero counts when no milestones have quarter tags', () => {
       const milestones: MilestoneProgressInput[] = [
-        makeMilestoneInput('2026-07-01T00:00:00.000Z', 50), // Q3 — excluded
-        makeMilestoneInput('2026-10-01T00:00:00.000Z', 100), // Q4 — excluded
+        makeMilestoneInput('2026-02-01T00:00:00.000Z', 50), // no quarter
+        makeMilestoneInput('2026-03-01T00:00:00.000Z', 100), // no quarter
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
       expect(result.quarterlyMilestones.total).toBe(0);
       expect(result.quarterlyMilestones.complete).toBe(0);
       expect(result.quarterlyMilestones.inProgress).toBe(0);
       expect(result.quarterlyMilestones.notStarted).toBe(0);
+      expect(result.quarter).toBeNull();
     });
 
-    it('counts multiple notStarted (0% + null) correctly', () => {
+    it('counts multiple notStarted (0% + null progress) with quarter tags', () => {
       const milestones: MilestoneProgressInput[] = [
-        makeMilestoneInput('2026-02-01T00:00:00.000Z', 50),
-        makeMilestoneInput('2026-02-01T00:00:00.000Z', 100),
-        makeMilestoneInput('2026-02-01T00:00:00.000Z', 0),
+        { ...makeMilestoneInput('2026-02-01T00:00:00.000Z', 50), quarter: 'Q4' },
+        { ...makeMilestoneInput('2026-02-01T00:00:00.000Z', 100), quarter: 'Q4' },
+        { ...makeMilestoneInput('2026-02-01T00:00:00.000Z', 0), quarter: 'Q4' },
         {
           targetMonth: new Date('2026-02-01T00:00:00.000Z'),
           progress: null,
+          quarter: 'Q4',
         },
       ];
       const result = computeProgramMilestoneRollup(milestones, TODAY);
@@ -452,18 +459,19 @@ describe('computeProgramMilestoneRollup', () => {
       expect(result.quarterlyMilestones.notStarted).toBe(2);
     });
 
-    it('correctly identifies Q2 quarter boundaries (Apr-Jun)', () => {
+    it('only counts milestones with quarter tags, ignores those without', () => {
       const aprilToday = new Date('2026-04-15T00:00:00.000Z');
       const milestones: MilestoneProgressInput[] = [
-        makeMilestoneInput('2026-03-01T00:00:00.000Z', 100), // Q1 — excluded
-        makeMilestoneInput('2026-04-01T00:00:00.000Z', 100), // Q2 — included
-        makeMilestoneInput('2026-06-01T00:00:00.000Z', 50), //  Q2 — included
-        makeMilestoneInput('2026-07-01T00:00:00.000Z', 0), //   Q3 — excluded
+        makeMilestoneInput('2026-03-01T00:00:00.000Z', 100), // no quarter — excluded
+        { ...makeMilestoneInput('2026-04-01T00:00:00.000Z', 100), quarter: 'Q1' }, // has quarter — included
+        { ...makeMilestoneInput('2026-06-01T00:00:00.000Z', 50), quarter: 'Q1' }, //  has quarter — included
+        makeMilestoneInput('2026-07-01T00:00:00.000Z', 0), //   no quarter — excluded
       ];
       const result = computeProgramMilestoneRollup(milestones, aprilToday);
       expect(result.quarterlyMilestones.total).toBe(2);
       expect(result.quarterlyMilestones.complete).toBe(1);
       expect(result.quarterlyMilestones.inProgress).toBe(1);
+      expect(result.quarter).toBe('Q1');
     });
   });
 

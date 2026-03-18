@@ -27,6 +27,8 @@ export interface ApiMilestoneWithProgress extends ApiMilestone {
   totalPoints: number;
   /** null when totalPoints === 0 */
   percentComplete: number | null;
+  /** Explicit Qx quarter tag from ADO Feature (e.g. "Q4"), or null if untagged. */
+  quarter: string | null;
   burnupData: ApiBurnupPoint[];
 }
 
@@ -36,6 +38,8 @@ export interface ApiProgramMilestoneRollup {
   currentMonthCompletionPercent: number | null;
   currentMonthTotalSP: number;
   currentMonthCompletedSP: number;
+  /** The Qx quarter tag (e.g. "Q4"), or null if no milestones have quarter tags. */
+  quarter: string | null;
   quarterlyMilestones: {
     total: number;
     complete: number;

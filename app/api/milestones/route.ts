@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import {
   computeMilestoneProgress,
   computeProgramMilestoneRollup,
+  deriveMilestoneStatus,
   type ChildStoryInput,
   type MilestoneProgressInput,
 } from '@/lib/milestones/calculator';
@@ -100,16 +101,19 @@ export async function GET(request: Request) {
       storiesByFeature.set(story.parentAdoId, list);
     }
 
-    // Build response milestones with progress fields
+    // Build response milestones with progress fields + derived status
     const milestonesWithProgress = milestones.map((m) => {
       const base = formatMilestone(m);
+      const quarter = (m as Record<string, unknown>).quarter as string | null ?? null;
 
       if (m.adoFeatureId === null) {
         return {
           ...base,
+          status: deriveMilestoneStatus(null),
           completedPoints: 0,
           totalPoints: 0,
           percentComplete: null,
+          quarter,
           burnupData: [],
         };
       }
@@ -119,9 +123,11 @@ export async function GET(request: Request) {
 
       return {
         ...base,
+        status: deriveMilestoneStatus(progress.percentComplete),
         completedPoints: progress.completedSP,
         totalPoints: progress.totalSP,
         percentComplete: progress.percentComplete,
+        quarter,
         burnupData: progress.burnupData,
       };
     });
@@ -131,6 +137,7 @@ export async function GET(request: Request) {
       const mp = milestonesWithProgress[i];
       return {
         targetMonth: m.targetMonth,
+        quarter: mp.quarter,
         progress:
           m.adoFeatureId !== null
             ? {

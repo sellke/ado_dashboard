@@ -72,6 +72,7 @@ export function mapMilestoneToGoalViewModel(
     totalPoints: milestone.totalPoints,
     burnupData: milestone.burnupData,
     status: milestone.status,
+    quarter: milestone.quarter ?? null,
   };
 }
 
@@ -312,6 +313,13 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     rawBugsClosed: sprint.bugsClosed,
     bugs: (sprint.bugs ?? []).map(mapBugToViewModel),
     overheadBreakdown,
+    velocityAvg: sprint.velocityAvg ?? null,
+    overheadPercentAvg: sprint.overheadPercentAvg ?? null,
+    carryOverRateAvg: sprint.carryOverRateAvg ?? null,
+    plannedPoints: sprint.plannedPoints ?? null,
+    completedPoints: sprint.completedPoints ?? null,
+    carryOverPoints: sprint.carryOverPoints ?? null,
+    grossHours: sprint.grossHours ?? null,
   };
 }
 

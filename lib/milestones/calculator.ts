@@ -37,6 +37,8 @@ export interface ProgramMilestoneRollup {
   currentMonthCompletionPercent: number | null;
   currentMonthTotalSP: number;
   currentMonthCompletedSP: number;
+  /** The quarter tag (e.g. "Q4") from milestones, or null if none have quarter tags. */
+  quarter: string | null;
   quarterlyMilestones: {
     total: number;
     /** percentComplete === 100 */
@@ -63,6 +65,8 @@ export interface ChildStoryInput {
 export interface MilestoneProgressInput {
   /** UTC date representing the first of the target month. */
   targetMonth: Date;
+  /** Explicit quarter tag (e.g. "Q4") from ADO Feature, or null if untagged. */
+  quarter: string | null;
   progress: MilestoneProgress | null;
 }
 
@@ -195,8 +199,9 @@ function calendarQuarterRange(month: number): [number, number] {
  *
  * - `currentMonth`: formatted label for the month containing `today` (e.g. "February 2026")
  * - `currentMonthCompletionPercent`: aggregate SP completion for milestones targeting this month
- * - `quarterlyMilestones`: total/complete/inProgress/notStarted counts within the current
- *   calendar quarter (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec)
+ * - `quarter`: the Qx tag value from milestones (e.g. "Q4"), or null if no milestones have quarter tags
+ * - `quarterlyMilestones`: total/complete/inProgress/notStarted counts for milestones
+ *   with an explicit `Qx` quarter tag. Milestones without a quarter tag are excluded.
  *
  * Uses UTC month/year for `targetMonth` comparisons (dates stored as UTC midnight).
  */
@@ -224,21 +229,20 @@ export function computeProgramMilestoneRollup(
   const currentMonthCompletionPercent =
     currentMonthTotalSP > 0 ? (currentMonthCompletedSP / currentMonthTotalSP) * 100 : null;
 
-  // ── Quarterly counts ───────────────────────────────────────────────────────
-  const [qStart, qEnd] = calendarQuarterRange(todayMonth);
-
+  // ── Quarterly counts (driven by explicit Qx tags) ─────────────────────────
   let complete = 0;
   let inProgress = 0;
   let notStarted = 0;
   let total = 0;
+  let quarter: string | null = null;
 
   for (const m of milestones) {
-    const d = m.targetMonth;
-    const mYear = d.getUTCFullYear();
-    const mMonth = d.getUTCMonth();
-
-    if (mYear !== todayYear || mMonth < qStart || mMonth > qEnd) {
+    if (!m.quarter) {
       continue;
+    }
+
+    if (!quarter) {
+      quarter = m.quarter;
     }
 
     total++;
@@ -257,6 +261,7 @@ export function computeProgramMilestoneRollup(
     currentMonthCompletionPercent,
     currentMonthTotalSP,
     currentMonthCompletedSP,
+    quarter,
     quarterlyMilestones: { total, complete, inProgress, notStarted },
   };
 }

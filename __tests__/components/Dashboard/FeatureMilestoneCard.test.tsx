@@ -31,6 +31,7 @@ function makeMilestone(overrides: Partial<MilestoneGoalViewModel> = {}): Milesto
       { sprintName: 'Sprint 2', sprintId: 's2', cumulativeCompletedSP: 22, totalSP: 30 },
     ],
     status: 'InProgress',
+    quarter: null,
     ...overrides,
   };
 }
@@ -88,30 +89,30 @@ describe('FeatureMilestoneCard', () => {
   });
 
   describe('completed style', () => {
-    it('has data-completed=true when status is Complete', () => {
-      render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'Complete' })} />);
+    it('has data-completed=true when status is Done', () => {
+      render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'Done' })} />);
 
       const card = screen.getByTestId('feature-milestone-card');
       expect(card).toHaveAttribute('data-completed', 'true');
     });
 
-    it('has data-completed=false when status is not Complete', () => {
+    it('has data-completed=false when status is not Done', () => {
       render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'InProgress' })} />);
 
       const card = screen.getByTestId('feature-milestone-card');
       expect(card).toHaveAttribute('data-completed', 'false');
     });
 
-    it('shows green "Complete" badge when milestone is complete', () => {
-      render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'Complete' })} />);
+    it('shows teal "Done" badge when milestone is complete', () => {
+      render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'Done' })} />);
 
-      expect(screen.getByText('Complete')).toBeInTheDocument();
+      expect(screen.getByText('Done')).toBeInTheDocument();
     });
 
-    it('does not show Complete badge when milestone is in progress', () => {
+    it('does not show Done badge when milestone is in progress', () => {
       render(<FeatureMilestoneCard milestone={makeMilestone({ status: 'InProgress' })} />);
 
-      expect(screen.queryByText('Complete')).not.toBeInTheDocument();
+      expect(screen.queryByText('Done')).not.toBeInTheDocument();
     });
   });
 });

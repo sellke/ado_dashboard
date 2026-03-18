@@ -29,6 +29,7 @@ function makeMilestone(overrides: Partial<MilestoneGoalViewModel> = {}): Milesto
     totalPoints: 30,
     burnupData: [],
     status: 'InProgress',
+    quarter: null,
     ...overrides,
   };
 }

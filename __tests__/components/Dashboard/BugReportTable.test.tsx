@@ -8,6 +8,16 @@ import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
  * Verifies: grouping by workstream, open/closed display, empty state, extraction logic.
  */
 
+const defaultEnrichedFields = {
+  velocityAvg: null as number | null,
+  overheadPercentAvg: null as number | null,
+  carryOverRateAvg: null as number | null,
+  plannedPoints: null as number | null,
+  completedPoints: null as number | null,
+  carryOverPoints: null as number | null,
+  grossHours: null as number | null,
+};
+
 const platformCard = createWorkstreamCard({
   workstreamId: 'ws-1',
   workstreamName: 'Platform',
@@ -28,6 +38,7 @@ const platformCard = createWorkstreamCard({
         { adoId: '101', title: 'Memory leak', isClosed: false },
       ],
       overheadBreakdown: [],
+      ...defaultEnrichedFields,
     },
     {
       sprintId: 's2',
@@ -42,6 +53,7 @@ const platformCard = createWorkstreamCard({
       rawBugsClosed: 2,
       bugs: [{ adoId: '102', title: 'Slow query', isClosed: false }],
       overheadBreakdown: [],
+      ...defaultEnrichedFields,
     },
   ],
 });
@@ -63,6 +75,7 @@ const appsCard = createWorkstreamCard({
       rawBugsClosed: 1,
       bugs: [{ adoId: '200', title: 'UI glitch', isClosed: true }],
       overheadBreakdown: [],
+      ...defaultEnrichedFields,
     },
   ],
 });
@@ -84,6 +97,7 @@ const noBugsCard = createWorkstreamCard({
       rawBugsClosed: 0,
       bugs: [],
       overheadBreakdown: [],
+      ...defaultEnrichedFields,
     },
   ],
 });

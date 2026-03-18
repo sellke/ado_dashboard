@@ -7,6 +7,16 @@ export default {
   component: WorkstreamHealthCard,
 };
 
+const enrichedDefaults = {
+  velocityAvg: null as number | null,
+  overheadPercentAvg: null as number | null,
+  carryOverRateAvg: null as number | null,
+  plannedPoints: null as number | null,
+  completedPoints: null as number | null,
+  carryOverPoints: null as number | null,
+  grossHours: null as number | null,
+};
+
 const createMetric = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel => ({
   label: 'Velocity',
   value: '45 pts',
@@ -47,6 +57,7 @@ const fullDataCard: WorkstreamCardViewModel = {
         { adoId: '12345', title: 'Login crash', isClosed: true },
         { adoId: '67890', title: 'Slow query', isClosed: false },
       ],
+      ...enrichedDefaults,
     },
     {
       sprintId: 's2',
@@ -60,6 +71,7 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawActiveBugs: 3,
       rawBugsClosed: 4,
       bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
+      ...enrichedDefaults,
     },
   ],
   prediction: {

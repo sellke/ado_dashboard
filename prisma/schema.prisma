@@ -299,6 +299,7 @@ model Milestone {
   workstreamId String
   targetMonth  DateTime
   status       MilestoneStatus @default(NotStarted)
+  quarter      String?
   notes        String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt

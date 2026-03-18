@@ -43,6 +43,13 @@ function makeSprint(
       { category: 'Bugs', hours: breakdown.Bugs ?? 5 },
       { category: 'Support', hours: breakdown.Support ?? 3 },
     ],
+    velocityAvg: null,
+    overheadPercentAvg: null,
+    carryOverRateAvg: null,
+    plannedPoints: null,
+    completedPoints: null,
+    carryOverPoints: null,
+    grossHours: null,
   };
 }
 
@@ -80,6 +87,13 @@ describe('OverheadBreakdownChart', () => {
             { category: 'Bugs', hours: 0 },
             { category: 'Support', hours: 0 },
           ],
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
         },
       ];
 
@@ -104,6 +118,13 @@ describe('OverheadBreakdownChart', () => {
           rawBugsClosed: 3,
           bugs: [],
           overheadBreakdown: [],
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
         },
       ];
 
@@ -167,6 +188,13 @@ describe('OverheadBreakdownChart', () => {
           rawBugsClosed: 3,
           bugs: [],
           overheadBreakdown: [{ category: 'Bugs', hours: 8 }],
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
         },
       ];
 

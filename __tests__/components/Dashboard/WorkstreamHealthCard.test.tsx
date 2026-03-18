@@ -45,6 +45,16 @@ const createMetricTile = (overrides: Partial<MetricTileViewModel> = {}): MetricT
   ...overrides,
 });
 
+const enrichedDefaults = {
+  velocityAvg: null as number | null,
+  overheadPercentAvg: null as number | null,
+  carryOverRateAvg: null as number | null,
+  plannedPoints: null as number | null,
+  completedPoints: null as number | null,
+  carryOverPoints: null as number | null,
+  grossHours: null as number | null,
+};
+
 const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
   workstreamId: 'ws-1',
   workstreamName: 'Platform',
@@ -73,6 +83,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
         { category: 'Bugs' as const, hours: 5 },
         { category: 'Support' as const, hours: 3 },
       ],
+      ...enrichedDefaults,
     },
     {
       sprintId: 's2',
@@ -92,6 +103,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
         { category: 'Bugs' as const, hours: 6 },
         { category: 'Support' as const, hours: 2 },
       ],
+      ...enrichedDefaults,
     },
   ],
   prediction: {
@@ -295,6 +307,270 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('R')).toBeInTheDocument();
+  });
+
+  describe('Story 3 — Metrics row responds to active sprint', () => {
+    const enrichedCard: WorkstreamCardViewModel = {
+      ...fullDataCard,
+      metrics: [
+        createMetricTile({ label: 'Avg Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
+        createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+        createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
+        createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
+      ],
+      trendSprints: [
+        {
+          ...fullDataCard.trendSprints[0],
+          sprintId: 'completed-sprint',
+          sprintName: 'Sprint 26.18',
+          velocityAvg: 42,
+          overheadPercentAvg: 22.5,
+          carryOverRateAvg: 8.75,
+          rawVelocityRate: 0.65,
+          plannedPoints: 50,
+          completedPoints: 44,
+          carryOverPoints: 6,
+          grossHours: 320,
+        },
+        {
+          ...fullDataCard.trendSprints[1],
+          sprintId: 'current-sprint',
+          sprintName: 'Sprint 26.19',
+          velocityAvg: 45,
+          overheadPercentAvg: 25,
+          carryOverRateAvg: 10,
+          plannedPoints: 48,
+          completedPoints: 40,
+          carryOverPoints: 8,
+          grossHours: 300,
+        },
+      ],
+    };
+
+    it('overrides Avg Velocity with rolling velocityAvg when a non-current sprint is selected', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('42 pts')).toBeInTheDocument();
+    });
+
+    it('overrides Velocity Rate with rawVelocityRate from matched trend sprint', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('0.65 pts/hr')).toBeInTheDocument();
+    });
+
+    it('overrides Overhead % with rolling overheadPercentAvg', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('22.50%')).toBeInTheDocument();
+    });
+
+    it('overrides Carry-Over % with rolling carryOverRateAvg', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('8.75%')).toBeInTheDocument();
+    });
+
+    it('preserves default metrics when current sprint is selected', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="current-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('45 pts')).toBeInTheDocument();
+      expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
+      expect(screen.getByText('28%')).toBeInTheDocument();
+      expect(screen.getByText('12%')).toBeInTheDocument();
+    });
+
+    it('preserves default metrics when no activeSprintId is provided', () => {
+      render(<WorkstreamHealthCard card={enrichedCard} />);
+      expect(screen.getByText('45 pts')).toBeInTheDocument();
+      expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
+    });
+
+    it('shows N/A when enriched fields are null on matched sprint', () => {
+      const nullEnrichedCard: WorkstreamCardViewModel = {
+        ...fullDataCard,
+        metrics: [
+          createMetricTile({ label: 'Avg Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
+          createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+          createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
+          createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
+        ],
+        trendSprints: [
+          {
+            ...fullDataCard.trendSprints[0],
+            sprintId: 'null-sprint',
+            velocityAvg: null,
+            rawVelocityRate: null,
+            overheadPercentAvg: null,
+            carryOverRateAvg: null,
+          },
+        ],
+      };
+
+      render(
+        <WorkstreamHealthCard
+          card={nullEnrichedCard}
+          activeSprintId="null-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+
+      const naElements = screen.getAllByText('N/A');
+      expect(naElements.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('falls back to default metrics when no trend sprint matches activeSprintId', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="non-existent-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('45 pts')).toBeInTheDocument();
+      expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
+    });
+  });
+
+  describe('Story 4 — Detail block responds to active sprint', () => {
+    const enrichedCard: WorkstreamCardViewModel = {
+      ...fullDataCard,
+      trendSprints: [
+        {
+          ...fullDataCard.trendSprints[0],
+          sprintId: 'completed-sprint',
+          sprintName: 'Sprint 26.18',
+          plannedPoints: 55,
+          completedPoints: 48,
+          carryOverPoints: 7,
+          velocityAvg: 42,
+          overheadPercentAvg: 22,
+          carryOverRateAvg: 9,
+          grossHours: 320,
+        },
+        {
+          ...fullDataCard.trendSprints[1],
+          sprintId: 'current-sprint',
+          sprintName: 'Sprint 26.19',
+          plannedPoints: 50,
+          completedPoints: 40,
+          carryOverPoints: 10,
+          velocityAvg: 45,
+          overheadPercentAvg: 25,
+          carryOverRateAvg: 10,
+          grossHours: 300,
+        },
+      ],
+      detailSprintLabel: 'Sprint 26.17',
+      detail: {
+        plannedPoints: '50',
+        completedPoints: '45',
+        carryOverPoints: '6',
+      },
+    };
+
+    it('shows selected sprint planned, completed, carry-over points when non-current sprint is active', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText(/Planned: 55/)).toBeInTheDocument();
+      expect(screen.getByText(/Completed: 48/)).toBeInTheDocument();
+      expect(screen.getByText(/Carry-over: 7 pts/)).toBeInTheDocument();
+    });
+
+    it('updates detail label to selected sprint name', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="completed-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText('Sprint 26.18')).toBeInTheDocument();
+      expect(screen.queryByText('Sprint 26.17')).not.toBeInTheDocument();
+    });
+
+    it('preserves default detail when current sprint is selected', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="current-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
+      expect(screen.getByText(/Completed: 45/)).toBeInTheDocument();
+      expect(screen.getByText(/Carry-over: 6 pts/)).toBeInTheDocument();
+      expect(screen.getByText('Sprint 26.17')).toBeInTheDocument();
+    });
+
+    it('shows N/A when enriched detail fields are null', () => {
+      const nullDetailCard: WorkstreamCardViewModel = {
+        ...fullDataCard,
+        trendSprints: [
+          {
+            ...fullDataCard.trendSprints[0],
+            sprintId: 'null-sprint',
+            sprintName: 'Sprint X',
+            plannedPoints: null,
+            completedPoints: null,
+            carryOverPoints: null,
+          },
+        ],
+      };
+
+      render(
+        <WorkstreamHealthCard
+          card={nullDetailCard}
+          activeSprintId="null-sprint"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText(/Planned: N\/A/)).toBeInTheDocument();
+      expect(screen.getByText(/Completed: N\/A/)).toBeInTheDocument();
+      expect(screen.getByText(/Carry-over: N\/A pts/)).toBeInTheDocument();
+    });
+
+    it('falls back to default detail when no trend sprint matches', () => {
+      render(
+        <WorkstreamHealthCard
+          card={enrichedCard}
+          activeSprintId="non-existent"
+          currentSprintId="current-sprint"
+        />
+      );
+      expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
+      expect(screen.getByText(/Completed: 45/)).toBeInTheDocument();
+    });
   });
 
   describe('OverheadBreakdownPanel integration', () => {

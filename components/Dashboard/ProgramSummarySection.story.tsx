@@ -10,6 +10,16 @@ export default {
   component: ProgramSummarySection,
 };
 
+const enrichedDefaults = {
+  velocityAvg: null as number | null,
+  overheadPercentAvg: null as number | null,
+  carryOverRateAvg: null as number | null,
+  plannedPoints: null as number | null,
+  completedPoints: null as number | null,
+  carryOverPoints: null as number | null,
+  grossHours: null as number | null,
+};
+
 const createMetric = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel =>
   createMetricTile(overrides);
 
@@ -132,6 +142,7 @@ export const TrendRich = () => {
         rawActiveBugs: 13,
         rawBugsClosed: 17,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's2',
@@ -145,6 +156,7 @@ export const TrendRich = () => {
         rawActiveBugs: 10,
         rawBugsClosed: 18,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's3',
@@ -158,6 +170,7 @@ export const TrendRich = () => {
         rawActiveBugs: 9,
         rawBugsClosed: 19,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's4',
@@ -171,6 +184,7 @@ export const TrendRich = () => {
         rawActiveBugs: 8,
         rawBugsClosed: 20,
         bugs: [],
+        ...enrichedDefaults,
       },
     ],
     sprint5Prediction: {
@@ -344,6 +358,7 @@ export const TrendPartialData = () => {
         rawActiveBugs: 0,
         rawBugsClosed: 0,
         bugs: [],
+        ...enrichedDefaults,
       },
       {
         sprintId: 's2',
@@ -357,6 +372,7 @@ export const TrendPartialData = () => {
         rawActiveBugs: 10,
         rawBugsClosed: 18,
         bugs: [],
+        ...enrichedDefaults,
       },
     ],
     sprint5Prediction: {

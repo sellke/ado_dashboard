@@ -1,0 +1,18 @@
+{
+  "spec": "2026-03-17-sprint-tabs-full-workstream-data",
+  "startedAt": "2026-03-17T00:00:00Z",
+  "plan": {
+    "batches": [
+      { "parallel": true, "stories": ["story-1-api-trend-enrichment", "story-5-velocity-chart-highlight"] },
+      { "parallel": false, "stories": ["story-2-types-and-adapter"] },
+      { "parallel": true, "stories": ["story-3-metrics-row-scoping", "story-4-detail-block-scoping"] }
+    ]
+  },
+  "stories": {
+    "story-1-api-trend-enrichment": { "status": "in_progress", "phase": "code" },
+    "story-2-types-and-adapter": { "status": "pending", "phase": null },
+    "story-3-metrics-row-scoping": { "status": "pending", "phase": null },
+    "story-4-detail-block-scoping": { "status": "pending", "phase": null },
+    "story-5-velocity-chart-highlight": { "status": "in_progress", "phase": "code" }
+  }
+}

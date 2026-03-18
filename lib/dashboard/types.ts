@@ -26,6 +26,8 @@ export interface MilestoneGoalViewModel {
   totalPoints: number;
   burnupData: ApiBurnupPoint[];
   status: string;
+  /** Explicit Qx quarter tag (e.g. "Q4"), or null if untagged. */
+  quarter: string | null;
 }
 
 /** Group of milestones for a single month, ordered current → future → past */
@@ -89,6 +91,21 @@ export interface ApiTrendSprint {
   overheadComposition?: ApiOverheadComposition;
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
   overheadBreakdown?: OverheadBreakdownItem[];
+
+  /** Rolling avg velocity as-of this sprint (from MetricSnapshot). */
+  velocityAvg?: number | null;
+  /** Rolling avg overhead % as-of this sprint (from MetricSnapshot). */
+  overheadPercentAvg?: number | null;
+  /** Rolling avg carry-over % as-of this sprint (from MetricSnapshot). */
+  carryOverRateAvg?: number | null;
+  /** Planned points for this sprint (from MetricSnapshot). */
+  plannedPoints?: number | null;
+  /** Completed points for this sprint (from MetricSnapshot). */
+  completedPoints?: number | null;
+  /** Carry-over points for this sprint (from MetricSnapshot). */
+  carryOverPoints?: number | null;
+  /** Gross hours for this sprint (from MetricSnapshot). */
+  grossHours?: number | null;
 }
 
 export interface ApiWorkstream {
@@ -243,6 +260,21 @@ export interface TrendSprintViewModel {
   bugs: TrendBugViewModel[];
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
   overheadBreakdown?: OverheadBreakdownItem[];
+
+  /** Rolling avg velocity as-of this sprint (raw number for component formatting). */
+  velocityAvg: number | null;
+  /** Rolling avg overhead % as-of this sprint. */
+  overheadPercentAvg: number | null;
+  /** Rolling avg carry-over % as-of this sprint. */
+  carryOverRateAvg: number | null;
+  /** Planned points for this sprint. */
+  plannedPoints: number | null;
+  /** Completed points for this sprint. */
+  completedPoints: number | null;
+  /** Carry-over points for this sprint. */
+  carryOverPoints: number | null;
+  /** Gross hours for this sprint. */
+  grossHours: number | null;
 }
 
 export interface DashboardViewModel {

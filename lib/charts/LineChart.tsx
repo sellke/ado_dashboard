@@ -24,7 +24,7 @@ export interface AppLineChartProps<T = Record<string, unknown>> {
   withDots?: boolean;
   connectNulls?: boolean;
   curveType?: 'linear' | 'monotone' | 'step' | 'stepBefore' | 'stepAfter';
-  referenceLines?: Array<{ y: number; color?: string; label?: string }>;
+  referenceLines?: Array<{ y?: number; x?: string | number; color?: string; label?: string }>;
   xAxisProps?: Partial<XAxisProps>;
   yAxisProps?: Partial<YAxisProps>;
   tooltipProps?: Partial<TooltipProps<number, string>>;
@@ -92,7 +92,8 @@ export function AppLineChart<T = Record<string, unknown>>({
         {referenceLines?.map((ref, i) => (
           <ReferenceLine
             key={`ref-${i}`}
-            y={ref.y}
+            {...(ref.y != null ? { y: ref.y } : {})}
+            {...(ref.x != null ? { x: ref.x } : {})}
             stroke={ref.color ? theme.resolveColor(ref.color) : theme.gridStroke}
             strokeDasharray="4 4"
             label={

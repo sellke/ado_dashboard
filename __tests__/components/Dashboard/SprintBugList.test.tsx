@@ -21,6 +21,13 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
     rawActiveBugs: 2,
     rawBugsClosed: 3,
     bugs: [],
+    velocityAvg: null,
+    overheadPercentAvg: null,
+    carryOverRateAvg: null,
+    plannedPoints: null,
+    completedPoints: null,
+    carryOverPoints: null,
+    grossHours: null,
     ...overrides,
   };
 }

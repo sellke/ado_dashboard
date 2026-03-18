@@ -7,6 +7,7 @@ import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashbo
 export interface VelocityTrendChartProps {
   trendSprints: TrendSprintViewModel[];
   prediction: WorkstreamCardViewModel['prediction'];
+  activeSprintId?: string;
 }
 
 type ChartDataPoint = { sprint: string; 'Completed Points'?: number; Forecasted?: number };
@@ -57,7 +58,7 @@ function computeRollingAvg(sprints: TrendSprintViewModel[]): number | null {
   return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
 }
 
-export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendChartProps) {
+export function VelocityTrendChart({ trendSprints, prediction, activeSprintId }: VelocityTrendChartProps) {
   if (trendSprints.length === 0) {
     return (
       <Text size="sm" c="dimmed">
@@ -68,6 +69,9 @@ export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendCh
 
   const chartData = buildChartData(trendSprints, prediction);
   const rollingAvg = computeRollingAvg(trendSprints);
+  const activeSprintName = activeSprintId
+    ? trendSprints.find((s) => s.sprintId === activeSprintId)?.sprintName ?? null
+    : null;
 
   return (
     <Stack gap={4} style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
@@ -96,11 +100,14 @@ export function VelocityTrendChart({ trendSprints, prediction }: VelocityTrendCh
           offset: 0,
           isAnimationActive: false,
         }}
-        referenceLines={
-          rollingAvg !== null
+        referenceLines={[
+          ...(rollingAvg !== null
             ? [{ y: rollingAvg, color: 'gray.5', label: `Avg: ${rollingAvg}` }]
-            : []
-        }
+            : []),
+          ...(activeSprintName
+            ? [{ x: activeSprintName, color: 'blue.6' }]
+            : []),
+        ]}
       />
       <ChartLegend
         items={[

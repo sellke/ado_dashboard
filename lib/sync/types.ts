@@ -26,6 +26,8 @@ export interface PerWorkstreamSummary {
     featuresUpserted: number;
     milestonesCreated: number;
     milestonesUpdated: number;
+    childStoriesFetched?: number;
+    childStoriesUpserted?: number;
   };
   error?: string;
 }

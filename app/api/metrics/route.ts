@@ -118,14 +118,21 @@ function formatWorkstreamResponse(
     },
     trends: {
       sprints: [] as Array<{
-        sprintId: string;
-        sprintName: string;
-        velocity: number | null;
-        velocityRate: number | null;
-        activeBugs: number;
-        bugsClosed: number;
-        mode: 'actual';
-        overheadComposition: {
+      sprintId: string;
+      sprintName: string;
+      velocity: number | null;
+      velocityRate: number | null;
+      activeBugs: number;
+      bugsClosed: number;
+      mode: 'actual';
+      velocityAvg: number | null;
+      overheadPercentAvg: number | null;
+      carryOverRateAvg: number | null;
+      plannedPoints: number | null;
+      completedPoints: number | null;
+      carryOverPoints: number | null;
+      grossHours: number | null;
+      overheadComposition: {
           ceremonyHours: number | null;
           bugHours: number | null;
           spikeHours: number | null;
@@ -270,6 +277,12 @@ export async function GET(request: Request) {
         bugHours: true,
         spikeHours: true,
         supportHours: true,
+        velocityAvg: true,
+        overheadPercentAvg: true,
+        carryOverRateAvg: true,
+        plannedPoints: true,
+        completedPoints: true,
+        carryOverPoints: true,
       },
     });
     const trendBugs = await prisma.workItem.findMany({
@@ -484,6 +497,13 @@ export async function GET(request: Request) {
 
           return {
             ...sprint,
+            velocityAvg: snap?.velocityAvg ?? null,
+            overheadPercentAvg: snap?.overheadPercentAvg ?? null,
+            carryOverRateAvg: snap?.carryOverRateAvg ?? null,
+            plannedPoints: snap?.plannedPoints ?? null,
+            completedPoints: snap?.completedPoints ?? null,
+            carryOverPoints: snap?.carryOverPoints ?? null,
+            grossHours: snap?.grossHours ?? null,
             overheadComposition: {
               ceremonyHours: snap?.ceremonyHours ?? null,
               bugHours: snap?.bugHours ?? null,

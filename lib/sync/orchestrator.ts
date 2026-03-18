@@ -186,15 +186,14 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     }
   }
 
-  // 2.5 Feature Goal Sync (Story 1 — Phase 1E): for Full, sync -Goal Features and auto-create Milestones
+  // 2.5 Feature Goal Sync (Story 1 — Phase 1E): for Full, sync ADP-tagged Features, Milestones, and child stories
   if (syncType === 'Full' && !syncFn) {
     for (const ws of workstreams) {
       try {
-        const milestoneResult = await syncMilestoneFeatures(ws);
-        totalCreated += milestoneResult.milestonesCreated;
+        const milestoneResult = await syncMilestoneFeatures(ws, { sprintIdMap });
+        totalCreated += milestoneResult.milestonesCreated + milestoneResult.childStoriesUpserted;
         totalUpdated += milestoneResult.milestonesUpdated;
 
-        // Augment per-workstream summary with milestone counts
         const summary = perWorkstreamSummaries.find((s) => s.workstreamId === ws.id);
         if (summary) {
           summary.milestoneSummary = {
@@ -202,6 +201,8 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
             featuresUpserted: milestoneResult.featuresUpserted,
             milestonesCreated: milestoneResult.milestonesCreated,
             milestonesUpdated: milestoneResult.milestonesUpdated,
+            childStoriesFetched: milestoneResult.childStoriesFetched,
+            childStoriesUpserted: milestoneResult.childStoriesUpserted,
           };
         }
       } catch (err) {

@@ -81,6 +81,13 @@ describe('ProgramSummarySection', () => {
         rawActiveBugs: 10,
         rawBugsClosed: 14,
         bugs: [],
+        velocityAvg: null,
+        overheadPercentAvg: null,
+        carryOverRateAvg: null,
+        plannedPoints: null,
+        completedPoints: null,
+        carryOverPoints: null,
+        grossHours: null,
       },
       {
         sprintId: 's2',
@@ -94,6 +101,13 @@ describe('ProgramSummarySection', () => {
         rawActiveBugs: 8,
         rawBugsClosed: 15,
         bugs: [],
+        velocityAvg: null,
+        overheadPercentAvg: null,
+        carryOverRateAvg: null,
+        plannedPoints: null,
+        completedPoints: null,
+        carryOverPoints: null,
+        grossHours: null,
       },
     ],
     sprint5Prediction: {
@@ -181,6 +195,8 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 9,
           rawBugsClosed: 7,
           bugs: [],
+          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
         },
         {
           sprintId: 's2',
@@ -194,6 +210,8 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 8,
           rawBugsClosed: 6,
           bugs: [],
+          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
         },
         {
           sprintId: 's3',
@@ -207,6 +225,8 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 7,
           rawBugsClosed: 5,
           bugs: [],
+          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
         },
         {
           sprintId: 's4',
@@ -220,6 +240,8 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 6,
           rawBugsClosed: 4,
           bugs: [],
+          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
         },
       ],
       sprint5Prediction: {
@@ -374,6 +396,8 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 0,
           rawBugsClosed: 0,
           bugs: [],
+          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
         },
       ],
       sprint5Prediction: {

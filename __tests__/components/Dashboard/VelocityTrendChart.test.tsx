@@ -36,6 +36,13 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
     rawBugsClosed: 3,
     bugs: [],
     overheadBreakdown: [],
+    velocityAvg: null,
+    overheadPercentAvg: null,
+    carryOverRateAvg: null,
+    plannedPoints: null,
+    completedPoints: null,
+    carryOverPoints: null,
+    grossHours: null,
     ...overrides,
   };
 }
@@ -55,6 +62,15 @@ const prediction: WorkstreamCardViewModel['prediction'] = {
   sprintLabel: 'Sprint 26.21',
   isPredicted: true,
 };
+
+function parseReferenceLines(chart: HTMLElement) {
+  return JSON.parse(chart.getAttribute('data-reference-lines')!) as Array<{
+    y?: number;
+    x?: string;
+    color?: string;
+    label?: string;
+  }>;
+}
 
 describe('VelocityTrendChart', () => {
   describe('empty state', () => {
@@ -190,8 +206,77 @@ describe('VelocityTrendChart', () => {
       render(<VelocityTrendChart trendSprints={nullSprints} prediction={null} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
-      const referenceLines = JSON.parse(chart.getAttribute('data-reference-lines')!);
+      const referenceLines = parseReferenceLines(chart);
       expect(referenceLines).toHaveLength(0);
+    });
+  });
+
+  describe('activeSprintId highlight', () => {
+    it('adds an x-reference line for the active sprint', () => {
+      render(
+        <VelocityTrendChart trendSprints={fourSprints} prediction={null} activeSprintId="s2" />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const referenceLines = parseReferenceLines(chart);
+      const xRef = referenceLines.find((r) => r.x != null);
+      expect(xRef).toBeDefined();
+      expect(xRef!.x).toBe('Sprint 26.18');
+      expect(xRef!.color).toBe('blue.6');
+    });
+
+    it('does not add x-reference line when activeSprintId is undefined', () => {
+      render(<VelocityTrendChart trendSprints={fourSprints} prediction={null} />);
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const referenceLines = parseReferenceLines(chart);
+      const xRef = referenceLines.find((r) => r.x != null);
+      expect(xRef).toBeUndefined();
+    });
+
+    it('does not add x-reference line when activeSprintId does not match any sprint', () => {
+      render(
+        <VelocityTrendChart
+          trendSprints={fourSprints}
+          prediction={null}
+          activeSprintId="nonexistent"
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const referenceLines = parseReferenceLines(chart);
+      const xRef = referenceLines.find((r) => r.x != null);
+      expect(xRef).toBeUndefined();
+    });
+
+    it('preserves the rolling average y-reference line alongside the x-reference line', () => {
+      render(
+        <VelocityTrendChart trendSprints={fourSprints} prediction={null} activeSprintId="s3" />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const referenceLines = parseReferenceLines(chart);
+      expect(referenceLines).toHaveLength(2);
+      expect(referenceLines.find((r) => r.y != null)).toBeDefined();
+      expect(referenceLines.find((r) => r.x != null)!.x).toBe('Sprint 26.19');
+    });
+
+    it('highlight moves when activeSprintId changes', () => {
+      const { rerender } = render(
+        <VelocityTrendChart trendSprints={fourSprints} prediction={null} activeSprintId="s1" />
+      );
+
+      let chart = screen.getByTestId('velocity-line-chart');
+      let xRef = parseReferenceLines(chart).find((r) => r.x != null);
+      expect(xRef!.x).toBe('Sprint 26.17');
+
+      rerender(
+        <VelocityTrendChart trendSprints={fourSprints} prediction={null} activeSprintId="s4" />
+      );
+
+      chart = screen.getByTestId('velocity-line-chart');
+      xRef = parseReferenceLines(chart).find((r) => r.x != null);
+      expect(xRef!.x).toBe('Sprint 26.20');
     });
   });
 });
