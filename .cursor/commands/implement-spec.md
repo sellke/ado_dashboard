@@ -78,38 +78,9 @@ For each story, count:
 
 #### Step 2.3b: Pre-Flight Assessment
 
-Run a lightweight subset of `/assess-spec` checks (1, 2, 3, and 6) against the remaining stories. This catches sizing and context problems before the user commits to execution.
+Run lightweight sizing checks against remaining stories. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
 
-**Checks to run (inline — no subagent needed):**
-
-1. **Spec sizing** — Flag if >8 remaining stories or >50 remaining tasks
-2. **Dependency depth** — Flag if max depth >3 or any bottleneck story has >3 dependents
-3. **Story sizing** — Flag any story with >7 tasks or >8 acceptance criteria
-4. **Context cost** — Estimate per-story context weight (task count × change surface breadth), sum across remaining stories
-
-**If no flags:** Proceed silently to Step 2.4. No output.
-
-**If flags found:** Insert an assessment block above the execution plan:
-
-```
-⚠️ Pre-Flight Assessment: 2 concerns detected
-
- STORY SIZING        🛑  Story 3 has 9 tasks (limit: 7)
- CONTEXT BUDGET      ⚠️  Score 18 — moderate-high accumulation risk
-
- Recommendation: Run /assess-spec for full analysis with decomposition options.
- Or proceed — these are risks, not blockers.
-```
-
-The flags are shown *above* the execution plan so the user sees them before being asked to confirm. The confirmation step (Step 2.5) gains an additional option when flags are present:
-
-```
-{ id: "assess", label: "Run /assess-spec for full analysis first" }
-```
-
-If the user selects "assess," hand off to `/assess-spec` with the current spec pre-selected. After assessment completes (with or without decomposition), the user can re-invoke `/implement-spec` to get a fresh execution plan.
-
-**Pre-flight does NOT block execution.** The user can always select "Execute the plan" despite warnings. The assessment is advisory — the user may have good reasons to proceed (e.g., tight deadline, the oversized story is straightforward despite its task count).
+**If no flags:** Proceed silently. **If flags found:** Show concerns above the execution plan and add `{ id: "assess", label: "Run /assess-spec for full analysis first" }` to the confirmation options. Pre-flight is advisory — never blocks execution.
 
 #### Step 2.4: Present Execution Plan
 
@@ -197,59 +168,29 @@ After each `/implement-story` completes:
 - Update execution state file with result
 - Log: pass/fail, review iterations, test count, coverage
 
-**On story failure:**
-```
-⚠️ Story 4 failed after 3 review iterations.
+**On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
-Remaining issues:
-{issues}
-
-Options:
-1. Retry Story 4
-2. Skip Story 4, continue with independent stories
-3. Skip Story 4, skip all dependents (Story 5)
-4. Abort spec execution
-```
-
-**On dependency blocked:**
-```
-⚠️ Story 5 depends on Story 4, which failed.
-
-Options:
-1. Skip Story 5
-2. Attempt Story 5 anyway (dependencies incomplete)
-3. Retry Story 4 first
-4. Abort
-```
+**On dependency blocked:** Present the dependency chain and offer: skip, attempt anyway (dependencies incomplete), retry failed dependency, or abort.
 
 ### Phase 4: Completion
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, choose a verification strategy proportional to the change surface:
+After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work *together*.
 
-**Assess the change surface before running anything:**
+```bash
+# 1. Typecheck — catches cross-story type conflicts (always fast)
+npx tsc --noEmit
 
-| Change Surface | Verification | Examples |
-|---|---|---|
-| **Style-only** (CSS classes, className props, Tailwind utilities) | Typecheck only | Adding `max-h-[85vh]`, changing colors, responsive tweaks |
-| **Single-component logic** (state, handlers, props in one component) | Typecheck + targeted test file (if one exists) | Adding a form field, fixing a handler bug |
-| **Cross-component / shared** (utils, hooks, context, API routes) | Typecheck + targeted test files + related integration tests | Refactoring a shared hook, changing an API response shape |
-| **Full-stack / multi-story** (new features, schema changes, migrations) | Full test suite (`npm test`), typecheck, lint | New CRUD feature, auth changes, data model migration |
-
-**Rules:**
-- Default to the **lightest verification that covers the risk**. Err toward less, not more.
-- Never run a multi-minute E2E suite for changes that don't touch logic, state, or data flow.
-- Typecheck (`tsc --noEmit`) is always fast and always worth running — it's the universal baseline.
-- If tests exist that directly exercise the changed component, run those specifically (`npx playwright test [file]`) rather than the full suite.
+# 2. Full test suite — catches integration breakage between stories
+npm test    # or equivalent (pytest, cargo test, go test ./...)
+```
 
 If integration failures: identify which story likely broke it, report to user.
 
-#### Step 4.2: Auto-run verify-spec
+> **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
 
-Execute `/verify-spec` to confirm spec integrity, README sync, and story status consistency.
-
-#### Step 4.3: Summary Report
+#### Step 4.2: Summary Report
 
 ```
 ✅ Specification Complete: feature-name
@@ -269,8 +210,9 @@ Execution Stats:
 - Integration tests: ✅ passing
 
 Next steps:
-- Run `/release` when ready to ship
+- Run `/verify-spec` to validate spec integrity
 - Run `/security-audit` for a security review
+- Run `/release` when ready to ship
 ```
 
 ---
@@ -297,6 +239,6 @@ If a session is interrupted mid-execution:
 | `/create-spec` | Creates the spec that `/implement-spec` executes |
 | `/assess-spec` | Pre-flight sizing check runs automatically in Step 2.3b; full assessment available on demand |
 | `/implement-story` | Called per-story by `/implement-spec` for the 6-gate pipeline |
-| `/verify-spec` | Auto-runs after spec completion |
+| `/verify-spec` | Run after spec completion to validate metadata integrity; `--pre-deploy` for full regression |
 | `/release` | Ship after spec is verified |
 | `/status` | Shows progress of in-flight executions |
