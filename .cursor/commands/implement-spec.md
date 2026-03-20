@@ -167,6 +167,7 @@ For each batch in order:
 After each `/implement-story` completes:
 - Update execution state file with result
 - Log: pass/fail, review iterations, test count, coverage
+- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2, reflecting the updated story progress. Each write replaces the entire file.
 
 **On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
@@ -210,9 +211,9 @@ Execution Stats:
 - Integration tests: ✅ passing
 
 Next steps:
-- Run `/verify-spec` to validate spec integrity
+- Optional: `/verify-spec` if you want a standalone metadata pass
 - Run `/security-audit` for a security review
-- Run `/release` when ready to ship
+- `/ship` to open a PR, then `/release --dry-run` → `/release` when ready to publish
 ```
 
 ---
@@ -239,6 +240,6 @@ If a session is interrupted mid-execution:
 | `/create-spec` | Creates the spec that `/implement-spec` executes |
 | `/assess-spec` | Pre-flight sizing check runs automatically in Step 2.3b; full assessment available on demand |
 | `/implement-story` | Called per-story by `/implement-spec` for the 6-gate pipeline |
-| `/verify-spec` | Run after spec completion to validate metadata integrity; `--pre-deploy` for full regression |
-| `/release` | Ship after spec is verified |
+| `/verify-spec` | Optional metadata diagnostic anytime (especially after `/implement-spec`) — not a release prerequisite |
+| `/ship` / `/release` | `/ship` opens the PR; `/release` cuts the version with its own inline gate |
 | `/status` | Shows progress of in-flight executions |
