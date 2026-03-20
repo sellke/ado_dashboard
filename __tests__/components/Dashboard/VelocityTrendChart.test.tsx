@@ -107,8 +107,8 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
       expect(series).toEqual([
-        { name: 'Completed Points', color: 'blue.6' },
-        { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
+        { name: 'Completed Points', color: 'teal.6' },
+        { name: 'Forecasted', color: 'teal.4', strokeDasharray: '5 5' },
       ]);
     });
 
@@ -222,7 +222,7 @@ describe('VelocityTrendChart', () => {
       const xRef = referenceLines.find((r) => r.x != null);
       expect(xRef).toBeDefined();
       expect(xRef!.x).toBe('Sprint 26.18');
-      expect(xRef!.color).toBe('blue.6');
+      expect(xRef!.color).toBe('violet.4');
     });
 
     it('does not add x-reference line when activeSprintId is undefined', () => {
