@@ -260,10 +260,10 @@ Migration included for `users` table. `AUTH_SECRET` env var documented in `.env.
 - **Spec amendment:** Update spec to reference `validateRegistrationData`
 ```
 
-### On FAIL (with Large Drift)
+### On PAUSE (Critical Issues with Large Drift)
 
 ```markdown
-### REVIEW_RESULT: FAIL
+### REVIEW_RESULT: PAUSE
 
 ### Summary
 Two critical issues: acceptance criterion not satisfied (duplicate email rejection missing) and SQL injection vulnerability. Large drift — JWT/localStorage instead of spec'd session auth.
