@@ -1,129 +1,204 @@
 # System Architecture
 
+> Last Updated: 2026-03-20
+
 ## Overview
 
-This is a **Next.js 15 App Router** monolithic application using **Mantine 8** for UI, **Prisma 6** as ORM, and **PostgreSQL 16** for data persistence. Developed as a **solo local project** — no CI/CD pipeline, no remote deployment targets. The project is named "automated-report" but currently contains template/boilerplate code from the Mantine Next.js template.
+**LiveLink Health Report** is a Next.js 15 App Router monolithic application that syncs Azure DevOps (ADO) data and presents program-level engineering health metrics for the Unified LiveLink program. Built with Mantine 8 for UI, Prisma 6 as ORM, PostgreSQL 16 for persistence, and Recharts for data visualization.
+
+Developed as a solo local project — no CI/CD pipeline, no remote deployment.
 
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────┐
-│                   Client                     │
-│              (Browser / React)               │
-└──────────────┬──────────────────────────────┘
-               │
-┌──────────────▼──────────────────────────────┐
-│            Next.js App Router                │
-│  ┌────────────────┐  ┌───────────────────┐  │
-│  │ Server          │  │ Client            │  │
-│  │ Components      │  │ Components        │  │
-│  │ (pages, layouts)│  │ ('use client')    │  │
-│  └────────┬───────┘  └───────────────────┘  │
-│           │                                  │
-│  ┌────────▼───────┐                         │
-│  │ API Routes      │                        │
-│  │ (app/api/)      │                        │
-│  └────────┬───────┘                         │
-└───────────┼─────────────────────────────────┘
-            │
-┌───────────▼─────────────────────────────────┐
-│         Prisma ORM (lib/prisma.ts)           │
-│         Singleton Client Instance            │
-└───────────┬─────────────────────────────────┘
-            │
-┌───────────▼─────────────────────────────────┐
-│        PostgreSQL 16 (Docker)                │
-│        localhost:5433 / nextapp              │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        Browser / Client                          │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │  DashboardContainer ('use client')                          │ │
+│  │    ├── useState (metrics, milestones, stories, sync)        │ │
+│  │    ├── useEffect → fetch /api/metrics, /api/milestones, ... │ │
+│  │    └── DashboardShell → Presentational Components           │ │
+│  │         ├── ProgramSummarySection                           │ │
+│  │         ├── WorkstreamCardsGrid                             │ │
+│  │         │    └── WorkstreamHealthCard (×N)                  │ │
+│  │         │         ├── SprintTabSelector                     │ │
+│  │         │         ├── VelocityTrendChart                    │ │
+│  │         │         ├── BurnupChart                           │ │
+│  │         │         ├── OverheadBreakdownChart                │ │
+│  │         │         ├── SprintStoryListPanel                  │ │
+│  │         │         └── MilestoneGoalsPanel                   │ │
+│  │         └── SyncControl                                     │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└────────────────────────┬─────────────────────────────────────────┘
+                         │ fetch()
+┌────────────────────────▼─────────────────────────────────────────┐
+│                    Next.js App Router                             │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │ Server Pages                                               │   │
+│  │   app/dashboard/page.tsx → <DashboardContainer />          │   │
+│  │   app/dashboard/streams/page.tsx → <DashboardContainer />  │   │
+│  │   app/dashboard/bugs/page.tsx → <BugReportContainer />     │   │
+│  └───────────────────────────────────────────────────────────┘   │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │ API Routes (app/api/)                                      │   │
+│  │   GET  /api/metrics          → MetricSnapshot queries      │   │
+│  │   POST /api/metrics/compute  → Metric orchestrator         │   │
+│  │   GET  /api/milestones       → Milestone + progress calc   │   │
+│  │   GET  /api/milestones/:id   → Single milestone            │   │
+│  │   POST /api/sync/ado         → ADO sync orchestrator       │   │
+│  │   GET  /api/sprints/stories  → Sprint story list           │   │
+│  └────────────────────┬──────────────────────────────────────┘   │
+└───────────────────────┼──────────────────────────────────────────┘
+                        │
+┌───────────────────────▼──────────────────────────────────────────┐
+│                    Business Logic (lib/)                          │
+│  ┌───────────────┐  ┌────────────┐  ┌──────────────────────┐    │
+│  │ lib/metrics/   │  │ lib/sync/  │  │ lib/milestones/      │    │
+│  │ orchestrator   │  │ ado-client │  │ calculator           │    │
+│  │ calculators    │  │ work-items │  │ validation           │    │
+│  │ trend-service  │  │ iterations │  │ format               │    │
+│  │ aggregator     │  │ capacity   │  └──────────────────────┘    │
+│  │ rag            │  │ mappers    │                              │
+│  │ snapshot       │  │ config     │  ┌──────────────────────┐    │
+│  └───────┬───────┘  └─────┬──────┘  │ lib/dashboard/       │    │
+│          │                │          │ adapter (API → VM)    │    │
+│          │                │          │ sprint-stories-adapter│    │
+│          │                │          │ types, config         │    │
+│          │                │          └──────────────────────┘    │
+│  ┌───────▼────────────────▼──────────────────────────────────┐  │
+│  │              Prisma ORM (lib/prisma.ts)                    │  │
+│  │              Singleton Client Instance                     │  │
+│  └───────────────────────┬───────────────────────────────────┘  │
+└──────────────────────────┼───────────────────────────────────────┘
+                           │
+┌──────────────────────────▼───────────────────┬───────────────────┐
+│        PostgreSQL 16 (Docker)                │  Azure DevOps     │
+│        localhost:5433 / nextapp              │  REST API         │
+│        12 tables, 7 enums                    │  (PAT auth)       │
+└──────────────────────────────────────────────┴───────────────────┘
 ```
 
 ## Data Flow Patterns
 
-### Pattern 1: Server Component Direct Access
+### Pattern 1: Dashboard Read (Primary)
 
-Server Components query the database directly via Prisma, bypassing API routes entirely. This is the primary pattern used for data display pages.
-
-```
-Page (Server Component) → Prisma Client → PostgreSQL → Rendered HTML
-```
-
-### Pattern 2: API Route Access
-
-API routes (`app/api/`) expose REST endpoints for client-side data fetching or external consumers.
+The main dashboard flow — client fetches metrics, adapter transforms to view models, components render.
 
 ```
-Client → fetch('/api/...') → API Route Handler → Prisma → PostgreSQL → JSON Response
+Browser
+  → DashboardContainer (useEffect)
+    → fetch('/api/metrics?sprintId=...')
+    → API Route: queries MetricSnapshot + trend data via Prisma
+    → Returns JSON (MetricsApiResponse)
+    → adapter.ts: mapApiResponseToViewModel()
+    → DashboardViewModel (formatted strings, RAG badges, chart data)
+    → Presentational components render
+```
+
+### Pattern 2: ADO Sync (Write)
+
+User triggers sync → orchestrator fetches from ADO → persists to DB → recomputes metrics.
+
+```
+SyncControl (button click)
+  → POST /api/sync/ado
+    → sync/orchestrator.ts
+      → ado-client.ts: fetch iterations, work items, capacity from ADO REST API
+      → mappers.ts: ADO → Prisma models
+      → Prisma upserts (WorkItem, Sprint, SprintWorkstream)
+      → metrics/orchestrator.ts: compute + persist MetricSnapshot
+      → SyncLog: audit trail
+  → Client refetches /api/metrics + /api/milestones
+```
+
+### Pattern 3: Metric Computation
+
+Metrics are computed once (on sync or manual trigger) and persisted — not recomputed per read.
+
+```
+POST /api/metrics/compute
+  → metrics/orchestrator.ts
+    → calculators.ts: velocity, overhead, predictability, carry-over per workstream
+    → rolling.ts: 4-sprint rolling averages
+    → rag.ts: evaluate against ThresholdConfig
+    → snapshot.ts: upsert MetricSnapshot
+    → trend-service.ts: velocity rate, predictions for dashboard chart
 ```
 
 ## Database Schema
 
-### Current Models
+### Models (12 tables)
 
-**Phase 1 — Core (7 models):**
-- **Workstream** (`workstreams`): `id`, `name`, `adoAreaPath`, timestamps
-- **Sprint** (`sprints`): `id`, `name`, `adoIterationPath`, `startDate`, `endDate`, timestamps
-- **SprintWorkstream** (`sprint_workstreams`): `id`, `sprintId`, `workstreamId`, `plannedPoints`, `completedPoints`, `grossHours`, `ptoHours`, `ceremonyHours`, `fteCount`, `capacityLocked`, `notes`, timestamps — @@unique([sprintId, workstreamId])
-- **WorkItem** (`work_items`): `id`, `adoId` (unique), `type`, `title`, `state`, `storyPoints`, `areaPath`, `iterationPath`, `parentAdoId`, `assignedTo`, `tags`, timestamps
-- **Milestone** (`milestones`): `id`, `title`, `adoFeatureId`, `workstreamId`, `targetMonth`, `status`, `notes`, timestamps
-- **ThresholdConfig** (`threshold_configs`): `id`, `metricName` (unique), `greenMin/Max`, `amberMin/Max`, `redMin/Max`, timestamps
-- **SyncLog** (`sync_logs`): `id`, `syncType`, `status`, `itemsFetched/Created/Updated`, `errorMessage`, `perWorkstreamSummary` (includes `capacitySummary` when capacity sync runs), timestamps
+**Core (8 models):**
+- **Workstream** — Development workstreams with ADO area paths
+- **Sprint** — Sprint definitions with ADO iteration paths and date ranges
+- **SprintWorkstream** — Per-sprint per-workstream capacity and point data (unique on [sprintId, workstreamId])
+- **WorkItem** — Raw ADO work items (all types: Epic, Feature, UserStory, Task, Bug, Spike, Support)
+- **MetricSnapshot** — Computed metrics with rolling averages and RAG status (unique on [sprintId, workstreamId])
+- **SprintPlanSnapshot** — Historical sprint state for carry-over calculation (unique on [sprintId, workstreamId, adoId])
+- **Milestone** — ADP commitments linked to ADO Features with target months and derived status
+- **ThresholdConfig** — RAG threshold ranges per metric (unique on metricName)
 
-**Phase 2 — Ceremony Intelligence (2 models):**
-- **Transcript** (`transcripts`): `id`, `fileName`, `ceremonyType`, `ceremonyDate`, `sprintId`, `workstreamId`, `rawContent`, `processedAt`, timestamps
-- **CeremonyInsight** (`ceremony_insights`): `id`, `transcriptId`, `insightType`, `severity`, `content`, `relatedWorkstreamId`, `createdAt`
+**Infrastructure (2 models):**
+- **SyncLog** — ADO sync audit trail with per-workstream summary
+- **WorkItem** — Indexed on [workstreamId, sprintId], [type], [iterationPath]
+
+**Phase 2 — Ceremony Intelligence (2 models, schema only):**
+- **Transcript** — Teams ceremony VTT file storage
+- **CeremonyInsight** — LLM-extracted insights
 
 ### ID Strategy
 
-- CUID strings via `@default(cuid())`
+- CUID strings via `@default(cuid())` for all primary keys
+- ADO IDs stored as `Int` for cross-reference (`adoId`, `adoFeatureId`)
+
+### Relationships
+
+```
+Workstream ──┬── SprintWorkstream ──── Sprint
+             ├── WorkItem
+             ├── Milestone
+             ├── MetricSnapshot
+             ├── SprintPlanSnapshot
+             ├── Transcript
+             └── CeremonyInsight
+
+Sprint ──┬── SprintWorkstream
+         ├── WorkItem
+         ├── MetricSnapshot
+         ├── SprintPlanSnapshot
+         └── Transcript
+
+Transcript ──── CeremonyInsight
+```
 
 ## Component Architecture
 
-- **Server Components** (default): Static rendering, direct DB access
-- **Client Components** (`'use client'`): Interactive UI, browser APIs, React hooks
-- **Layout wrapping**: `MantineProvider` at root layout level provides theme context
+### Dashboard Component Hierarchy
 
----
+```
+DashboardContainer ('use client' — data fetching, state)
+  └── DashboardShell (loading/error/empty/success routing)
+        ├── ProgramSummarySection (program-level metric tiles + milestone progress)
+        ├── WorkstreamCardsGrid (responsive grid)
+        │     └── WorkstreamHealthCard (×N, per workstream)
+        │           ├── Metric tiles row (velocity, overhead, predictability, carry-over)
+        │           ├── SprintTabSelector (shared, controlled)
+        │           ├── VelocityTrendChart (line chart + prediction)
+        │           ├── BurnupChart (milestone burnup area chart)
+        │           ├── OverheadBreakdownChart (stacked bar)
+        │           ├── OverheadCompositionChart (area chart)
+        │           ├── SprintStoryListPanel (tabbed: In Progress/Completed/Not Started/Removed)
+        │           ├── CurrentSprintItemTables (overhead items with ADO links)
+        │           └── MilestoneGoalsPanel (feature milestone cards)
+        └── SyncControl (trigger ADO sync)
+```
 
-# Gap Analysis & Recommendations
+### Chart Library (`lib/charts/`)
 
-## Resolved Issues
-
-- ~~CI/CD package manager mismatch~~ — Removed GitHub Actions workflow (solo local project)
-- ~~npm references in package.json scripts~~ — Fixed to use `pnpm run`
-- ~~No `.env.example`~~ — Created with DATABASE_URL
-
-## Remaining Issues
-
-### 1. No Error Boundary or Global Error Handling (LOW)
-
-**Problem**: No `error.tsx`, `not-found.tsx`, or `loading.tsx` files in the app directory.
-
-**Fix**: Add Next.js error boundaries and loading states as features are built.
-
-## Code Quality Gaps
-
-### 6. Test Coverage (LOW — improved)
-
-**Status**: Substantial test coverage now exists (89+ tests) covering sync logic, capacity sync, work items, iteration sync, and API routes. Some gaps may remain for edge cases or newer components.
-
-### 7. Template Boilerplate Still Present (LOW)
-
-**Problem**: The project still contains the Mantine template Welcome component and template metadata (`title: 'Mantine Next.js template'`).
-
-**Note**: Legacy User/Post boilerplate has been removed (Story 6). Remaining template components will be replaced during feature development.
-
-### 8. `reactStrictMode: false` (LOW)
-
-**Problem**: React Strict Mode is disabled in `next.config.mjs`. This hides potential issues like impure renders, missing cleanup in effects, and deprecated API usage.
-
-**Recommendation**: Enable unless there's a specific Mantine compatibility reason to keep it off.
-
-## Potential Improvements
-
-### 9. No API Validation Layer
-
-API routes should include input validation. Consider adding Zod or similar schema validation for robustness as new API routes are built.
-
-### 10. Storybook Coverage
-
-Only the `Welcome` component has a story. Expand Storybook coverage as new components are built.
+Thin wrappers over Recharts with:
+- Mantine theme token integration (colors, fonts)
+- Dark mode support via color scheme detection
+- Consistent tooltip and legend components
+- `passthrough` escape hatch for raw Recharts props
+- Storybook stories for each chart type + kitchen sink

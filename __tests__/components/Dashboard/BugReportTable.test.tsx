@@ -16,6 +16,8 @@ const defaultEnrichedFields = {
   completedPoints: null as number | null,
   carryOverPoints: null as number | null,
   grossHours: null as number | null,
+  rawOverheadPercent: null as number | null,
+  rawCarryOverRate: null as number | null,
 };
 
 const platformCard = createWorkstreamCard({

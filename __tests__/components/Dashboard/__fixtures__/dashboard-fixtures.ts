@@ -146,6 +146,8 @@ export function createWorkstreamCard(
         completedPoints: 40,
         carryOverPoints: 5,
         grossHours: 80,
+        rawOverheadPercent: 25,
+        rawCarryOverRate: (5 / 45) * 100,
       },
       {
         sprintId: 's2',
@@ -172,6 +174,8 @@ export function createWorkstreamCard(
         completedPoints: 42,
         carryOverPoints: 6,
         grossHours: 82,
+        rawOverheadPercent: 27,
+        rawCarryOverRate: (6 / 48) * 100,
       },
     ],
     prediction: {
@@ -297,6 +301,8 @@ export function createDashboardViewModel(
           completedPoints: null,
           carryOverPoints: null,
           grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
         {
           sprintId: 's2',
@@ -317,6 +323,8 @@ export function createDashboardViewModel(
           completedPoints: null,
           carryOverPoints: null,
           grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ],
       sprint5Prediction: {

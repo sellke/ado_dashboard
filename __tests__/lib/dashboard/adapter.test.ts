@@ -10,6 +10,7 @@ import {
   formatMetricValue,
   formatPercent,
   groupMilestonesByMonth,
+  groupMilestonesByQuarter,
   mapApiResponseToDashboardViewModel,
   mapMilestoneToGoalViewModel,
   mapOverheadComposition,
@@ -23,7 +24,11 @@ import type {
   ApiResponse,
   ApiTrendSprint,
 } from '@/lib/dashboard/types';
-import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import type {
+  ApiMilestoneWithProgress,
+  ApiProgramMilestoneRollup,
+  MilestoneWorkstreamBreakdown,
+} from '@/lib/milestones/types';
 
 describe('dashboard adapter', () => {
   const fullApiResponse: ApiResponse = {
@@ -1390,6 +1395,238 @@ describe('dashboard adapter', () => {
       expect(sprint.completedPoints).toBeNull();
       expect(sprint.carryOverPoints).toBeNull();
       expect(sprint.grossHours).toBeNull();
+      expect(sprint.rawOverheadPercent).toBeNull();
+      expect(sprint.rawCarryOverRate).toBeNull();
+    });
+  });
+
+  describe('rawOverheadPercent and rawCarryOverRate mapping', () => {
+    it('maps rawOverheadPercent from overheadComposition.overheadPercent', () => {
+      const response: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0],
+            trends: {
+              sprints: [
+                {
+                  sprintId: 's1',
+                  sprintName: 'Sprint 1',
+                  velocity: 40,
+                  velocityRate: 0.5,
+                  activeBugs: 2,
+                  bugsClosed: 3,
+                  mode: 'actual' as const,
+                  overheadComposition: {
+                    ceremonyHours: 10,
+                    bugHours: 5,
+                    spikeHours: 2,
+                    supportHours: 3,
+                    totalOverheadHours: 20,
+                    overheadPercent: 25,
+                  },
+                  plannedPoints: 50,
+                  carryOverPoints: 10,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(response);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.rawOverheadPercent).toBe(25);
+    });
+
+    it('derives rawCarryOverRate from carryOverPoints / plannedPoints * 100', () => {
+      const response: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0],
+            trends: {
+              sprints: [
+                {
+                  sprintId: 's1',
+                  sprintName: 'Sprint 1',
+                  velocity: 40,
+                  velocityRate: 0.5,
+                  activeBugs: 2,
+                  bugsClosed: 3,
+                  mode: 'actual' as const,
+                  plannedPoints: 50,
+                  carryOverPoints: 10,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(response);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.rawCarryOverRate).toBe(20);
+    });
+
+    it('returns null rawCarryOverRate when plannedPoints is 0', () => {
+      const response: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0],
+            trends: {
+              sprints: [
+                {
+                  sprintId: 's1',
+                  sprintName: 'Sprint 1',
+                  velocity: 40,
+                  velocityRate: 0.5,
+                  activeBugs: 0,
+                  bugsClosed: 0,
+                  mode: 'actual' as const,
+                  plannedPoints: 0,
+                  carryOverPoints: 5,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(response);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.rawCarryOverRate).toBeNull();
+    });
+
+    it('returns null rawOverheadPercent when overheadComposition is absent', () => {
+      const response: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0],
+            trends: {
+              sprints: [
+                {
+                  sprintId: 's1',
+                  sprintName: 'Sprint 1',
+                  velocity: 40,
+                  velocityRate: 0.5,
+                  activeBugs: 0,
+                  bugsClosed: 0,
+                  mode: 'actual' as const,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(response);
+      const sprint = vm.workstreamCards[0].trendSprints[0];
+
+      expect(sprint.rawOverheadPercent).toBeNull();
+    });
+  });
+
+  describe('groupMilestonesByQuarter', () => {
+    const makeMilestone = (
+      overrides: Partial<ApiMilestoneWithProgress & { workstreamBreakdown: MilestoneWorkstreamBreakdown[] }> = {}
+    ): ApiMilestoneWithProgress & { workstreamBreakdown: MilestoneWorkstreamBreakdown[] } => ({
+      id: 'ms-1',
+      title: 'Feature A',
+      workstreamId: 'ws-1',
+      targetMonth: '2026-03-01T00:00:00Z',
+      status: 'In Progress',
+      adoFeatureId: 12345,
+      notes: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      workstream: { id: 'ws-1', name: 'Platform' },
+      completedPoints: 10,
+      totalPoints: 20,
+      percentComplete: 50,
+      quarter: 'Q3',
+      burnupData: [],
+      workstreamBreakdown: [
+        {
+          workstreamId: 'ws-1',
+          workstreamName: 'Platform',
+          totalStories: 10,
+          inProgressCount: 3,
+          inProgressPercent: 30,
+          completedCount: 5,
+          completedPercent: 50,
+        },
+      ],
+      ...overrides,
+    });
+
+    it('groups milestones by quarter', () => {
+      const milestones = [
+        makeMilestone({ id: 'ms-1', quarter: 'Q3' }),
+        makeMilestone({ id: 'ms-2', quarter: 'Q4', title: 'Feature B' }),
+      ];
+
+      const groups = groupMilestonesByQuarter(milestones);
+
+      expect(groups).toHaveLength(2);
+      expect(groups[0].quarter).toBe('Q3');
+      expect(groups[1].quarter).toBe('Q4');
+    });
+
+    it('places untagged milestones in "Untagged" group at the end', () => {
+      const milestones = [
+        makeMilestone({ id: 'ms-1', quarter: null }),
+        makeMilestone({ id: 'ms-2', quarter: 'Q3', title: 'Feature B' }),
+      ];
+
+      const groups = groupMilestonesByQuarter(milestones);
+
+      expect(groups).toHaveLength(2);
+      expect(groups[0].quarter).toBe('Q3');
+      expect(groups[1].quarter).toBe('Untagged');
+    });
+
+    it('maps workstream breakdowns to view model shape', () => {
+      const milestones = [makeMilestone()];
+
+      const groups = groupMilestonesByQuarter(milestones);
+
+      expect(groups[0].features[0].workstreams).toEqual([
+        {
+          workstreamId: 'ws-1',
+          workstreamName: 'Platform',
+          totalStories: 10,
+          inProgressPercent: 30,
+          completedPercent: 50,
+        },
+      ]);
+    });
+
+    it('skips milestones with empty workstreamBreakdown', () => {
+      const milestones = [
+        makeMilestone({ id: 'ms-1', workstreamBreakdown: [] }),
+      ];
+
+      const groups = groupMilestonesByQuarter(milestones);
+
+      expect(groups).toHaveLength(0);
+    });
+
+    it('formats adoFeatureId with # prefix', () => {
+      const milestones = [makeMilestone({ adoFeatureId: 99999 })];
+
+      const groups = groupMilestonesByQuarter(milestones);
+
+      expect(groups[0].features[0].adoFeatureId).toBe('#99999');
+    });
+
+    it('returns empty array when no milestones', () => {
+      expect(groupMilestonesByQuarter([])).toEqual([]);
     });
   });
 });

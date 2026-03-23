@@ -53,6 +53,8 @@ const enrichedDefaults = {
   completedPoints: null as number | null,
   carryOverPoints: null as number | null,
   grossHours: null as number | null,
+  rawOverheadPercent: null as number | null,
+  rawCarryOverRate: null as number | null,
 };
 
 const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
@@ -331,6 +333,8 @@ describe('WorkstreamHealthCard', () => {
           completedPoints: 44,
           carryOverPoints: 6,
           grossHours: 320,
+          rawOverheadPercent: 19.5,
+          rawCarryOverRate: 12.0,
         },
         {
           ...fullDataCard.trendSprints[1],
@@ -343,6 +347,8 @@ describe('WorkstreamHealthCard', () => {
           completedPoints: 40,
           carryOverPoints: 8,
           grossHours: 300,
+          rawOverheadPercent: 24.0,
+          rawCarryOverRate: 16.67,
         },
       ],
     };
@@ -369,7 +375,7 @@ describe('WorkstreamHealthCard', () => {
       expect(screen.getByText('0.65 pts/hr')).toBeInTheDocument();
     });
 
-    it('overrides Overhead % with rolling overheadPercentAvg', () => {
+    it('overrides Overhead % with actual rawOverheadPercent', () => {
       render(
         <WorkstreamHealthCard
           card={enrichedCard}
@@ -377,10 +383,10 @@ describe('WorkstreamHealthCard', () => {
           currentSprintId="current-sprint"
         />
       );
-      expect(screen.getByText('22.50%')).toBeInTheDocument();
+      expect(screen.getByText('19.50%')).toBeInTheDocument();
     });
 
-    it('overrides Carry-Over % with rolling carryOverRateAvg', () => {
+    it('overrides Carry-Over % with actual rawCarryOverRate', () => {
       render(
         <WorkstreamHealthCard
           card={enrichedCard}
@@ -388,7 +394,7 @@ describe('WorkstreamHealthCard', () => {
           currentSprintId="current-sprint"
         />
       );
-      expect(screen.getByText('8.75%')).toBeInTheDocument();
+      expect(screen.getByText('12.00%')).toBeInTheDocument();
     });
 
     it('preserves default metrics when current sprint is selected', () => {
@@ -472,6 +478,8 @@ describe('WorkstreamHealthCard', () => {
           overheadPercentAvg: 22,
           carryOverRateAvg: 9,
           grossHours: 320,
+          rawOverheadPercent: 20,
+          rawCarryOverRate: (7 / 55) * 100,
         },
         {
           ...fullDataCard.trendSprints[1],
@@ -484,6 +492,8 @@ describe('WorkstreamHealthCard', () => {
           overheadPercentAvg: 25,
           carryOverRateAvg: 10,
           grossHours: 300,
+          rawOverheadPercent: 24,
+          rawCarryOverRate: (10 / 50) * 100,
         },
       ],
       detailSprintLabel: 'Sprint 26.17',

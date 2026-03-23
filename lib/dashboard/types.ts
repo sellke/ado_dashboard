@@ -38,6 +38,29 @@ export interface MilestoneMonthGroup {
   groupCompletionPercent: string;
 }
 
+/** View model for a workstream's story progress within a Feature milestone. */
+export interface MilestoneWorkstreamProgress {
+  workstreamId: string;
+  workstreamName: string;
+  totalStories: number;
+  inProgressPercent: number;
+  completedPercent: number;
+}
+
+/** View model for a single Feature milestone in the quarterly panel. */
+export interface MilestoneFeatureViewModel {
+  id: string;
+  title: string;
+  adoFeatureId: string | null;
+  workstreams: MilestoneWorkstreamProgress[];
+}
+
+/** Group of Feature milestones for a single quarter. */
+export interface MilestoneQuarterGroup {
+  quarter: string;
+  features: MilestoneFeatureViewModel[];
+}
+
 export interface ApiMetric {
   value: number | null;
   avg?: number | null;
@@ -275,6 +298,11 @@ export interface TrendSprintViewModel {
   carryOverPoints: number | null;
   /** Gross hours for this sprint. */
   grossHours: number | null;
+
+  /** Actual overhead % for this sprint (from overheadComposition, not rolling avg). */
+  rawOverheadPercent: number | null;
+  /** Actual carry-over rate for this sprint: (carryOverPoints / plannedPoints) * 100. */
+  rawCarryOverRate: number | null;
 }
 
 export interface DashboardViewModel {

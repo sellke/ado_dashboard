@@ -48,6 +48,17 @@ export interface ApiProgramMilestoneRollup {
   };
 }
 
+/** Per-workstream story breakdown within a single milestone. */
+export interface MilestoneWorkstreamBreakdown {
+  workstreamId: string;
+  workstreamName: string;
+  totalStories: number;
+  inProgressCount: number;
+  inProgressPercent: number;
+  completedCount: number;
+  completedPercent: number;
+}
+
 /** Wrapper response shape for GET /api/milestones (breaking change from plain array). */
 export interface ApiMilestonesResponse {
   milestones: ApiMilestoneWithProgress[];

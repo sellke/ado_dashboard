@@ -19,6 +19,8 @@ const enrichedDefaults = {
   completedPoints: null as number | null,
   carryOverPoints: null as number | null,
   grossHours: null as number | null,
+  rawOverheadPercent: null,
+  rawCarryOverRate: null,
 };
 
 const createMetric = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel =>

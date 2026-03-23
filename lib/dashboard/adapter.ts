@@ -6,7 +6,11 @@
 
 import { buildAdoWorkItemUrl } from '../ado/urls';
 import { BUG_RESOLVED_STATES, DONE_STATES } from '../metrics/types';
-import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '../milestones/types';
+import type {
+  ApiMilestoneWithProgress,
+  ApiProgramMilestoneRollup,
+  MilestoneWorkstreamBreakdown,
+} from '../milestones/types';
 import type {
   ApiMetric,
   ApiMilestoneMetric,
@@ -15,8 +19,11 @@ import type {
   ApiTrendSprint,
   DashboardViewModel,
   MetricTileViewModel,
+  MilestoneFeatureViewModel,
   MilestoneGoalViewModel,
   MilestoneMonthGroup,
+  MilestoneQuarterGroup,
+  MilestoneWorkstreamProgress,
   OverheadBreakdownItem,
   OverheadCategory,
   OverheadCompositionViewModel,
@@ -134,6 +141,54 @@ export function groupMilestonesByMonth(
   });
 
   return groups.map(({ _date: _d, ...g }) => g);
+}
+
+/** Map milestones with workstream breakdowns into quarterly-grouped view models. */
+export function groupMilestonesByQuarter(
+  milestones: Array<
+    ApiMilestoneWithProgress & { workstreamBreakdown?: MilestoneWorkstreamBreakdown[] }
+  >
+): MilestoneQuarterGroup[] {
+  const quarterMap = new Map<string, MilestoneFeatureViewModel[]>();
+
+  for (const m of milestones) {
+    const quarter = m.quarter ?? 'Untagged';
+    const breakdowns = m.workstreamBreakdown ?? [];
+
+    if (breakdowns.length === 0) continue;
+
+    const feature: MilestoneFeatureViewModel = {
+      id: m.id,
+      title: m.title,
+      adoFeatureId: m.adoFeatureId != null ? `#${m.adoFeatureId}` : null,
+      workstreams: breakdowns.map(
+        (ws): MilestoneWorkstreamProgress => ({
+          workstreamId: ws.workstreamId,
+          workstreamName: ws.workstreamName,
+          totalStories: ws.totalStories,
+          inProgressPercent: ws.inProgressPercent,
+          completedPercent: ws.completedPercent,
+        })
+      ),
+    };
+
+    const list = quarterMap.get(quarter) ?? [];
+    list.push(feature);
+    quarterMap.set(quarter, list);
+  }
+
+  const groups: MilestoneQuarterGroup[] = [];
+  Array.from(quarterMap.entries()).forEach(([quarter, features]) => {
+    groups.push({ quarter, features });
+  });
+
+  groups.sort((a, b) => {
+    if (a.quarter === 'Untagged') return 1;
+    if (b.quarter === 'Untagged') return -1;
+    return a.quarter.localeCompare(b.quarter);
+  });
+
+  return groups;
 }
 
 export interface ProgramMilestoneRollupViewModel {
@@ -320,6 +375,13 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     completedPoints: sprint.completedPoints ?? null,
     carryOverPoints: sprint.carryOverPoints ?? null,
     grossHours: sprint.grossHours ?? null,
+    rawOverheadPercent: sprint.overheadComposition?.overheadPercent ?? null,
+    rawCarryOverRate:
+      sprint.carryOverPoints != null &&
+      sprint.plannedPoints != null &&
+      sprint.plannedPoints > 0
+        ? (sprint.carryOverPoints / sprint.plannedPoints) * 100
+        : null,
   };
 }
 

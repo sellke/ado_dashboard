@@ -16,7 +16,7 @@ export function BugReportContainer() {
     setError(null);
 
     try {
-      const res = await fetch('/api/metrics');
+      const res = await fetch('/api/metrics?dashboard=main');
       const data: ApiResponse | { error?: string } = await res.json();
 
       if (!res.ok) {

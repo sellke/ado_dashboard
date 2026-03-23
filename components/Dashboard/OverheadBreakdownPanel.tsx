@@ -1,14 +1,20 @@
 'use client';
 
 import { Stack, Text } from '@mantine/core';
-import type { OverheadSprintViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
+import type {
+  OverheadCompositionViewModel,
+  OverheadSprintViewModel,
+  TrendSprintViewModel,
+} from '@/lib/dashboard/types';
 import { CurrentSprintItemTables } from './CurrentSprintItemTables';
 import { OverheadBreakdownChart } from './OverheadBreakdownChart';
+import { OverheadCompositionChart } from './OverheadCompositionChart';
 
 export interface OverheadBreakdownPanelProps {
   trendSprints: TrendSprintViewModel[];
   overheadItemsBySprint: OverheadSprintViewModel[];
   activeSprintId: string;
+  overheadComposition?: OverheadCompositionViewModel[];
 }
 
 /**
@@ -19,6 +25,7 @@ export function OverheadBreakdownPanel({
   trendSprints,
   overheadItemsBySprint,
   activeSprintId,
+  overheadComposition = [],
 }: OverheadBreakdownPanelProps) {
   const selected = overheadItemsBySprint.find((s) => s.sprintId === activeSprintId);
 
@@ -33,6 +40,7 @@ export function OverheadBreakdownPanel({
       <Text size="xs" c="dimmed" tt="uppercase">
         Overhead Breakdown (Hours)
       </Text>
+      <OverheadCompositionChart composition={overheadComposition} />
       <OverheadBreakdownChart trendSprints={trendSprints} />
       <CurrentSprintItemTables
         bugItems={selected?.bugs ?? []}

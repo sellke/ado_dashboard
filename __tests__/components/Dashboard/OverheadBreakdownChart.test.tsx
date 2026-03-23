@@ -50,6 +50,8 @@ function makeSprint(
     completedPoints: null,
     carryOverPoints: null,
     grossHours: null,
+    rawOverheadPercent: null,
+    rawCarryOverRate: null,
   };
 }
 
@@ -94,6 +96,8 @@ describe('OverheadBreakdownChart', () => {
           completedPoints: null,
           carryOverPoints: null,
           grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ];
 
@@ -125,6 +129,8 @@ describe('OverheadBreakdownChart', () => {
           completedPoints: null,
           carryOverPoints: null,
           grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ];
 
@@ -195,6 +201,8 @@ describe('OverheadBreakdownChart', () => {
           completedPoints: null,
           carryOverPoints: null,
           grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ];
 

@@ -28,6 +28,8 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
     completedPoints: null,
     carryOverPoints: null,
     grossHours: null,
+    rawOverheadPercent: null,
+    rawCarryOverRate: null,
     ...overrides,
   };
 }

@@ -93,16 +93,16 @@ export function WorkstreamHealthCard({
       if (m.label === 'Overhead %') {
         return {
           ...m,
-          value: formatPct(matchedTrendSprint.overheadPercentAvg),
-          rawValue: matchedTrendSprint.overheadPercentAvg,
+          value: formatPct(matchedTrendSprint.rawOverheadPercent),
+          rawValue: matchedTrendSprint.rawOverheadPercent,
           avgLabel: null,
         };
       }
       if (m.label === 'Carry-Over %') {
         return {
           ...m,
-          value: formatPct(matchedTrendSprint.carryOverRateAvg),
-          rawValue: matchedTrendSprint.carryOverRateAvg,
+          value: formatPct(matchedTrendSprint.rawCarryOverRate),
+          rawValue: matchedTrendSprint.rawCarryOverRate,
           avgLabel: null,
         };
       }
@@ -211,6 +211,7 @@ export function WorkstreamHealthCard({
             trendSprints={trendSprints}
             overheadItemsBySprint={overheadItemsBySprint}
             activeSprintId={activeSprintId ?? ''}
+            overheadComposition={card.overheadComposition}
           />
         )}
 

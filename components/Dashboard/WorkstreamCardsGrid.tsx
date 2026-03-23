@@ -59,7 +59,7 @@ export function WorkstreamCardsGrid({
           onSprintChange={setActiveSprintId}
         />
       )}
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
         {sortedCards.map((card) => (
           <WorkstreamHealthCard
             key={card.workstreamId}

@@ -16,6 +16,13 @@ jest.mock('@/lib/charts', () => ({
       data-data={JSON.stringify(props.data)}
     />
   ),
+  AppBarChart: (props: Record<string, unknown>) => (
+    <div
+      data-testid="overhead-bar-chart"
+      data-type={props.type as string}
+      data-data={JSON.stringify(props.data)}
+    />
+  ),
   ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
     <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
@@ -50,6 +57,8 @@ function makeTrendSprint(
     completedPoints: null,
     carryOverPoints: null,
     grossHours: null,
+    rawOverheadPercent: null,
+    rawCarryOverRate: null,
   };
 }
 
@@ -200,6 +209,52 @@ describe('OverheadBreakdownPanel', () => {
       );
       expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
       expect(screen.getByText('Overhead Breakdown (Hours)')).toBeInTheDocument();
+    });
+  });
+
+  describe('overhead composition chart', () => {
+    it('renders stacked bar chart when overheadComposition is provided', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
+          overheadComposition={[
+            {
+              sprintName: 'Sprint 1',
+              ceremonyHours: 10,
+              bugHours: 5,
+              spikeHours: 2,
+              supportHours: 3,
+              overheadPercent: '25%',
+            },
+          ]}
+        />
+      );
+      expect(screen.getByTestId('overhead-bar-chart')).toBeInTheDocument();
+    });
+
+    it('does not render stacked bar chart when overheadComposition is empty', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
+          overheadComposition={[]}
+        />
+      );
+      expect(screen.queryByTestId('overhead-bar-chart')).not.toBeInTheDocument();
+    });
+
+    it('does not render stacked bar chart when overheadComposition is not provided', () => {
+      render(
+        <OverheadBreakdownPanel
+          trendSprints={trendSprints}
+          overheadItemsBySprint={overheadItemsBySprint}
+          activeSprintId="Sprint 1"
+        />
+      );
+      expect(screen.queryByTestId('overhead-bar-chart')).not.toBeInTheDocument();
     });
   });
 });

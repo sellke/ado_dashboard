@@ -88,6 +88,8 @@ describe('ProgramSummarySection', () => {
         completedPoints: null,
         carryOverPoints: null,
         grossHours: null,
+        rawOverheadPercent: null,
+        rawCarryOverRate: null,
       },
       {
         sprintId: 's2',
@@ -108,6 +110,8 @@ describe('ProgramSummarySection', () => {
         completedPoints: null,
         carryOverPoints: null,
         grossHours: null,
+        rawOverheadPercent: null,
+        rawCarryOverRate: null,
       },
     ],
     sprint5Prediction: {
@@ -160,8 +164,8 @@ describe('ProgramSummarySection', () => {
 
     const velocitySeries = JSON.parse(lineCharts[0].getAttribute('data-series')!);
     expect(velocitySeries).toEqual([
-      { name: 'Completed Points', color: 'blue.6' },
-      { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
+      { name: 'Completed Points', color: 'violet.6' },
+      { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
     ]);
     const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
     expect(velocityPoints).toHaveLength(3);
@@ -196,7 +200,7 @@ describe('ProgramSummarySection', () => {
           rawBugsClosed: 7,
           bugs: [],
           velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
         },
         {
           sprintId: 's2',
@@ -211,7 +215,7 @@ describe('ProgramSummarySection', () => {
           rawBugsClosed: 6,
           bugs: [],
           velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
         },
         {
           sprintId: 's3',
@@ -226,7 +230,7 @@ describe('ProgramSummarySection', () => {
           rawBugsClosed: 5,
           bugs: [],
           velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
         },
         {
           sprintId: 's4',
@@ -241,7 +245,7 @@ describe('ProgramSummarySection', () => {
           rawBugsClosed: 4,
           bugs: [],
           velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
         },
       ],
       sprint5Prediction: {
@@ -397,7 +401,7 @@ describe('ProgramSummarySection', () => {
           rawBugsClosed: 0,
           bugs: [],
           velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null,
+          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
         },
       ],
       sprint5Prediction: {

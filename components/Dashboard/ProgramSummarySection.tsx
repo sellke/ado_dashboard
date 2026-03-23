@@ -2,14 +2,23 @@
 
 import { AppBarChart, AppLineChart, ChartLegend } from '@/lib/charts';
 import { Badge, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import type { DashboardViewModel, TrendSprintViewModel } from '@/lib/dashboard/types';
+import type {
+  DashboardViewModel,
+  MilestoneQuarterGroup,
+  TrendSprintViewModel,
+} from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import { MilestoneQuarterlyPanel } from './MilestoneQuarterlyPanel';
 import { RagBadge } from './RagBadge';
 
 export interface ProgramSummarySectionProps {
   viewModel: DashboardViewModel;
   /** Stub: program-level milestone rollup passed through from milestones API (Phase 1B integration pending). */
   programRollup?: ApiProgramMilestoneRollup | null;
+  /** Quarterly-grouped milestone view models for the new breakdown panel. */
+  milestoneQuarterGroups?: MilestoneQuarterGroup[];
+  milestonesLoading?: boolean;
+  milestonesError?: string | null;
 }
 
 function buildVelocityChartData(
@@ -67,7 +76,13 @@ function buildBugChartData(sprints: TrendSprintViewModel[]) {
   }));
 }
 
-export function ProgramSummarySection({ viewModel, programRollup }: ProgramSummarySectionProps) {
+export function ProgramSummarySection({
+  viewModel,
+  programRollup,
+  milestoneQuarterGroups = [],
+  milestonesLoading,
+  milestonesError,
+}: ProgramSummarySectionProps) {
   if (viewModel.state !== 'success') {
     return null;
   }
@@ -124,56 +139,14 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
         </Text>
       )}
 
-      {programRollup && programRollup.quarterlyMilestones.total > 0 ? (
-        <Stack gap="xs" data-testid="milestone-rollup-section">
-          <Text fw={600}>
-            ADP Milestones{programRollup.quarter ? ` — ${programRollup.quarter}` : ''}
-          </Text>
-          <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
-            <Card withBorder padding="sm">
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>Total</Text>
-                <Text fw={600} size="lg">{programRollup.quarterlyMilestones.total}</Text>
-              </Stack>
-            </Card>
-            <Card withBorder padding="sm">
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>Complete</Text>
-                <Group gap="xs" align="baseline">
-                  <Text fw={600} size="lg">{programRollup.quarterlyMilestones.complete}</Text>
-                  <Badge size="sm" color="teal" variant="light">Done</Badge>
-                </Group>
-              </Stack>
-            </Card>
-            <Card withBorder padding="sm">
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>In Progress</Text>
-                <Group gap="xs" align="baseline">
-                  <Text fw={600} size="lg">{programRollup.quarterlyMilestones.inProgress}</Text>
-                  <Badge size="sm" color="blue" variant="light">Active</Badge>
-                </Group>
-              </Stack>
-            </Card>
-            <Card withBorder padding="sm">
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>Not Started</Text>
-                <Text fw={600} size="lg">{programRollup.quarterlyMilestones.notStarted}</Text>
-              </Stack>
-            </Card>
-          </SimpleGrid>
-          <Text size="xs" c="dimmed">
-            {programRollup.currentMonth}:{' '}
-            {programRollup.currentMonthCompletionPercent != null
-              ? `${Math.round(programRollup.currentMonthCompletionPercent)}% complete`
-              : 'N/A'}
-            {' '}({programRollup.currentMonthCompletedSP} / {programRollup.currentMonthTotalSP} SP)
-          </Text>
-        </Stack>
-      ) : programRollup !== undefined && (
-        <Text size="sm" c="dimmed" data-testid="milestone-rollup-empty">
-          No ADP milestones tracked
-        </Text>
-      )}
+      <Stack gap="xs">
+        <Text fw={600}>ADP Milestones</Text>
+        <MilestoneQuarterlyPanel
+          quarterGroups={milestoneQuarterGroups}
+          loading={milestonesLoading}
+          error={milestonesError}
+        />
+      </Stack>
 
       {programTrendSprints.length > 0 && (
         <Stack gap="md">
@@ -193,8 +166,8 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                   connectNulls={false}
                   curveType="linear"
                   series={[
-                    { name: 'Completed Points', color: 'blue.6' },
-                    { name: 'Forecasted', color: 'blue.6', strokeDasharray: '5 5' },
+                    { name: 'Completed Points', color: 'violet.6' },
+                    { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
                   ]}
                   xAxisProps={{
                     interval: 0,
@@ -219,8 +192,8 @@ export function ProgramSummarySection({ viewModel, programRollup }: ProgramSumma
                 </div>
                 <ChartLegend
                   items={[
-                    { label: 'Completed Points', color: 'blue.6' },
-                    { label: 'Forecasted', color: 'blue.6', dashed: true },
+                    { label: 'Completed Points', color: 'violet.6' },
+                    { label: 'Forecasted', color: 'violet.4', dashed: true },
                   ]}
                 />
               </Stack>

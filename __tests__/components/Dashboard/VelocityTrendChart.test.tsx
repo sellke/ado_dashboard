@@ -43,6 +43,8 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
     completedPoints: null,
     carryOverPoints: null,
     grossHours: null,
+    rawOverheadPercent: null,
+    rawCarryOverRate: null,
     ...overrides,
   };
 }
@@ -107,8 +109,8 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
       expect(series).toEqual([
-        { name: 'Completed Points', color: 'teal.6' },
-        { name: 'Forecasted', color: 'teal.4', strokeDasharray: '5 5' },
+        { name: 'Completed Points', color: 'violet.6' },
+        { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
       ]);
     });
 
@@ -222,7 +224,7 @@ describe('VelocityTrendChart', () => {
       const xRef = referenceLines.find((r) => r.x != null);
       expect(xRef).toBeDefined();
       expect(xRef!.x).toBe('Sprint 26.18');
-      expect(xRef!.color).toBe('violet.4');
+      expect(xRef!.color).toBe('gray.5');
     });
 
     it('does not add x-reference line when activeSprintId is undefined', () => {

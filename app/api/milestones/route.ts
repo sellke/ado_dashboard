@@ -16,8 +16,10 @@ import {
   type ChildStoryInput,
   type MilestoneProgressInput,
 } from '@/lib/milestones/calculator';
+import type { MilestoneWorkstreamBreakdown } from '@/lib/milestones/types';
 import { validateCreate } from '@/lib/milestones/validation';
 import { prisma } from '@/lib/prisma';
+import { mapStateToStatusGroup } from '@/lib/sprints/status-mapping';
 
 type MilestoneRow = {
   id: string;
@@ -77,6 +79,8 @@ export async function GET(request: Request) {
               parentAdoId: true,
               state: true,
               storyPoints: true,
+              workstreamId: true,
+              workstream: { select: { id: true, name: true } },
               sprint: {
                 select: { id: true, name: true, startDate: true },
               },
@@ -101,6 +105,43 @@ export async function GET(request: Request) {
       storiesByFeature.set(story.parentAdoId, list);
     }
 
+    // Build per-workstream breakdown for each feature
+    const buildWorkstreamBreakdown = (featureAdoId: number): MilestoneWorkstreamBreakdown[] => {
+      const children = storiesByFeature.get(featureAdoId) ?? [];
+      const byWorkstream = new Map<string, { name: string; stories: typeof childStories }>();
+
+      for (const story of childStories) {
+        if (story.parentAdoId !== featureAdoId || !story.workstreamId) continue;
+        const entry = byWorkstream.get(story.workstreamId) ?? {
+          name: story.workstream?.name ?? 'Unknown',
+          stories: [],
+        };
+        entry.stories.push(story);
+        byWorkstream.set(story.workstreamId, entry);
+      }
+
+      return Array.from(byWorkstream.entries()).map(([wsId, { name, stories: wsStories }]) => {
+        const total = wsStories.length;
+        const inProgress = wsStories.filter(
+          (s) => mapStateToStatusGroup(s.state) === 'Active'
+        ).length;
+        const completed = wsStories.filter((s) => {
+          const group = mapStateToStatusGroup(s.state);
+          return group === 'Resolved' || group === 'Completed';
+        }).length;
+
+        return {
+          workstreamId: wsId,
+          workstreamName: name,
+          totalStories: total,
+          inProgressCount: inProgress,
+          inProgressPercent: total > 0 ? Math.round((inProgress / total) * 100) : 0,
+          completedCount: completed,
+          completedPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+        };
+      });
+    };
+
     // Build response milestones with progress fields + derived status
     const milestonesWithProgress = milestones.map((m) => {
       const base = formatMilestone(m);
@@ -115,6 +156,7 @@ export async function GET(request: Request) {
           percentComplete: null,
           quarter,
           burnupData: [],
+          workstreamBreakdown: [],
         };
       }
 
@@ -129,6 +171,7 @@ export async function GET(request: Request) {
         percentComplete: progress.percentComplete,
         quarter,
         burnupData: progress.burnupData,
+        workstreamBreakdown: buildWorkstreamBreakdown(m.adoFeatureId),
       };
     });
 

@@ -299,8 +299,9 @@ docker exec -it next-app-postgres psql -U postgres -d nextapp
 ├── docs/                   # Documentation
 │   ├── API.md              # Sync + metrics API contracts and schemas
 │   └── DATABASE_SETUP.md   # Detailed database setup guide
-└── .code-captain/          # Specifications and decision records
-    └── specs/              # Feature specifications
+└── .writ/                  # Specifications, docs, and decision records
+    ├── specs/              # Feature specifications
+    └── docs/               # Tech stack, code style, architecture docs
 ```
 
 ## Program Context
