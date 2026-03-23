@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-03-23
+
+### Added
+
+- **Sprint-actual Overhead % and Carry-Over %** — workstream card metric
+  tiles now show per-sprint actual values when a non-current sprint tab is
+  selected, instead of rolling averages. New `rawOverheadPercent` and
+  `rawCarryOverRate` fields on `TrendSprintViewModel` sourced from overhead
+  composition data and derived carry-over calculation.
+  (Story 1: sprint-actual-metrics)
+- **Milestone quarterly rework** — replaced simple count-card milestone
+  display with quarterly-grouped, per-Feature, per-workstream story
+  breakdowns showing total count, % in progress, and % completed. New
+  `MilestoneQuarterlyPanel` component, extended `/api/milestones` response
+  with per-workstream breakdown, and new `groupMilestonesByQuarter()`
+  adapter function. (Story 4: milestone-quarterly-rework)
+- **Overhead composition stacked bar chart** — wired existing
+  `OverheadCompositionChart` into `OverheadBreakdownPanel` alongside the
+  trend line chart, showing ceremony/bug/spike/support hours per sprint.
+  (Story 3: overhead-composition-chart)
+- **Bug page dashboard filter** — `BugReportContainer` now fetches
+  `/api/metrics?dashboard=main`, scoping bug data to the 4 main dashboard
+  workstreams and excluding Streams.
+  (Story 5: bug-page-dashboard-filter)
+
+### Changed
+
+- **Workstream cards 2-column layout** — grid changed from 4-column
+  (`lg: 4`) to 2-column (`lg: 2`) for improved chart readability and
+  reduced vertical scrolling. (Story 2: two-column-layout)
+
+### Fixed
+
+- Velocity trend chart colors updated for better visual clarity across
+  workstreams
+
+### Internal
+
+- Updated Writ development workflow tooling (6 updates)
+- Added Writ project config (`.writ/config.md`)
+- Full spec with 5 user stories, technical sub-spec, and verification report
+
 ## [0.2.0] - 2026-03-17
 
 ### Added

@@ -16,15 +16,15 @@ Automated health reporting tool for the Unified LiveLink program. Built with [Ne
 
 ## Current Story Progress
 
-**Phase 1C — Workstream Velocity Section: 35/35 tasks complete (100%)**
+**Dashboard Metrics Audit: 31/31 tasks complete (100%)**
 
 | Story | Title | Status |
 |-------|-------|--------|
-| 1 | API Data Contract Extension | Completed ✅ |
-| 2 | Dashboard Types and Adapter | Completed ✅ |
-| 3 | Velocity Trend Chart Component | Completed ✅ |
-| 4 | Sprint Bug List Component | Completed ✅ |
-| 5 | Card Integration and Testing | Completed ✅ |
+| 1 | Sprint-Actual Overhead % and Carry-Over % | Completed ✅ |
+| 2 | Workstream Cards 2-Column Layout | Completed ✅ |
+| 3 | Wire Overhead Composition Stacked Bar Chart | Completed ✅ |
+| 4 | Milestone Section Quarterly Rework | Completed ✅ |
+| 5 | Bug Page Dashboard Filter | Completed ✅ |
 
 ### Tech Stack
 
