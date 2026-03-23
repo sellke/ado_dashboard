@@ -2,7 +2,7 @@
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
 # version: cb4e75e
-# date: 2026-03-23T13:33:36Z
+# date: 2026-03-23T13:34:39Z
 # source: https://github.com/sellke/writ.git
 d142aff406ac331b028781f0d781369b6fef0b6e9f74dad09882abda859caeab  commands/assess-spec.md
 5d2a83c5192910488e2a50163ada64a78fdd92d415f66627ce590d75a881c1fd  commands/create-adr.md
@@ -31,7 +31,7 @@ efbc57505295945e7a24cdddbcad93763f06f5383531c118d1663bdc33e9fa98  commands/ship.
 305dd6ca8883d5f5bf69db06baedcd50704ece348344452e8e26423f38730dfc  agents/architecture-check-agent.md
 6258c0e593ec7e1e966e3cdf1567813562589617fa8011f32fab5bd391e1d751  agents/coding-agent.md
 9c18672eb0216317f8267734ee47497733b6bb95d4f109d503eea88fd532bfc8  agents/documentation-agent.md
-b92d21021d5e7fb440c73bbaf2df8d1a0b030ccb5f47cbdbb3e9183c7e9705ee  agents/review-agent.md
+13caf6babba9500101acd87b4244cf4609925d4a0e60a23fb81b2b2811a29bb2  agents/review-agent.md
 7b9e2ad746f9a083d55fd6ab8f1c39b7db04ace42837a6f845150fa3f64e3a62  agents/testing-agent.md
 06db9d92ea70a5de025fa9c0a6b0cfab32711c2d5400f76a1b13210ad036013b  agents/user-story-generator.md
 1078234887c214d77d90e98b63376aac867304ad1271258615ae23fb57af6d43  agents/visual-qa-agent.md
