@@ -165,14 +165,14 @@ describe('OverheadBreakdownChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points[0]).toMatchObject({
         sprint: 'Sprint 26.17',
-        Mtgs: 10.25,
+        Meetings: 10.25,
         Spikes: 4,
         Bugs: 5,
         Support: 3,
       });
       expect(points[1]).toMatchObject({
         sprint: 'Sprint 26.18',
-        Mtgs: 10.25,
+        Meetings: 10.25,
         Spikes: 2,
         Bugs: 6,
         Support: 2,
@@ -210,7 +210,7 @@ describe('OverheadBreakdownChart', () => {
 
       const chart = screen.getByTestId('overhead-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
-      expect(points[0].Mtgs).toBe(0);
+      expect(points[0].Meetings).toBe(0);
       expect(points[0].Spikes).toBe(0);
       expect(points[0].Bugs).toBe(8);
       expect(points[0].Support).toBe(0);
@@ -225,7 +225,7 @@ describe('OverheadBreakdownChart', () => {
   });
 
   describe('series configuration', () => {
-    it('renders exactly 4 series: Mtgs, Spikes, Bugs, Support', () => {
+    it('renders exactly 4 series: Meetings, Spikes, Bugs, Support', () => {
       render(<OverheadBreakdownChart trendSprints={twoSprints} />);
 
       const chart = screen.getByTestId('overhead-line-chart');
@@ -234,7 +234,7 @@ describe('OverheadBreakdownChart', () => {
         color: string;
       }>;
       expect(series).toHaveLength(4);
-      expect(series.map((s) => s.name)).toEqual(['Mtgs', 'Spikes', 'Bugs', 'Support']);
+      expect(series.map((s) => s.name)).toEqual(['Meetings', 'Spikes', 'Bugs', 'Support']);
     });
 
     it('uses distinct colors for each series', () => {

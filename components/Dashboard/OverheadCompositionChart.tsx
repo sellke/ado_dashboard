@@ -8,10 +8,10 @@ export interface OverheadCompositionChartProps {
 }
 
 const SERIES = [
-  { name: 'Ceremony', color: 'blue.6' },
+  { name: 'Meetings', color: 'blue.6' },
   { name: 'Bugs', color: 'red.6' },
-  { name: 'Spikes', color: 'orange.6' },
-  { name: 'Support', color: 'yellow.6' },
+  { name: 'Spikes', color: 'yellow.6' },
+  { name: 'Support', color: 'green.6' },
 ];
 
 export function OverheadCompositionChart({ composition }: OverheadCompositionChartProps) {
@@ -21,7 +21,7 @@ export function OverheadCompositionChart({ composition }: OverheadCompositionCha
 
   const chartData = composition.map((s) => ({
     sprint: s.sprintName,
-    Ceremony: s.ceremonyHours,
+    Meetings: s.ceremonyHours,
     Bugs: s.bugHours,
     Spikes: s.spikeHours,
     Support: s.supportHours,

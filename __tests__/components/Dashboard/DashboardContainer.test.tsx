@@ -5,6 +5,47 @@
 import { DashboardContainer } from '@/components/Dashboard/DashboardContainer';
 import { render, screen, userEvent } from '@/test-utils';
 
+const mockMilestonesWithBreakdown = {
+  milestones: [
+    {
+      id: 'ms-1',
+      title: 'Q4 Feature Alpha',
+      workstreamId: 'ws-1',
+      targetMonth: '2026-12-01',
+      status: 'Active',
+      adoFeatureId: 101,
+      notes: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      workstream: { id: 'ws-1', name: 'Action Tracker' },
+      completedPoints: 5,
+      totalPoints: 10,
+      percentComplete: 50,
+      quarter: 'Q4',
+      burnupData: [],
+      workstreamBreakdown: [
+        {
+          workstreamId: 'ws-1',
+          workstreamName: 'Action Tracker',
+          totalStories: 4,
+          inProgressCount: 1,
+          inProgressPercent: 25,
+          completedCount: 2,
+          completedPercent: 50,
+        },
+      ],
+    },
+  ],
+  programRollup: {
+    currentMonth: 'March 2026',
+    currentMonthCompletionPercent: 50,
+    currentMonthTotalSP: 10,
+    currentMonthCompletedSP: 5,
+    quarter: 'Q4',
+    quarterlyMilestones: { total: 1, complete: 0, inProgress: 1, notStarted: 0 },
+  },
+};
+
 const mockEmptyResponse = {
   sprint: null,
   workstreams: [] as const,
@@ -126,6 +167,56 @@ describe('DashboardContainer', () => {
     await userEvent.click(retryButton);
 
     expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+  });
+
+  it('shows quarterly milestone panel when milestones have workstreamBreakdown', async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/milestones'))
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockMilestonesWithBreakdown),
+        });
+      if (url.includes('/api/sprints/stories'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByTestId('milestone-quarterly-panel')).toBeInTheDocument();
+  });
+
+  it('shows "Loading milestone data..." when milestones are still loading', async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/milestones'))
+        return new Promise(() => {}); // never resolves
+      if (url.includes('/api/sprints/stories'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText(/loading milestone data/i)).toBeInTheDocument();
+  });
+
+  it('shows milestones error when milestones API returns an error', async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/milestones'))
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({ error: 'Milestones unavailable' }),
+        });
+      if (url.includes('/api/sprints/stories'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    const [errorEl] = await screen.findAllByText('Milestones unavailable');
+    expect(errorEl).toBeInTheDocument();
   });
 
   it('handles null and mixed-RAG metric values without crashing', async () => {

@@ -83,8 +83,8 @@ export function VelocityTrendChart({ trendSprints, prediction, activeSprintId }:
         connectNulls={false}
         curveType="linear"
         series={[
-          { name: 'Completed Points', color: 'violet.6' },
-          { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
+          { name: 'Completed Points', color: 'blue.6' },
+          { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
         ]}
         xAxisProps={{
           interval: 0,
@@ -111,8 +111,8 @@ export function VelocityTrendChart({ trendSprints, prediction, activeSprintId }:
       />
       <ChartLegend
         items={[
-          { label: 'Completed Points', color: 'violet.6' },
-          { label: 'Forecasted', color: 'violet.4', dashed: true },
+          { label: 'Completed Points', color: 'blue.6' },
+          { label: 'Forecasted', color: 'blue.4', dashed: true },
         ]}
       />
     </Stack>

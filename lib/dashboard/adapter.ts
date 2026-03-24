@@ -145,9 +145,7 @@ export function groupMilestonesByMonth(
 
 /** Map milestones with workstream breakdowns into quarterly-grouped view models. */
 export function groupMilestonesByQuarter(
-  milestones: Array<
-    ApiMilestoneWithProgress & { workstreamBreakdown?: MilestoneWorkstreamBreakdown[] }
-  >
+  milestones: ApiMilestoneWithProgress[]
 ): MilestoneQuarterGroup[] {
   const quarterMap = new Map<string, MilestoneFeatureViewModel[]>();
 

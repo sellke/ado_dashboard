@@ -30,6 +30,12 @@ export interface ApiMilestoneWithProgress extends ApiMilestone {
   /** Explicit Qx quarter tag from ADO Feature (e.g. "Q4"), or null if untagged. */
   quarter: string | null;
   burnupData: ApiBurnupPoint[];
+  /**
+   * Per-workstream story breakdown for this milestone's ADO Feature.
+   * Populated by GET /api/milestones from child UserStory WorkItems.
+   * Used by groupMilestonesByQuarter to build the quarterly panel in Program Summary.
+   */
+  workstreamBreakdown?: MilestoneWorkstreamBreakdown[];
 }
 
 export interface ApiProgramMilestoneRollup {

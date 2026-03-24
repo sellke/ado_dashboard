@@ -2,7 +2,7 @@
 
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Alert, Button, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
-import type { DashboardViewModel, SprintStoryViewModel } from '@/lib/dashboard/types';
+import type { DashboardViewModel, MilestoneQuarterGroup, SprintStoryViewModel } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { ProgramSummarySection } from './ProgramSummarySection';
 import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
@@ -10,6 +10,7 @@ import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
 export interface DashboardShellProps {
   viewModel: DashboardViewModel;
   onRetry: () => void;
+  milestoneQuarterGroups?: MilestoneQuarterGroup[];
   milestonesLoading?: boolean;
   milestonesError?: string | null;
   programRollup?: ApiProgramMilestoneRollup | null;
@@ -113,6 +114,7 @@ function ErrorState({ message, onRetry }: { message?: string; onRetry: () => voi
 export function DashboardShell({
   viewModel,
   onRetry,
+  milestoneQuarterGroups,
   milestonesLoading,
   milestonesError,
   programRollup,
@@ -134,7 +136,13 @@ export function DashboardShell({
 
   return (
     <Stack gap="xl">
-      <ProgramSummarySection viewModel={viewModel} programRollup={programRollup} />
+      <ProgramSummarySection
+        viewModel={viewModel}
+        programRollup={programRollup}
+        milestoneQuarterGroups={milestoneQuarterGroups}
+        milestonesLoading={milestonesLoading}
+        milestonesError={milestonesError}
+      />
       <WorkstreamSection
         viewModel={viewModel}
         milestonesLoading={milestonesLoading}

@@ -10,14 +10,14 @@ export interface OverheadBreakdownChartProps {
 
 type ChartDataPoint = {
   sprint: string;
-  Mtgs: number;
+  Meetings: number;
   Spikes: number;
   Bugs: number;
   Support: number;
 };
 
 const OVERHEAD_SERIES = [
-  { name: 'Mtgs' as const, color: 'blue.6' },
+  { name: 'Meetings' as const, color: 'blue.6' },
   { name: 'Spikes' as const, color: 'yellow.6' },
   { name: 'Bugs' as const, color: 'red.6' },
   { name: 'Support' as const, color: 'green.6' },
@@ -27,12 +27,12 @@ function buildChartData(sprints: TrendSprintViewModel[]): ChartDataPoint[] {
   return sprints.map((s) => {
     const point: ChartDataPoint = {
       sprint: s.sprintName,
-      Mtgs: 0,
+      Meetings: 0,
       Spikes: 0,
       Bugs: 0,
       Support: 0,
     };
-    const keyMap: Record<string, keyof ChartDataPoint> = { Meetings: 'Mtgs' };
+    const keyMap: Record<string, keyof ChartDataPoint> = {};
     for (const item of s.overheadBreakdown ?? []) {
       const key = (keyMap[item.category] ?? item.category) as keyof ChartDataPoint;
       (point[key] as number) = item.hours;

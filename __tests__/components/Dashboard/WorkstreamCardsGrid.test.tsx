@@ -9,7 +9,7 @@ import { render, screen, userEvent } from '@/test-utils';
 jest.mock('@/lib/charts', () => ({
   AppLineChart: (props: Record<string, unknown>) => {
     const series = props.series as Array<{ name: string }> | undefined;
-    const isOverhead = series?.some((s) => s.name === 'Mtgs');
+    const isOverhead = series?.some((s) => s.name === 'Meetings');
     return <div data-testid={isOverhead ? 'overhead-line-chart' : 'velocity-line-chart'} />;
   },
   AppBarChart: () => <div data-testid="overhead-bar-chart" />,

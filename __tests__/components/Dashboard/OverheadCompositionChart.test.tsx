@@ -95,14 +95,14 @@ describe('OverheadCompositionChart', () => {
 
       expect(data[0]).toMatchObject({
         sprint: 'Sprint 26.16',
-        Ceremony: 8,
+        Meetings: 8,
         Bugs: 4,
         Spikes: 2,
         Support: 1,
       });
       expect(data[4]).toMatchObject({
         sprint: 'Sprint 26.20',
-        Ceremony: 11,
+        Meetings: 11,
         Bugs: 6,
         Spikes: 2,
         Support: 2,
@@ -120,7 +120,7 @@ describe('OverheadCompositionChart', () => {
   });
 
   describe('series configuration', () => {
-    it('renders four series: Ceremony, Bugs, Spikes, Support', () => {
+    it('renders four series: Meetings, Bugs, Spikes, Support', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
       const chart = screen.getByTestId('overhead-bar-chart');
@@ -128,7 +128,7 @@ describe('OverheadCompositionChart', () => {
 
       expect(series).toHaveLength(4);
       const names = series.map((s: { name: string }) => s.name);
-      expect(names).toEqual(['Ceremony', 'Bugs', 'Spikes', 'Support']);
+      expect(names).toEqual(['Meetings', 'Bugs', 'Spikes', 'Support']);
     });
 
     it('assigns distinct colors to each series', () => {

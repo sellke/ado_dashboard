@@ -164,8 +164,8 @@ describe('ProgramSummarySection', () => {
 
     const velocitySeries = JSON.parse(lineCharts[0].getAttribute('data-series')!);
     expect(velocitySeries).toEqual([
-      { name: 'Completed Points', color: 'violet.6' },
-      { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
+      { name: 'Completed Points', color: 'blue.6' },
+      { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
     ]);
     const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
     expect(velocityPoints).toHaveLength(3);

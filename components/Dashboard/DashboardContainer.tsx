@@ -5,6 +5,7 @@ import { Group, Stack, Title } from '@mantine/core';
 import {
   createErrorViewModel,
   createLoadingViewModel,
+  groupMilestonesByQuarter,
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
 import { mapSprintStoriesResponse } from '@/lib/dashboard/sprint-stories-adapter';
@@ -56,6 +57,11 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
     return mapApiResponseToDashboardViewModel(rawMetrics, milestones);
   }, [metricsViewState, metricsError, rawMetrics, milestones]);
+
+  const milestoneQuarterGroups = useMemo(
+    () => groupMilestonesByQuarter(milestones),
+    [milestones]
+  );
 
   const fetchMetrics = useCallback(
     async (options?: { skipLoadingState?: boolean }) => {
@@ -164,7 +170,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   const fetchSprintStories = useCallback(
     async (workstreamIds: string[]) => {
-      if (workstreamIds.length === 0) return;
+      if (workstreamIds.length === 0) {return;}
       setStoriesLoading(true);
       setStoriesError(null);
 
@@ -173,7 +179,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         await Promise.all(
           workstreamIds.map(async (wsId) => {
             const res = await fetch(`/api/sprints/stories?workstreamId=${wsId}`);
-            if (!res.ok) return;
+            if (!res.ok) {return;}
             const data: SprintStoriesApiResponse = await res.json();
             results[wsId] = mapSprintStoriesResponse(data);
           })
@@ -219,6 +225,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       <DashboardShell
         viewModel={viewModel}
         onRetry={() => { fetchMetrics(); fetchMilestones(); }}
+        milestoneQuarterGroups={milestoneQuarterGroups}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
         programRollup={programRollup}

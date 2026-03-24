@@ -109,8 +109,8 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
       expect(series).toEqual([
-        { name: 'Completed Points', color: 'violet.6' },
-        { name: 'Forecasted', color: 'violet.4', strokeDasharray: '5 5' },
+        { name: 'Completed Points', color: 'blue.6' },
+        { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
       ]);
     });
 

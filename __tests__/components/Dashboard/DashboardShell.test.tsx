@@ -4,8 +4,30 @@
  */
 
 import { DashboardShell } from '@/components/Dashboard/DashboardShell';
-import type { DashboardViewModel } from '@/lib/dashboard/types';
+import type { DashboardViewModel, MilestoneQuarterGroup } from '@/lib/dashboard/types';
 import { render, screen, userEvent } from '@/test-utils';
+
+const mockMilestoneQuarterGroups: MilestoneQuarterGroup[] = [
+  {
+    quarter: 'Q4',
+    features: [
+      {
+        id: 'ms-1',
+        title: 'Q4 Feature Alpha',
+        adoFeatureId: '#101',
+        workstreams: [
+          {
+            workstreamId: 'ws-1',
+            workstreamName: 'Action Tracker',
+            totalStories: 4,
+            inProgressPercent: 25,
+            completedPercent: 50,
+          },
+        ],
+      },
+    ],
+  },
+];
 
 describe('DashboardShell', () => {
   const loadingViewModel: DashboardViewModel = {
@@ -122,6 +144,43 @@ describe('DashboardShell', () => {
     await userEvent.click(retryButton);
 
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards milestoneQuarterGroups to ProgramSummarySection when provided', () => {
+    render(
+      <DashboardShell
+        viewModel={successViewModel}
+        onRetry={onRetry}
+        milestoneQuarterGroups={mockMilestoneQuarterGroups}
+      />
+    );
+
+    expect(screen.getByTestId('milestone-quarterly-panel')).toBeInTheDocument();
+  });
+
+  it('forwards milestonesLoading to ProgramSummarySection', () => {
+    render(
+      <DashboardShell
+        viewModel={successViewModel}
+        onRetry={onRetry}
+        milestonesLoading={true}
+      />
+    );
+
+    expect(screen.getByText(/loading milestone data/i)).toBeInTheDocument();
+  });
+
+  it('forwards milestonesError to ProgramSummarySection', () => {
+    render(
+      <DashboardShell
+        viewModel={successViewModel}
+        onRetry={onRetry}
+        milestonesError="Milestone service unavailable"
+      />
+    );
+
+    const [errorEl] = screen.getAllByText('Milestone service unavailable');
+    expect(errorEl).toBeInTheDocument();
   });
 
   it('handles null fields in successful response without crashing', () => {
