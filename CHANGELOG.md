@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **ADP Milestones panel — accurate quarterly data** — fixed three-layer pipeline
+  break preventing quarterly milestone data from reaching `MilestoneQuarterlyPanel`.
+  `DashboardContainer` now derives `milestoneQuarterGroups` via `useMemo`;
+  `DashboardShell` forwards groups, loading state, and error to `ProgramSummarySection`.
+  (ADP Milestones Panel spec, Story 1)
+- **ADP-MON tag filter for milestone progress** — `/api/milestones` GET handler
+  now restricts progress and per-workstream breakdown to child User Stories bearing
+  an `ADP-MON` tag (e.g., `ADP-MAR`). Untagged stories under Q#-tagged Features no
+  longer inflate milestone completion percentages. New `hasAdpMonTag` helper in
+  `lib/milestones/format.ts`.
+  (ADP Milestones Panel spec, Story 2)
+
 ## [0.3.0] - 2026-03-23
 
 ### Added

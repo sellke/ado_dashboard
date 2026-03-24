@@ -39,6 +39,7 @@ const mockChildStory = {
   parentAdoId: 12345,
   state: 'Done',
   storyPoints: 8,
+  tags: 'ADP-MAR',
   sprint: {
     id: 'sp-1',
     name: 'Sprint 1',
@@ -288,6 +289,110 @@ describe('GET /api/milestones', () => {
       expect(res.status).toBe(500);
       expect(data.error).toBe('DB connection failed');
     });
+  });
+});
+
+describe('ADP-MON tag filter', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
+  });
+
+  it('AC1: only ADP-MON-tagged stories contribute to progress when mixed', async () => {
+    prisma.workItem.findMany.mockResolvedValue([
+      { ...mockChildStory, state: 'Done', storyPoints: 8, tags: 'ADP-MAR' },
+      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: null },
+      { ...mockChildStory, state: 'Done', storyPoints: 3, tags: 'Sprint Planning' },
+    ]);
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    // Only the ADP-MAR story (8 pts) should count
+    expect(m.totalPoints).toBe(8);
+    expect(m.completedPoints).toBe(8);
+    expect(m.percentComplete).toBe(100);
+  });
+
+  it('AC2: all-untagged feature has no progress and empty workstreamBreakdown', async () => {
+    prisma.workItem.findMany.mockResolvedValue([
+      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'Sprint Planning' },
+      { ...mockChildStory, state: 'Active', storyPoints: 3, tags: 'Q4 PLAN' },
+    ]);
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(0);
+    expect(m.completedPoints).toBe(0);
+    expect(m.workstreamBreakdown).toEqual([]);
+  });
+
+  it('AC3: stories with tags: null are excluded', async () => {
+    prisma.workItem.findMany.mockResolvedValue([
+      { ...mockChildStory, state: 'Done', storyPoints: 13, tags: null },
+      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'ADP-MAR' },
+    ]);
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(5);
+    expect(m.completedPoints).toBe(5);
+  });
+
+  it('AC4: ADP-MON tag match is case-insensitive', async () => {
+    prisma.workItem.findMany.mockResolvedValue([
+      { ...mockChildStory, state: 'Done', storyPoints: 6, tags: 'adp-mar' },
+      { ...mockChildStory, state: 'Done', storyPoints: 4, tags: 'ADP-mar' },
+    ]);
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(10);
+    expect(m.completedPoints).toBe(10);
+  });
+
+  it('AC1 (workstreamBreakdown): only ADP-MON-tagged stories appear in breakdown', async () => {
+    prisma.workItem.findMany.mockResolvedValue([
+      {
+        parentAdoId: 12345,
+        state: 'Done',
+        storyPoints: 8,
+        tags: 'ADP-MAR',
+        workstreamId: 'ws-1',
+        workstream: { id: 'ws-1', name: 'Platform' },
+        sprint: null,
+      },
+      {
+        parentAdoId: 12345,
+        state: 'Done',
+        storyPoints: 5,
+        tags: null,
+        workstreamId: 'ws-2',
+        workstream: { id: 'ws-2', name: 'Quality' },
+        sprint: null,
+      },
+    ]);
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const breakdown = data.milestones[0].workstreamBreakdown;
+    // Only ws-1 (ADP-tagged) should appear; ws-2 (untagged) must be absent
+    expect(breakdown).toHaveLength(1);
+    expect(breakdown[0].workstreamId).toBe('ws-1');
+    expect(breakdown[0].totalStories).toBe(1);
   });
 });
 

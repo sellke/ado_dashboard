@@ -1,0 +1,20 @@
+{
+  "spec": "2026-03-23-adp-milestones-panel",
+  "startedAt": "2026-03-24T00:00:00Z",
+  "completedAt": "2026-03-24T00:00:00Z",
+  "plan": {
+    "batches": [
+      { "parallel": false, "stories": ["story-2-adp-mon-tag-filter"] }
+    ]
+  },
+  "stories": {
+    "story-2-adp-mon-tag-filter": {
+      "status": "complete",
+      "phase": "done",
+      "tests": 101,
+      "coverage": "97-100%",
+      "reviewIterations": 1,
+      "drift": "none"
+    }
+  }
+}

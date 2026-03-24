@@ -16,6 +16,7 @@ import {
   type ChildStoryInput,
   type MilestoneProgressInput,
 } from '@/lib/milestones/calculator';
+import { hasAdpMonTag } from '@/lib/milestones/format';
 import type { MilestoneWorkstreamBreakdown } from '@/lib/milestones/types';
 import { validateCreate } from '@/lib/milestones/validation';
 import { prisma } from '@/lib/prisma';
@@ -79,6 +80,7 @@ export async function GET(request: Request) {
               parentAdoId: true,
               state: true,
               storyPoints: true,
+              tags: true,
               workstreamId: true,
               workstream: { select: { id: true, name: true } },
               sprint: {
@@ -88,9 +90,12 @@ export async function GET(request: Request) {
           })
         : [];
 
+    // Filter to only ADP-MON-tagged stories before computing progress/breakdown
+    const adpChildStories = childStories.filter((s) => hasAdpMonTag(s.tags ?? null));
+
     // Group child stories by parent ADO Feature ID
     const storiesByFeature = new Map<number, ChildStoryInput[]>();
-    for (const story of childStories) {
+    for (const story of adpChildStories) {
       if (story.parentAdoId === null) {
         continue;
       }
@@ -105,13 +110,14 @@ export async function GET(request: Request) {
       storiesByFeature.set(story.parentAdoId, list);
     }
 
-    // Build per-workstream breakdown for each feature
+    // Build per-workstream breakdown for each feature (uses adpChildStories — already filtered)
     const buildWorkstreamBreakdown = (featureAdoId: number): MilestoneWorkstreamBreakdown[] => {
-      const children = storiesByFeature.get(featureAdoId) ?? [];
-      const byWorkstream = new Map<string, { name: string; stories: typeof childStories }>();
+      const byWorkstream = new Map<string, { name: string; stories: typeof adpChildStories }>();
 
-      for (const story of childStories) {
-        if (story.parentAdoId !== featureAdoId || !story.workstreamId) continue;
+      for (const story of adpChildStories) {
+        if (story.parentAdoId !== featureAdoId || !story.workstreamId) {
+          continue;
+        }
         const entry = byWorkstream.get(story.workstreamId) ?? {
           name: story.workstream?.name ?? 'Unknown',
           stories: [],
@@ -145,7 +151,7 @@ export async function GET(request: Request) {
     // Build response milestones with progress fields + derived status
     const milestonesWithProgress = milestones.map((m) => {
       const base = formatMilestone(m);
-      const quarter = (m as Record<string, unknown>).quarter as string | null ?? null;
+      const quarter = ((m as Record<string, unknown>).quarter as string | null) ?? null;
 
       if (m.adoFeatureId === null) {
         return {
