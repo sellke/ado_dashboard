@@ -33,7 +33,7 @@ The documentation structure depends on the detected framework. See the Framework
 | `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
-| `spec_context` | Relevant specification context |
+| `spec_context` | Full spec-lite content (documentation agents need a cross-cutting view across all spec sections). May include supplementary content fetched via context hints. Falls back to condensed specification summary if spec-lite not available. |
 | `files_changed` | List of files created/modified |
 | `functionality_summary` | Summary of new functionality |
 
@@ -110,6 +110,8 @@ Report which framework was detected (or "none") before proceeding.
    - For major architectural changes, create or update \`ARCHITECTURE.md\` at the project root
    - Use Mermaid diagrams for visual architecture documentation
 
+5. **Do NOT create ad-hoc documentation files** outside of what the story tasks specify. Never create files like "verification-guide.md", "validation-results.md", "final-verification.md", etc. in spec or user-stories directories. Your documentation should update existing project docs (README, CHANGELOG, inline), not proliferate new files.
+
 ### If a documentation framework is detected
 
 If VitePress, Docusaurus, Nextra, MkDocs, or Storybook is detected, follow its conventions for file placement, navigation config, and page format. Add new pages to the framework's sidebar/nav configuration. Always add inline JSDoc/docstrings regardless of framework.
@@ -143,7 +145,7 @@ stateDiagram-v2
 
 ## Output Format
 
-### DOCS_UPDATED: [YES/NO]
+### DOCS_UPDATED: [YES/NO/BLOCKED]
 
 ### Documentation Changes
 
@@ -165,6 +167,24 @@ stateDiagram-v2
 
 ### Summary
 Brief summary of documentation changes.
+
+---
+
+**When no docs are needed** (internal refactor, no public API change):
+
+### DOCS_UPDATED: NO
+### Reason: [Why no documentation updates were necessary]
+
+---
+
+**When documentation cannot be generated** (missing source files, broken framework config, ambiguous public API):
+
+### DOCS_UPDATED: BLOCKED
+### Blocker: [What prevented documentation generation]
+### Partial Progress: [Files updated before the block, or "None"]
+### Suggested Resolution: [How to unblock — missing info, config fix, etc.]
+
+Do not create partial or placeholder documentation files. Complete docs or a clear blocker report — never half-finished artifacts.
 `
 })
 ```
