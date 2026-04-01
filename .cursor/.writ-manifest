@@ -2,8 +2,8 @@
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
 # platform: cursor
-# version: 422322d
-# date: 2026-03-30T13:04:28Z
+# version: 3b3c64b
+# date: 2026-04-01T20:19:49Z
 # source: https://github.com/sellke/writ.git
 d142aff406ac331b028781f0d781369b6fef0b6e9f74dad09882abda859caeab  commands/assess-spec.md
 5d2a83c5192910488e2a50163ada64a78fdd92d415f66627ce590d75a881c1fd  commands/create-adr.md
@@ -20,7 +20,7 @@ c8dd5ac96af441b350360209fb4efc1dd18198cd908df6d30ed385125a5f8bb2  commands/initi
 86c4c74ea2fe489c757373fb0255845c1af987f1bea6854a887ef45558ae5d44  commands/new-command.md
 73a1f70d601810c463a1ae9dcc029bd4228b90c22f8fe1bcaf3529ac8346cc46  commands/plan-product.md
 3ded004f6a995fcb586d4244923afea4a7ba38183e31e3a1a9af59e95e20f918  commands/prototype.md
-0e85da8b5b843bf705604d438861535d06d666cd36df6d1227d42abb919d4e26  commands/ralph.md
+2316426092f7595484b2c20de074b35a1485c68e06d4009f8139727254c627ec  commands/ralph.md
 7d526f2154fba8b651ef8f4081eaba4a5b651e77725f7b70c3660cc3f5e74592  commands/refactor.md
 8fa07b84594f3016b3fea5b485c73e2117c1843365df2a4548443ca467b59b3b  commands/refresh-command.md
 3a3636fb399923237c4882816754a7f5d2c9ca4f929eb0c7da3f384d0b7f93a8  commands/release.md
