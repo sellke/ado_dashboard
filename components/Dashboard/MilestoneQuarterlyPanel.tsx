@@ -55,6 +55,11 @@ export function MilestoneQuarterlyPanel({
                   <Text size="sm" fw={500}>
                     {feature.title}
                   </Text>
+                  {feature.adpMonTagLabel && (
+                    <Badge variant="outline" size="xs" color="violet">
+                      {feature.adpMonTagLabel}
+                    </Badge>
+                  )}
                   {feature.adoFeatureId && (
                     <Text size="xs" c="dimmed">
                       ({feature.adoFeatureId})
@@ -62,27 +67,34 @@ export function MilestoneQuarterlyPanel({
                   )}
                 </Group>
 
-                {feature.workstreams.map((ws) => (
-                  <Stack key={ws.workstreamId} gap={2} pl="md">
-                    <Group justify="space-between" wrap="nowrap">
-                      <Text size="xs" c="dimmed">
-                        {ws.workstreamName}: {ws.totalStories} stories
-                      </Text>
-                      <Group gap={4} wrap="nowrap">
-                        <Text size="xs" c="blue">
-                          {ws.inProgressPercent}% active
+                {feature.workstreams.length === 0 ? (
+                  <Text size="xs" c="dimmed" pl="md">
+                    No rollup-tagged child stories in local data for this feature (sync User Stories or
+                    check parent link).
+                  </Text>
+                ) : (
+                  feature.workstreams.map((ws) => (
+                    <Stack key={ws.workstreamId} gap={2} pl="md">
+                      <Group justify="space-between" wrap="nowrap">
+                        <Text size="xs" c="dimmed">
+                          {ws.workstreamName}: {ws.totalStories} stories
                         </Text>
-                        <Text size="xs" c="teal">
-                          {ws.completedPercent}% done
-                        </Text>
+                        <Group gap={4} wrap="nowrap">
+                          <Text size="xs" c="blue">
+                            {ws.inProgressPercent}% active
+                          </Text>
+                          <Text size="xs" c="teal">
+                            {ws.completedPercent}% done
+                          </Text>
+                        </Group>
                       </Group>
-                    </Group>
-                    <Progress.Root size="xs">
-                      <Progress.Section value={ws.completedPercent} color="teal" />
-                      <Progress.Section value={ws.inProgressPercent} color="blue" />
-                    </Progress.Root>
-                  </Stack>
-                ))}
+                      <Progress.Root size="xs">
+                        <Progress.Section value={ws.completedPercent} color="teal" />
+                        <Progress.Section value={ws.inProgressPercent} color="blue" />
+                      </Progress.Root>
+                    </Stack>
+                  ))
+                )}
               </Stack>
             ))}
           </Stack>

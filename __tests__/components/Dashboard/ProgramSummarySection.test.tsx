@@ -176,8 +176,8 @@ describe('ProgramSummarySection', () => {
 
     const bugSeries = JSON.parse(barCharts[0].getAttribute('data-series')!);
     expect(bugSeries).toEqual([
-      { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
       { name: 'Open (New/Active)', color: 'red.6' },
+      { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
     ]);
 
     expect(screen.queryByText('Sprint 5 Predicted Velocity')).not.toBeInTheDocument();

@@ -51,7 +51,7 @@ export function AppBarChart<T = Record<string, unknown>>({
 
   return (
     <ChartContainer height={height}>
-      <RechartsBarChart data={data as Record<string, unknown>[]}>
+      <RechartsBarChart data={data as Record<string, unknown>[]} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} vertical={false} />
         <XAxis
           dataKey={dataKey}
@@ -71,6 +71,7 @@ export function AppBarChart<T = Record<string, unknown>>({
             content={<ChartTooltip />}
             isAnimationActive={false}
             cursor={false}
+            allowEscapeViewBox={{ x: true, y: true }}
             {...tooltipProps}
           />
         )}

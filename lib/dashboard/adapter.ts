@@ -80,6 +80,7 @@ export function mapMilestoneToGoalViewModel(
     burnupData: milestone.burnupData,
     status: milestone.status,
     quarter: milestone.quarter ?? null,
+    adpMonTagLabel: milestone.adpMonTagLabel ?? null,
   };
 }
 
@@ -150,15 +151,15 @@ export function groupMilestonesByQuarter(
   const quarterMap = new Map<string, MilestoneFeatureViewModel[]>();
 
   for (const m of milestones) {
-    const quarter = m.quarter ?? 'Untagged';
+    if (!m.quarter) continue;
+    const quarter = m.quarter;
     const breakdowns = m.workstreamBreakdown ?? [];
-
-    if (breakdowns.length === 0) continue;
 
     const feature: MilestoneFeatureViewModel = {
       id: m.id,
       title: m.title,
       adoFeatureId: m.adoFeatureId != null ? `#${m.adoFeatureId}` : null,
+      adpMonTagLabel: m.adpMonTagLabel ?? null,
       workstreams: breakdowns.map(
         (ws): MilestoneWorkstreamProgress => ({
           workstreamId: ws.workstreamId,
@@ -180,11 +181,7 @@ export function groupMilestonesByQuarter(
     groups.push({ quarter, features });
   });
 
-  groups.sort((a, b) => {
-    if (a.quarter === 'Untagged') return 1;
-    if (b.quarter === 'Untagged') return -1;
-    return a.quarter.localeCompare(b.quarter);
-  });
+  groups.sort((a, b) => a.quarter.localeCompare(b.quarter));
 
   return groups;
 }

@@ -240,7 +240,7 @@ describe('parseAdpTag', () => {
       expect(parseAdpTag('adp-m', REF_DATE)).toBeNull();
     });
 
-    it('returns null for "ADP-MARCH" (full month name)', () => {
+    it('returns null for "ADP-MARCH" (full month name — only explicit ADP-MON abbreviations)', () => {
       expect(parseAdpTag('ADP-MARCH', REF_DATE)).toBeNull();
     });
 
@@ -302,6 +302,10 @@ describe('parseAdpTag', () => {
 // =============================================================================
 
 describe('parseQuarterTag', () => {
+  it('parses Q3-PLAN → "Q3"', () => {
+    expect(parseQuarterTag('Q3-PLAN')).toBe('Q3');
+  });
+
   it('parses Q1 → "Q1"', () => {
     expect(parseQuarterTag('Q1')).toBe('Q1');
   });

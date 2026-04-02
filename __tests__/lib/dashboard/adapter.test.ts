@@ -1578,7 +1578,7 @@ describe('dashboard adapter', () => {
       expect(groups[1].quarter).toBe('Q4');
     });
 
-    it('places untagged milestones in "Untagged" group at the end', () => {
+    it('excludes milestones without an explicit quarter tag', () => {
       const milestones = [
         makeMilestone({ id: 'ms-1', quarter: null }),
         makeMilestone({ id: 'ms-2', quarter: 'Q3', title: 'Feature B' }),
@@ -1586,9 +1586,8 @@ describe('dashboard adapter', () => {
 
       const groups = groupMilestonesByQuarter(milestones);
 
-      expect(groups).toHaveLength(2);
+      expect(groups).toHaveLength(1);
       expect(groups[0].quarter).toBe('Q3');
-      expect(groups[1].quarter).toBe('Untagged');
     });
 
     it('maps workstream breakdowns to view model shape', () => {
@@ -1607,14 +1606,23 @@ describe('dashboard adapter', () => {
       ]);
     });
 
-    it('skips milestones with empty workstreamBreakdown', () => {
+    it('includes milestones with empty workstreamBreakdown (Feature visible; no per-workstream rows)', () => {
       const milestones = [
-        makeMilestone({ id: 'ms-1', workstreamBreakdown: [] }),
+        makeMilestone({
+          id: 'ms-1',
+          quarter: 'Q4',
+          workstreamBreakdown: [],
+          adpMonTagLabel: 'ADP-MAR',
+        }),
       ];
 
       const groups = groupMilestonesByQuarter(milestones);
 
-      expect(groups).toHaveLength(0);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].quarter).toBe('Q4');
+      expect(groups[0].features[0].title).toBe('Feature A');
+      expect(groups[0].features[0].adpMonTagLabel).toBe('ADP-MAR');
+      expect(groups[0].features[0].workstreams).toEqual([]);
     });
 
     it('formats adoFeatureId with # prefix', () => {

@@ -100,7 +100,7 @@ describe('DashboardContainer integration', () => {
     render(<DashboardContainer />);
 
     expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
-    expect(await screen.findByText('Platform Phase 1')).toBeInTheDocument();
+    expect((await screen.findAllByText('Platform Phase 1')).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Mar 2026/).length).toBeGreaterThan(0);
     expect(screen.getByText(/In Progress/)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: /milestones/i })).toBeInTheDocument();
@@ -313,7 +313,7 @@ describe('DashboardContainer integration', () => {
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
 
-      expect(await screen.findByText('Platform Phase 1')).toBeInTheDocument();
+      expect((await screen.findAllByText('Platform Phase 1')).length).toBeGreaterThan(0);
     });
 
     it('disables Sync Now and shows in-flight feedback while sync is in progress', async () => {

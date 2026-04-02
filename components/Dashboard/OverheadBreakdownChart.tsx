@@ -17,10 +17,10 @@ type ChartDataPoint = {
 };
 
 const OVERHEAD_SERIES = [
-  { name: 'Meetings' as const, color: 'blue.6' },
-  { name: 'Spikes' as const, color: 'yellow.6' },
+  { name: 'Meetings' as const, color: 'gray.7' },
+  { name: 'Spikes' as const, color: 'green.9' },
   { name: 'Bugs' as const, color: 'red.6' },
-  { name: 'Support' as const, color: 'green.6' },
+  { name: 'Support' as const, color: 'pink.6' },
 ];
 
 function buildChartData(sprints: TrendSprintViewModel[]): ChartDataPoint[] {

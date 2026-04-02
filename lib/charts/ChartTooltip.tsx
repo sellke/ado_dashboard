@@ -21,9 +21,8 @@ function defaultFormat(v: number): string {
 }
 
 /**
- * Theme-aware tooltip for Recharts charts. Deduplicates entries by value
- * (same behavior as the original PointValueTooltip) and adapts styling
- * for light/dark mode via useChartTheme().
+ * Theme-aware tooltip for Recharts charts. Deduplicates entries by series
+ * name and adapts styling for light/dark mode via useChartTheme().
  *
  * Pass as the `content` prop on Recharts `<Tooltip>`.
  */
@@ -33,11 +32,11 @@ export function ChartTooltip({ active, payload, formatValue }: ChartTooltipProps
 
   if (!active || !payload) return null;
 
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const entries = payload.filter((p) => {
     if (p.value == null) return false;
-    if (seen.has(p.value)) return false;
-    seen.add(p.value);
+    if (seen.has(p.name)) return false;
+    seen.add(p.name);
     return true;
   });
   if (entries.length === 0) return null;

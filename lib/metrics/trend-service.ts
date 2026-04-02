@@ -49,11 +49,73 @@ function isDateWithinSprintWindow(
   sprintStart: Date,
   sprintEnd: Date
 ): boolean {
-  if (!value) {
-    return false;
-  }
+  if (!value) return false;
   return value >= sprintStart && value <= sprintEnd;
 }
+
+// ---------------------------------------------------------------------------
+// Program-level bug burndown (cross-sprint, time-based)
+// ---------------------------------------------------------------------------
+
+export interface BurndownBugInput {
+  state: string;
+  changedDate?: Date | null;
+}
+
+export interface BurndownSprintResult {
+  sprintId: string;
+  activeBugs: number;
+  bugsClosed: number;
+}
+
+/**
+ * Program-level bug burndown using backward reconstruction.
+ *
+ * Closed = bugs in a resolved state whose changedDate falls within the sprint window.
+ * Open   = backward-reconstructed from the current total open count:
+ *   open(latest)  = total currently-open bugs
+ *   open(earlier) = open(next) + closed(next)
+ *
+ * @param sprintsAsc  Completed sprints in chronological order
+ * @param allBugs     ALL bugs from the relevant workstreams (no sprint filter)
+ */
+export function computeBugBurndown(params: {
+  sprintsAsc: TrendSprintRef[];
+  allBugs: BurndownBugInput[];
+}): BurndownSprintResult[] {
+  const { sprintsAsc, allBugs } = params;
+
+  const closedPerSprint = sprintsAsc.map((sprint) => ({
+    sprintId: sprint.id,
+    bugsClosed: allBugs.filter(
+      (b) =>
+        (BUG_RESOLVED_STATES as readonly string[]).includes(b.state) &&
+        isDateWithinSprintWindow(b.changedDate, sprint.startDate, sprint.endDate)
+    ).length,
+  }));
+
+  const currentOpen = allBugs.filter((b) =>
+    (BUG_OPEN_STATES as readonly string[]).includes(b.state)
+  ).length;
+
+  const results: BurndownSprintResult[] = [];
+  let runningOpen = currentOpen;
+
+  for (let i = closedPerSprint.length - 1; i >= 0; i--) {
+    results.unshift({
+      sprintId: closedPerSprint[i].sprintId,
+      activeBugs: runningOpen,
+      bugsClosed: closedPerSprint[i].bugsClosed,
+    });
+    runningOpen += closedPerSprint[i].bugsClosed;
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function sumNullable(values: Array<number | null | undefined>): number | null {
   const valid = values.filter((v): v is number => v !== null && v !== undefined);
@@ -128,13 +190,11 @@ export function buildTrendSeries(params: {
     const velocityRate = calculateVelocityRate(sprintVelocity, sprintNetCapacity);
 
     const sprintBugs = scopeBugs.filter((b) => b.sprintId === sprint.id);
-    const bugsClosed = sprintBugs.filter(
-      (b) =>
-        (BUG_RESOLVED_STATES as readonly string[]).includes(b.state) &&
-        isDateWithinSprintWindow(b.changedDate, sprint.startDate, sprint.endDate)
+    const bugsClosed = sprintBugs.filter((b) =>
+      (BUG_RESOLVED_STATES as readonly string[]).includes(b.state)
     ).length;
-    const activeBugs = sprintBugs.filter(
-      (b) => (BUG_OPEN_STATES as readonly string[]).includes(b.state)
+    const activeBugs = sprintBugs.filter((b) =>
+      (BUG_OPEN_STATES as readonly string[]).includes(b.state)
     ).length;
 
     return {

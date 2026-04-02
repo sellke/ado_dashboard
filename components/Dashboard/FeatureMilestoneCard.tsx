@@ -54,6 +54,11 @@ export function FeatureMilestoneCard({ milestone }: FeatureMilestoneCardProps) {
             </Text>
           </Stack>
           <Group gap="xs" wrap="nowrap" align="flex-start">
+            {milestone.adpMonTagLabel && (
+              <Badge variant="outline" size="sm" color="violet">
+                {milestone.adpMonTagLabel}
+              </Badge>
+            )}
             {milestone.adoFeatureId && (
               <Badge variant="light" size="sm" color="gray">
                 {milestone.adoFeatureId}

@@ -4,8 +4,7 @@
  * Tests for GET /api/milestones and POST /api/milestones.
  * Mocks prisma for unit testing.
  *
- * Story 3 — GET response is now a wrapper:
- *   { milestones: ApiMilestoneWithProgress[], programRollup: ApiProgramMilestoneRollup }
+ * GET lists tag-derived milestones from WorkItems only (no `milestone.findMany`).
  */
 
 import { GET, POST } from '@/app/api/milestones/route';
@@ -25,21 +24,31 @@ const mockMilestoneNoFeature = {
   workstream: mockWorkstream,
 };
 
-const mockMilestoneWithFeature = {
-  ...mockMilestoneNoFeature,
-  id: 'ms-2',
-  adoFeatureId: 12345,
-};
+/** Default qualifying Feature row for GET (ADO tags include ADP-MAR). */
+function createMockFeature(overrides: Record<string, unknown> = {}) {
+  return {
+    adoId: 12345,
+    title: 'Test Feature',
+    tags: 'ADP-MAR',
+    workstreamId: 'ws-1',
+    workstream: mockWorkstream,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    type: 'Feature' as const,
+    ...overrides,
+  };
+}
 
 // Alias used by POST tests
 const mockMilestone = mockMilestoneNoFeature;
 
-// A child UserStory WorkItem returned by prisma.workItem.findMany
 const mockChildStory = {
   parentAdoId: 12345,
   state: 'Done',
   storyPoints: 8,
   tags: 'ADP-MAR',
+  workstreamId: 'ws-1',
+  workstream: { id: 'ws-1', name: 'Platform' },
   sprint: {
     id: 'sp-1',
     name: 'Sprint 1',
@@ -64,16 +73,33 @@ jest.mock('@/lib/prisma', () => ({
 
 const { prisma } = require('@/lib/prisma');
 
+/** GET runs Promise.all: Features + UserStories. */
+function stubWorkItemQueries(userStories: unknown[], features: unknown[] = []) {
+  prisma.workItem.findMany.mockImplementation((args: { where?: { type?: string } }) => {
+    if (args?.where?.type === 'Feature') {
+      return Promise.resolve(features);
+    }
+    return Promise.resolve(userStories);
+  });
+}
+
 describe('GET /api/milestones', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-15T12:00:00.000Z'));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default: no child stories
-    prisma.workItem.findMany.mockResolvedValue([]);
+    stubWorkItemQueries([]);
   });
 
   describe('response shape', () => {
     it('returns a wrapper object with milestones array and programRollup', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneNoFeature]);
+      stubWorkItemQueries([], [createMockFeature()]);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -85,39 +111,46 @@ describe('GET /api/milestones', () => {
       expect(Array.isArray(data.milestones)).toBe(true);
     });
 
-    it('includes base milestone fields in the milestones array', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneNoFeature]);
+    it('includes base milestone fields from tag-derived Feature row', async () => {
+      stubWorkItemQueries([], [createMockFeature({ title: 'Roadmap A' })]);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
       const data = await res.json();
 
       expect(data.milestones[0]).toMatchObject({
-        id: 'ms-1',
-        title: 'Q1 Release',
+        id: 'ado-feature-12345',
+        title: 'Roadmap A',
         workstreamId: 'ws-1',
         targetMonth: '2026-03-01T00:00:00.000Z',
         status: 'NotStarted',
+        adoFeatureId: 12345,
+        notes: null,
       });
       expect(data.milestones[0].workstream).toEqual({ id: 'ws-1', name: 'Platform' });
     });
 
-    it('queries milestone.findMany with workstream include and targetMonth orderBy', async () => {
-      prisma.milestone.findMany.mockResolvedValue([]);
+    it('loads Features and UserStories in parallel (two workItem.findMany calls)', async () => {
+      stubWorkItemQueries([], []);
 
       const req = new Request('http://localhost/api/milestones');
       await GET(req);
 
-      expect(prisma.milestone.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          include: { workstream: true },
-          orderBy: { targetMonth: 'asc' },
-        })
+      expect(prisma.workItem.findMany).toHaveBeenCalledTimes(2);
+      const calls = prisma.workItem.findMany.mock.calls.map((c: unknown[]) => c[0]);
+      expect(calls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ where: { type: 'Feature' } }),
+          expect.objectContaining({
+            where: { type: 'UserStory', parentAdoId: { not: null } },
+          }),
+        ])
       );
+      expect(prisma.milestone.findMany).not.toHaveBeenCalled();
     });
 
-    it('returns empty milestones array and programRollup when no milestones exist', async () => {
-      prisma.milestone.findMany.mockResolvedValue([]);
+    it('returns empty milestones array and programRollup when no qualifying Features exist', async () => {
+      stubWorkItemQueries([], []);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -134,8 +167,8 @@ describe('GET /api/milestones', () => {
   });
 
   describe('progress fields', () => {
-    it('milestone with adoFeatureId=null has completedPoints=0, totalPoints=0, percentComplete=null, burnupData=[]', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneNoFeature]);
+    it('tag-derived milestone with no rollup stories has zero progress', async () => {
+      stubWorkItemQueries([], [createMockFeature({ tags: '25ADP' })]);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -149,8 +182,7 @@ describe('GET /api/milestones', () => {
     });
 
     it('milestone with linked feature and done child story has correct completedPoints, totalPoints, percentComplete', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
-      prisma.workItem.findMany.mockResolvedValue([mockChildStory]);
+      stubWorkItemQueries([mockChildStory], [createMockFeature()]);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -163,11 +195,13 @@ describe('GET /api/milestones', () => {
     });
 
     it('milestone with partial progress returns correct percentComplete', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
-      prisma.workItem.findMany.mockResolvedValue([
-        { ...mockChildStory, state: 'Done', storyPoints: 5 },
-        { ...mockChildStory, state: 'Active', storyPoints: 5 },
-      ]);
+      stubWorkItemQueries(
+        [
+          { ...mockChildStory, state: 'Done', storyPoints: 5 },
+          { ...mockChildStory, state: 'Active', storyPoints: 5 },
+        ],
+        [createMockFeature()]
+      );
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -180,8 +214,7 @@ describe('GET /api/milestones', () => {
     });
 
     it('burnupData array is present and has correct structure', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
-      prisma.workItem.findMany.mockResolvedValue([mockChildStory]);
+      stubWorkItemQueries([mockChildStory], [createMockFeature()]);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -198,36 +231,19 @@ describe('GET /api/milestones', () => {
       });
     });
 
-    it('does not query workItem.findMany when no milestones have adoFeatureId', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneNoFeature]);
+    it('always queries workItem for Features and UserStories', async () => {
+      stubWorkItemQueries([], []);
 
       const req = new Request('http://localhost/api/milestones');
       await GET(req);
 
-      expect(prisma.workItem.findMany).not.toHaveBeenCalled();
-    });
-
-    it('queries workItem.findMany with parentAdoId filter when features exist', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
-      prisma.workItem.findMany.mockResolvedValue([]);
-
-      const req = new Request('http://localhost/api/milestones');
-      await GET(req);
-
-      expect(prisma.workItem.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            parentAdoId: { in: [12345] },
-            type: 'UserStory',
-          },
-        })
-      );
+      expect(prisma.workItem.findMany).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('programRollup', () => {
     it('programRollup has required fields', async () => {
-      prisma.milestone.findMany.mockResolvedValue([]);
+      stubWorkItemQueries([], []);
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -248,8 +264,8 @@ describe('GET /api/milestones', () => {
   });
 
   describe('workstreamId filtering', () => {
-    it('passes workstreamId where clause to findMany', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneNoFeature]);
+    it('does not pass workstreamId to prisma (filter applied in memory)', async () => {
+      stubWorkItemQueries([], [createMockFeature()]);
 
       const req = new Request('http://localhost/api/milestones?workstreamId=ws-1');
       const res = await GET(req);
@@ -257,17 +273,15 @@ describe('GET /api/milestones', () => {
 
       expect(res.status).toBe(200);
       expect(data).toHaveProperty('milestones');
-      expect(data).toHaveProperty('programRollup');
-      expect(prisma.milestone.findMany).toHaveBeenCalledWith(
+      expect(prisma.workItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { workstreamId: 'ws-1' },
+          where: { type: 'Feature' },
         })
       );
     });
 
-    it('returns milestones and programRollup scoped to the filtered workstream', async () => {
-      prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
-      prisma.workItem.findMany.mockResolvedValue([mockChildStory]);
+    it('returns milestones scoped to the filtered workstream', async () => {
+      stubWorkItemQueries([mockChildStory], [createMockFeature()]);
 
       const req = new Request('http://localhost/api/milestones?workstreamId=ws-1');
       const res = await GET(req);
@@ -276,11 +290,24 @@ describe('GET /api/milestones', () => {
       expect(data.milestones).toHaveLength(1);
       expect(data.milestones[0].workstreamId).toBe('ws-1');
     });
+
+    it('excludes Features assigned to a different workstream when filtering', async () => {
+      stubWorkItemQueries(
+        [{ ...mockChildStory, workstreamId: 'ws-1', workstream: { id: 'ws-1', name: 'Platform' } }],
+        [createMockFeature({ workstreamId: 'ws-2', workstream: { id: 'ws-2', name: 'Other' } })]
+      );
+
+      const req = new Request('http://localhost/api/milestones?workstreamId=ws-1');
+      const res = await GET(req);
+      const data = await res.json();
+
+      expect(data.milestones).toHaveLength(0);
+    });
   });
 
   describe('error handling', () => {
     it('returns 500 when prisma throws', async () => {
-      prisma.milestone.findMany.mockRejectedValue(new Error('DB connection failed'));
+      prisma.workItem.findMany.mockRejectedValue(new Error('DB connection failed'));
 
       const req = new Request('http://localhost/api/milestones');
       const res = await GET(req);
@@ -293,50 +320,85 @@ describe('GET /api/milestones', () => {
 });
 
 describe('ADP-MON tag filter', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-15T12:00:00.000Z'));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.milestone.findMany.mockResolvedValue([mockMilestoneWithFeature]);
+    stubWorkItemQueries([], [createMockFeature()]);
   });
 
   it('AC1: only ADP-MON-tagged stories contribute to progress when mixed', async () => {
-    prisma.workItem.findMany.mockResolvedValue([
-      { ...mockChildStory, state: 'Done', storyPoints: 8, tags: 'ADP-MAR' },
-      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: null },
-      { ...mockChildStory, state: 'Done', storyPoints: 3, tags: 'Sprint Planning' },
-    ]);
+    stubWorkItemQueries(
+      [
+        { ...mockChildStory, state: 'Done', storyPoints: 8, tags: 'ADP-MAR' },
+        { ...mockChildStory, state: 'Done', storyPoints: 5, tags: null },
+        { ...mockChildStory, state: 'Done', storyPoints: 3, tags: 'Sprint Planning' },
+      ],
+      [createMockFeature()]
+    );
 
     const req = new Request('http://localhost/api/milestones');
     const res = await GET(req);
     const data = await res.json();
 
     const m = data.milestones[0];
-    // Only the ADP-MAR story (8 pts) should count
     expect(m.totalPoints).toBe(8);
     expect(m.completedPoints).toBe(8);
     expect(m.percentComplete).toBe(100);
   });
 
-  it('AC2: all-untagged feature has no progress and empty workstreamBreakdown', async () => {
-    prisma.workItem.findMany.mockResolvedValue([
-      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'Sprint Planning' },
-      { ...mockChildStory, state: 'Active', storyPoints: 3, tags: 'Q4 PLAN' },
-    ]);
+  it('AC2: Q#-PLAN stories contribute to progress (explicit quarter plan tags)', async () => {
+    stubWorkItemQueries(
+      [
+        { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'Sprint Planning' },
+        {
+          ...mockChildStory,
+          state: 'Active',
+          storyPoints: 3,
+          tags: 'Q4 PLAN',
+          workstreamId: null,
+          workstream: null,
+        },
+      ],
+      [createMockFeature({ tags: null })]
+    );
 
     const req = new Request('http://localhost/api/milestones');
     const res = await GET(req);
     const data = await res.json();
 
     const m = data.milestones[0];
-    expect(m.totalPoints).toBe(0);
+    expect(m.totalPoints).toBe(3);
     expect(m.completedPoints).toBe(0);
-    expect(m.workstreamBreakdown).toEqual([]);
+    expect(m.percentComplete).toBe(0);
+    expect(m.adpMonTagLabel).toBe('Q4-PLAN');
+    expect(m.workstreamBreakdown).toEqual([
+      {
+        workstreamId: '__unassigned__',
+        workstreamName: 'Area not mapped to workstream',
+        totalStories: 1,
+        inProgressCount: 1,
+        inProgressPercent: 100,
+        completedCount: 0,
+        completedPercent: 0,
+      },
+    ]);
   });
 
   it('AC3: stories with tags: null are excluded', async () => {
-    prisma.workItem.findMany.mockResolvedValue([
-      { ...mockChildStory, state: 'Done', storyPoints: 13, tags: null },
-      { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'ADP-MAR' },
-    ]);
+    stubWorkItemQueries(
+      [
+        { ...mockChildStory, state: 'Done', storyPoints: 13, tags: null },
+        { ...mockChildStory, state: 'Done', storyPoints: 5, tags: 'ADP-MAR' },
+      ],
+      [createMockFeature()]
+    );
 
     const req = new Request('http://localhost/api/milestones');
     const res = await GET(req);
@@ -348,10 +410,13 @@ describe('ADP-MON tag filter', () => {
   });
 
   it('AC4: ADP-MON tag match is case-insensitive', async () => {
-    prisma.workItem.findMany.mockResolvedValue([
-      { ...mockChildStory, state: 'Done', storyPoints: 6, tags: 'adp-mar' },
-      { ...mockChildStory, state: 'Done', storyPoints: 4, tags: 'ADP-mar' },
-    ]);
+    stubWorkItemQueries(
+      [
+        { ...mockChildStory, state: 'Done', storyPoints: 6, tags: 'adp-mar' },
+        { ...mockChildStory, state: 'Done', storyPoints: 4, tags: 'ADP-mar' },
+      ],
+      [createMockFeature()]
+    );
 
     const req = new Request('http://localhost/api/milestones');
     const res = await GET(req);
@@ -363,36 +428,173 @@ describe('ADP-MON tag filter', () => {
   });
 
   it('AC1 (workstreamBreakdown): only ADP-MON-tagged stories appear in breakdown', async () => {
-    prisma.workItem.findMany.mockResolvedValue([
-      {
-        parentAdoId: 12345,
-        state: 'Done',
-        storyPoints: 8,
-        tags: 'ADP-MAR',
-        workstreamId: 'ws-1',
-        workstream: { id: 'ws-1', name: 'Platform' },
-        sprint: null,
-      },
-      {
-        parentAdoId: 12345,
-        state: 'Done',
-        storyPoints: 5,
-        tags: null,
-        workstreamId: 'ws-2',
-        workstream: { id: 'ws-2', name: 'Quality' },
-        sprint: null,
-      },
-    ]);
+    stubWorkItemQueries(
+      [
+        {
+          parentAdoId: 12345,
+          state: 'Done',
+          storyPoints: 8,
+          tags: 'ADP-MAR',
+          workstreamId: 'ws-1',
+          workstream: { id: 'ws-1', name: 'Platform' },
+          sprint: null,
+        },
+        {
+          parentAdoId: 12345,
+          state: 'Done',
+          storyPoints: 5,
+          tags: null,
+          workstreamId: 'ws-2',
+          workstream: { id: 'ws-2', name: 'Quality' },
+          sprint: null,
+        },
+      ],
+      [createMockFeature()]
+    );
 
     const req = new Request('http://localhost/api/milestones');
     const res = await GET(req);
     const data = await res.json();
 
     const breakdown = data.milestones[0].workstreamBreakdown;
-    // Only ws-1 (ADP-tagged) should appear; ws-2 (untagged) must be absent
     expect(breakdown).toHaveLength(1);
     expect(breakdown[0].workstreamId).toBe('ws-1');
     expect(breakdown[0].totalStories).toBe(1);
+  });
+
+  it('ADP-tagged stories with no workstream mapping still get a breakdown row (quarterly charts)', async () => {
+    stubWorkItemQueries(
+      [
+        {
+          parentAdoId: 12345,
+          state: 'Done',
+          storyPoints: 5,
+          tags: 'ADP - MAR',
+          workstreamId: null,
+          workstream: null,
+          sprint: null,
+        },
+      ],
+      [createMockFeature()]
+    );
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(5);
+    const breakdown = m.workstreamBreakdown;
+    expect(breakdown).toHaveLength(1);
+    expect(breakdown[0].workstreamId).toBe('__unassigned__');
+    expect(breakdown[0].workstreamName).toBe('Area not mapped to workstream');
+    expect(breakdown[0].totalStories).toBe(1);
+  });
+});
+
+describe('ADP strict story tags (no Feature fallback)', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-15T12:00:00.000Z'));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    stubWorkItemQueries([], [createMockFeature()]);
+  });
+
+  it('excludes untagged children even when parent Feature has ADP-MAR', async () => {
+    stubWorkItemQueries(
+      [
+        {
+          ...mockChildStory,
+          state: 'Done',
+          storyPoints: 5,
+          tags: null,
+          workstreamId: 'ws-1',
+          workstream: { id: 'ws-1', name: 'Platform' },
+        },
+        {
+          ...mockChildStory,
+          state: 'Active',
+          storyPoints: 3,
+          tags: 'Sprint Planning',
+          workstreamId: 'ws-1',
+          workstream: { id: 'ws-1', name: 'Platform' },
+        },
+      ],
+      [createMockFeature({ tags: 'ADP-MAR' })]
+    );
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(0);
+    expect(m.workstreamBreakdown).toEqual([]);
+  });
+
+  it('does not count children when Feature has 25ADP only and stories are untagged', async () => {
+    stubWorkItemQueries(
+      [{ ...mockChildStory, state: 'Done', storyPoints: 5, tags: null }],
+      [createMockFeature({ tags: '25ADP' })]
+    );
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(0);
+    expect(m.completedPoints).toBe(0);
+  });
+
+  it('counts ADO-style spaced tag ADP - JAN same as ADP-JAN', async () => {
+    stubWorkItemQueries(
+      [
+        {
+          ...mockChildStory,
+          state: 'Done',
+          storyPoints: 8,
+          tags: 'ADP - JAN; KPI Group 1',
+          workstreamId: 'ws-1',
+          workstream: { id: 'ws-1', name: 'Platform' },
+        },
+        { ...mockChildStory, state: 'Done', storyPoints: 99, tags: null },
+      ],
+      [createMockFeature({ tags: '25ADP' })]
+    );
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(8);
+    expect(m.completedPoints).toBe(8);
+    expect(m.adpMonTagLabel).toBe('ADP-JAN');
+  });
+
+  it('only ADP-MON-tagged children count when mixed with untagged', async () => {
+    stubWorkItemQueries(
+      [
+        { ...mockChildStory, state: 'Done', storyPoints: 8, tags: 'ADP-MAR' },
+        { ...mockChildStory, state: 'Done', storyPoints: 99, tags: null },
+      ],
+      [createMockFeature({ tags: 'ADP-MAR' })]
+    );
+
+    const req = new Request('http://localhost/api/milestones');
+    const res = await GET(req);
+    const data = await res.json();
+
+    const m = data.milestones[0];
+    expect(m.totalPoints).toBe(8);
+    expect(m.completedPoints).toBe(8);
   });
 });
 

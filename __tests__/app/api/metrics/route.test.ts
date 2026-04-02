@@ -131,7 +131,7 @@ describe('GET /api/metrics', () => {
     expect(data.rollingWindow.count).toBe(1);
   });
 
-  it('excludes bugs without sprint assignment from trend counts', async () => {
+  it('burndown counts unassigned bugs closed during the sprint window', async () => {
     const rolling = [
       mockSprint,
       { ...mockSprint, id: 'sprint-0', name: 'Sprint 26.20', startDate: new Date('2025-12-23') },
@@ -181,10 +181,12 @@ describe('GET /api/metrics', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
+    // Burndown uses changedDate within sprint window, not sprint assignment.
+    // Bug 3 (sprintId=null) has changedDate within sprint-0's window → counted as closed.
     expect(data.workstreams[0].trends.sprints[0]).toMatchObject({
       sprintId: 'sprint-0',
       activeBugs: 1,
-      bugsClosed: 1,
+      bugsClosed: 2,
     });
   });
 

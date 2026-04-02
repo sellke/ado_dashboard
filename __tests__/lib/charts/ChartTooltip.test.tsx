@@ -70,13 +70,29 @@ describe('ChartTooltip', () => {
     expect(screen.getByText('Forecasted')).toBeInTheDocument();
   });
 
-  it('deduplicates entries with the same value', () => {
+  it('shows both series when values are the same but names differ', () => {
     render(
       <ChartTooltip
         active={true}
         payload={[
           { name: 'Series A', value: 42 },
           { name: 'Series B', value: 42 },
+        ]}
+      />
+    );
+    const valueElements = screen.getAllByText('42');
+    expect(valueElements).toHaveLength(2);
+    expect(screen.getByText('Series A')).toBeInTheDocument();
+    expect(screen.getByText('Series B')).toBeInTheDocument();
+  });
+
+  it('deduplicates entries with the same name', () => {
+    render(
+      <ChartTooltip
+        active={true}
+        payload={[
+          { name: 'Series A', value: 42 },
+          { name: 'Series A', value: 42 },
         ]}
       />
     );

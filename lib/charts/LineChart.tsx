@@ -72,6 +72,7 @@ export function AppLineChart<T = Record<string, unknown>>({
           <Tooltip
             content={<ChartTooltip />}
             isAnimationActive={false}
+            allowEscapeViewBox={{ x: true, y: true }}
             {...tooltipProps}
           />
         )}

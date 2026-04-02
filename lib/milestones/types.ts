@@ -1,5 +1,5 @@
 /**
- * Milestone API response shape from GET /api/milestones
+ * Milestone API response shape from GET /api/milestones (`id`: `ado-feature-{adoId}`) and POST (`id`: DB cuid).
  */
 export interface ApiMilestone {
   id: string;
@@ -36,6 +36,13 @@ export interface ApiMilestoneWithProgress extends ApiMilestone {
    * Used by groupMilestonesByQuarter to build the quarterly panel in Program Summary.
    */
   workstreamBreakdown?: MilestoneWorkstreamBreakdown[];
+  /** Raw semicolon-delimited tags from the linked ADO Feature WorkItem, if present. */
+  featureTags?: string | null;
+  /**
+   * Display badge: explicit `ADP-{MON}` and/or `Q#-PLAN` from child stories, else Feature tags
+   * (same order). Examples: `ADP-JAN`, `Q2-PLAN`.
+   */
+  adpMonTagLabel?: string | null;
 }
 
 export interface ApiProgramMilestoneRollup {
@@ -56,6 +63,7 @@ export interface ApiProgramMilestoneRollup {
 
 /** Per-workstream story breakdown within a single milestone. */
 export interface MilestoneWorkstreamBreakdown {
+  /** Local workstream id, or `__unassigned__` when the story’s area path did not map to a workstream. */
   workstreamId: string;
   workstreamName: string;
   totalStories: number;

@@ -7,6 +7,13 @@
  */
 
 import type { PrismaClient, Workstream } from '@prisma/client';
+import {
+  hasMilestoneRollupTag,
+  matchAdpMonthTagPart,
+  matchQPlanTagPart,
+  normalizeTagDashes,
+  splitTagSegments,
+} from '@/lib/milestones/format';
 import { prisma as defaultPrisma } from '@/lib/prisma';
 import { fetchWorkItemIdsByWiql, fetchWorkItemsBatch } from './ado-client';
 import { SYNC_CONFIG } from './config';
@@ -88,26 +95,12 @@ export function buildChildStoriesWiql(featureAdoIds: number[]): string {
 // Tag parser
 // ---------------------------------------------------------------------------
 
-const MONTH_ABBR_MAP: Record<string, number> = {
-  jan: 0,
-  feb: 1,
-  mar: 2,
-  apr: 3,
-  may: 4,
-  jun: 5,
-  jul: 6,
-  aug: 7,
-  sep: 8,
-  oct: 9,
-  nov: 10,
-  dec: 11,
-};
-
 /**
  * Parse a semicolon-delimited tags string and extract an `ADP-{MON}` tag.
  * Returns the first day of the target month as a UTC Date, or null if none found.
  *
- * Strict format: only `ADP-JAN` through `ADP-DEC` (case-insensitive) are recognized.
+ * Month tags: explicit `ADP-JAN` … `ADP-DEC` (three-letter MON), optional spaces
+ * around the hyphen (`ADP - MAR`). See `matchAdpMonthTagPart` in `lib/milestones/format.ts`.
  * Legacy `{MonthAbbr}-Goal` tags are NOT recognized.
  *
  * Year selection: use current year; if that month is in the past relative to `today`,
@@ -118,20 +111,17 @@ const MONTH_ABBR_MAP: Record<string, number> = {
  * @returns Date(year, monthIndex, 1) in UTC, or null
  */
 export function parseAdpTag(tags: string, today: Date = new Date()): Date | null {
-  const parts = tags.split(';').map((t) => t.trim());
+  const parts = splitTagSegments(tags);
 
-  // Pass 1: prefer the strict month-specific format ADP-{MON}
+  // Pass 1: ADP month tag (shared rules with milestones API)
   for (const part of parts) {
-    const match = part.match(/^ADP-(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$/i);
-    if (!match) {
+    const matched = matchAdpMonthTagPart(part);
+    if (!matched) {
       continue;
     }
-    const monthIndex = MONTH_ABBR_MAP[match[1].toLowerCase()];
-    if (monthIndex === undefined) {
-      continue;
-    }
-    let year = today.getFullYear();
-    if (monthIndex < today.getMonth()) {
+    const { monthIndex } = matched;
+    let year = today.getUTCFullYear();
+    if (monthIndex < today.getUTCMonth()) {
       year += 1;
     }
     return new Date(Date.UTC(year, monthIndex, 1));
@@ -140,7 +130,7 @@ export function parseAdpTag(tags: string, today: Date = new Date()): Date | null
   // Pass 2: year-prefixed format {YY}ADP (e.g. "25ADP" = FY25 ADP milestone)
   for (const part of parts) {
     if (part.match(/^\d{2}ADP$/i)) {
-      return new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+      return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
     }
   }
 
@@ -161,9 +151,15 @@ export function parseAdpTag(tags: string, today: Date = new Date()): Date | null
  * @returns "Q1" | "Q2" | "Q3" | "Q4" | null
  */
 export function parseQuarterTag(tags: string): string | null {
-  const parts = tags.split(';').map((t) => t.trim());
-  for (const part of parts) {
-    const match = part.match(/^(Q[1-4])(?:\s|$)/i);
+  for (const part of splitTagSegments(tags)) {
+    const qp = matchQPlanTagPart(part);
+    if (qp) {
+      return `Q${qp.quarterDigit.toUpperCase()}`;
+    }
+  }
+  for (const part of splitTagSegments(tags)) {
+    const n = normalizeTagDashes(part);
+    const match = n.match(/^(Q[1-4])(?:\s|$)/i);
     if (match) {
       return match[1].toUpperCase();
     }
@@ -190,7 +186,7 @@ export function quarterToTargetMonth(quarter: string | null, today: Date = new D
   if (!quarter) return null;
   const monthIndex = QUARTER_START_MONTH[quarter.toUpperCase()];
   if (monthIndex === undefined) return null;
-  return new Date(Date.UTC(today.getFullYear(), monthIndex, 1));
+  return new Date(Date.UTC(today.getUTCFullYear(), monthIndex, 1));
 }
 
 // ---------------------------------------------------------------------------
@@ -325,11 +321,11 @@ export async function syncMilestoneFeatures(
     .map((raw) => mapAdoWorkItem(raw.fields))
     .filter((item): item is NonNullable<typeof item> => item !== null && item.type === 'Feature');
 
-  // 4. Code-level milestone tag filter — keep features with ADP or quarter tags
+  // 4. Code-level milestone tag filter — explicit ADP-{MON}, Q#-PLAN / Q, or YYADP
   const hasMilestoneTag = (tags: string | null): boolean => {
     if (!tags) return false;
-    if (tags.toLowerCase().includes('adp')) return true;
-    return parseQuarterTag(tags) !== null;
+    if (hasMilestoneRollupTag(tags)) return true;
+    return tags.split(';').some((t) => /^\d{2}ADP$/i.test(t.trim()));
   };
 
   const mapped = allMapped.filter((item) => hasMilestoneTag(item.tags));

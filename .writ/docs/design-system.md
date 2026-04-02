@@ -54,7 +54,7 @@ export const ADO_ENTITY = {
 
 - **Use `RagBadge`** for any red/amber/green status indicator — do not recreate the pattern inline.
 - **Positive/negative deltas**: Green for improvement, red for regression. Never use for neutral or informational trends.
-- **Do not use `red.6` or `green.6` as chart series colors** unless the series literally represents status (e.g., a "bugs introduced" line is allowed to be red).
+- **Do not use `red.6` or `green.4`–`green.7` as chart series colors** unless the series literally represents status (e.g., a "bugs introduced" line is allowed to be red). `green.9` is permitted for the Spike category because it is visually distinct from the RYG range.
 - `yellow.6` (RYG amber) and `yellow.7` (Epic gold) are different shades. Always use the correct one for the context — `yellow.7` for Epic entities, `yellow.6` for at-risk status.
 
 ---
@@ -65,19 +65,23 @@ Overhead and activity categories used in breakdown and composition charts. These
 
 | Category | Mantine Token | Hex | Notes |
 |----------|--------------|-----|-------|
-| **Spike** | `lime.6` | `#82C91E` | Research/exploration work. Yellow-green, reads as green but distinct from RYG `green.6` |
+| **Spike** | `green.9` | `#2b8a3e` | Research/exploration work. Deep forest green, clearly distinct from RYG `green.6` |
 | **Support** | `pink.6` | `#E64980` | Reactive support work, incidents |
-| **Meetings** | `gray.5` | `#ADB5BD` | Ceremonies, overhead time |
+| **Meetings** | `gray.7` | `#495057` | Ceremonies, overhead time. Dark enough to register on chart backgrounds |
 
-### Why `lime.6` and not `green.6` for Spikes
+### Why `green.9` and not `green.6` for Spikes
 
-`green.6` (#40C057) is reserved exclusively for RYG "on track" status. Using it for Spikes would create ambiguity — a green spike bar could be read as a positive status signal. `lime.6` (#82C91E) is visually green but clearly a different hue; it carries no status connotation.
+The RYG reservation covers `green.6` (#40c057) — the bright, traffic-light green that signals "on track." `green.9` (#2b8a3e) is a deep forest green, two full shades darker, that carries no status connotation. At a glance they are clearly different colors; a developer will not confuse them. Do not use any green shade between `.4` and `.7` for Spike data.
+
+### Why `gray.7` and not `gray.5` for Meetings
+
+`gray.5` (#adb5bd) is reserved for reference lines and UI dividers. Meetings needs a dedicated, darker token (`gray.7`, #495057) so it remains legible as a chart series and doesn't visually merge with grid lines or axis ticks on light backgrounds.
 
 ### Rules
 
-- **Spikes** = `lime.6`. Never use `green.6` for spike data, even in chart series.
+- **Spikes** = `green.9`. Do not use `green.4`–`green.7` for spike data — those shades are inside the RYG ambiguity zone.
 - **Support** = `pink.6`. Pink has no other semantic claim in this system.
-- **Meetings / Ceremonies** = `gray.5`. Neutral grey reflects the neutral/overhead nature of meeting time.
+- **Meetings / Ceremonies** = `gray.7`. Neutral but visible; does not clash with `gray.5` reference lines.
 - These three tokens are for **overhead category charts only** (e.g., `OverheadBreakdownChart`, `OverheadCompositionChart`). Do not repurpose them for entity type badges or RYG indicators.
 
 ---
@@ -90,7 +94,8 @@ For UI chrome, secondary states, completion indicators, and non-entity data seri
 |-------|-----|---------|
 | `teal.6` | `#12B886` | Milestone completion, done/closed state accents, burnup target lines |
 | `teal.0` | `#E6FCF5` | Milestone complete card background tint |
-| `gray.5` | `#ADB5BD` | Reference lines, dividers, chart grid lines; also the Meetings category color (Section 3) |
+| `gray.5` | `#ADB5BD` | Reference lines, dividers, chart grid lines |
+| `gray.7` | `#495057` | Meetings category color (overhead charts) — see Section 3 |
 | `gray.4` | `#CED4DA` | Disabled states, empty data, skeleton fills, "not started" badges |
 | `indigo.6` | `#4263EB` | Tertiary chart series, secondary metric lines |
 | `orange.6` | `#FD7E14` | Tertiary bar segments, general overhead |
@@ -114,9 +119,9 @@ For UI chrome, secondary states, completion indicators, and non-entity data seri
 
 | Series | Token |
 |--------|-------|
-| Spike | `lime.6` |
+| Spike | `green.9` |
 | Support | `pink.6` |
-| Meetings | `gray.5` |
+| Meetings | `gray.7` |
 | Other overhead | `orange.6` |
 
 **Reserved — do not use as generic series colors:**
@@ -125,7 +130,7 @@ For UI chrome, secondary states, completion indicators, and non-entity data seri
 - `red.6` — Status/negative only
 - `yellow.6` — Status/at-risk only
 - `green.6` — Status/positive only
-- `lime.6` — Spikes only
+- `green.9` — Spikes only (forest green; no shade between green.4–green.7 for non-RYG use)
 - `pink.6` — Support only
 
 ---
@@ -285,15 +290,16 @@ Mantine handles dark/light mode transparently. Follow these rules to ensure comp
 | Color | Reserved For | Never Use For |
 |-------|-------------|---------------|
 | `red.6` | Off-track status, errors, negative deltas | Decorative accent, chart series (non-status), entity labeling |
-| `green.6` | On-track status, positive deltas, success states | Decorative accent, chart series (non-status), entity labeling, Spikes |
+| `green.6` | On-track status, positive deltas, success states | Decorative accent, chart series (non-status), entity labeling, Spikes — use `green.9` for Spikes instead |
 | `yellow.6` | At-risk/caution status, RYG amber | Entity type coloring, positive indicators |
 | `yellow.7` | Epic entity type only | RYG status, warnings, generic accents |
 | `violet.6` | Feature entity type, secondary chart series | Epic labeling, status indicators |
 | `blue.6` | Story entity type, primary chart series | Status indicators, Epic/Feature labeling |
 | `teal.6` | Milestone completion, done/closed states | Entity type labeling, RYG replacement |
-| `lime.6` | Spike category only | RYG status, general "green" accent |
+| `green.9` | Spike category only (forest green) | RYG status, general green accent; do not swap for `green.6` |
 | `pink.6` | Support category only | General accent, entity type labeling |
-| `gray.5` | Reference lines, dividers, Meetings category | Status indicators, positive/negative meaning |
+| `gray.5` | Reference lines, dividers, chart grid lines | Status indicators, positive/negative meaning, Meetings series |
+| `gray.7` | Meetings category only | Status indicators, body text, positive/negative meaning |
 | `dimmed` | Secondary/supportive text | Headings, data values, status labels |
 
 ---

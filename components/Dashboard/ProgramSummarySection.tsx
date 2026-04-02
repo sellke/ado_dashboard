@@ -211,19 +211,14 @@ export function ProgramSummarySection({
                   withLegend
                   legendProps={{ verticalAlign: 'bottom', height: 30 }}
                   series={[
-                    { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
                     { name: 'Open (New/Active)', color: 'red.6' },
+                    { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
                   ]}
                   xAxisProps={{
                     interval: 0,
                     tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
                   }}
                   yAxisProps={{ domain: [0, 'auto'] }}
-                  tooltipProps={{
-                    position: { y: -20 },
-                    offset: 10,
-                    isAnimationActive: false,
-                  }}
                 />
               </Stack>
             </Card>

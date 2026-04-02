@@ -28,6 +28,8 @@ export interface MilestoneGoalViewModel {
   status: string;
   /** Explicit Qx quarter tag (e.g. "Q4"), or null if untagged. */
   quarter: string | null;
+  /** Badge: explicit ADP-{MON} or Q#-PLAN from API (e.g. ADP-JAN, Q2-PLAN). */
+  adpMonTagLabel?: string | null;
 }
 
 /** Group of milestones for a single month, ordered current → future → past */
@@ -52,6 +54,8 @@ export interface MilestoneFeatureViewModel {
   id: string;
   title: string;
   adoFeatureId: string | null;
+  /** Badge: explicit ADP-{MON} or Q#-PLAN (e.g. ADP-JAN, Q2-PLAN). */
+  adpMonTagLabel?: string | null;
   workstreams: MilestoneWorkstreamProgress[];
 }
 

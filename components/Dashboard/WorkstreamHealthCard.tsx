@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 import { Card, Group, Stack, Text } from '@mantine/core';
-import type { MetricTileViewModel, SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type { MetricTileViewModel, SprintStoryViewModel, TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { AppBarChart } from '@/lib/charts';
 import { MilestoneGoalsPanel } from './MilestoneGoalsPanel';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
@@ -40,6 +41,14 @@ function formatRate(value: number | null): string {
 function formatPct(value: number | null): string {
   if (value === null) return 'N/A';
   return `${value.toFixed(2)}%`;
+}
+
+function buildBugChartData(sprints: TrendSprintViewModel[]) {
+  return sprints.map((s) => ({
+    sprint: s.sprintName,
+    'Open (New/Active)': s.rawActiveBugs,
+    'Closed (Resolved/Testing/Closed)': s.rawBugsClosed,
+  }));
 }
 
 export function WorkstreamHealthCard({
@@ -137,7 +146,7 @@ export function WorkstreamHealthCard({
     );
 
   return (
-    <Card withBorder padding="md" shadow="sm">
+    <Card withBorder padding="md" shadow="sm" className="workstream-card" style={{ overflow: 'visible' }}>
       <Stack gap="sm">
         <Text fw={600} size="md">
           {workstreamName}
@@ -186,6 +195,36 @@ export function WorkstreamHealthCard({
           </Text>
           <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} activeSprintId={activeSprintId} />
         </Stack>
+
+        {trendSprints.length > 0 && (
+          <Stack
+            gap="xs"
+            mt="xs"
+            pt="xs"
+            style={{ borderTop: '1px solid var(--mantine-color-default-border)', overflow: 'visible' }}
+          >
+            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+              Bug Burndown
+            </Text>
+            <AppBarChart
+              height={180}
+              data={buildBugChartData(trendSprints)}
+              dataKey="sprint"
+              type="stacked"
+              withLegend
+              legendProps={{ verticalAlign: 'bottom', height: 30 }}
+              series={[
+                { name: 'Open (New/Active)', color: 'red.6' },
+                { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
+              ]}
+              xAxisProps={{
+                interval: 0,
+                tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
+              }}
+              yAxisProps={{ domain: [0, 'auto'] }}
+            />
+          </Stack>
+        )}
 
         {(sprintStories || storiesLoading || storiesError) && (
           <Stack

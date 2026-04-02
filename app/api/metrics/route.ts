@@ -14,7 +14,7 @@
 import { NextResponse } from 'next/server';
 import { resolveDashboard } from '@/lib/dashboard/config';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
-import { buildTrendSeries } from '@/lib/metrics/trend-service';
+import { buildTrendSeries, computeBugBurndown } from '@/lib/metrics/trend-service';
 import { DONE_STATES, type MetricWithRag, type ThresholdConfigInput, type WorkstreamMetrics } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
 
@@ -359,6 +359,12 @@ export async function GET(request: Request) {
       changedDate: bug.adoChangedDate,
     }));
 
+    // ALL bugs for burndown charts (no sprint filter) — shared by workstream + program levels.
+    const allBurndownBugs = await prisma.workItem.findMany({
+      where: { type: 'Bug', ...wsFilter },
+      select: { workstreamId: true, state: true, adoChangedDate: true },
+    });
+
     const latestComputedAt = snapshots.reduce(
       (max, s) => (s.computedAt > max ? s.computedAt : max),
       snapshots[0]!.computedAt
@@ -525,6 +531,29 @@ export async function GET(request: Request) {
           };
         }),
       };
+
+      // Per-workstream bug burndown: override sprint-assigned counts with time-based burndown.
+      const wsBurndownBugs = allBurndownBugs
+        .filter((b) => b.workstreamId === s.workstreamId)
+        .map((b) => ({ state: b.state, changedDate: b.adoChangedDate }));
+      const sprintRefMap = new Map(rollingSprints.map((rs) => [rs.id, rs]));
+      const wsBurndown = computeBugBurndown({
+        sprintsAsc: formatted.trends.sprints.map((ts: { sprintId: string; sprintName: string }) => {
+          const ref = sprintRefMap.get(ts.sprintId)!;
+          return { id: ts.sprintId, name: ts.sprintName, startDate: ref.startDate, endDate: ref.endDate };
+        }),
+        allBugs: wsBurndownBugs,
+      });
+      for (const bd of wsBurndown) {
+        const sprint = formatted.trends.sprints.find(
+          (ts: { sprintId: string }) => ts.sprintId === bd.sprintId
+        );
+        if (sprint) {
+          sprint.activeBugs = bd.activeBugs;
+          sprint.bugsClosed = bd.bugsClosed;
+        }
+      }
+
       formatted.prediction = {
         velocity: trends.prediction.velocity,
         velocityRate: trends.averageVelocityRate,
@@ -618,6 +647,32 @@ export async function GET(request: Request) {
           snapshots: trendSnapshots,
           bugItems: trendBugInputs,
         });
+
+        // Program-level bug burndown: reuse shared allBurndownBugs (no sprint filter).
+        const progSprintRefMap = new Map(rollingSprints.map((rs) => [rs.id, rs]));
+        const burndownResults = computeBugBurndown({
+          sprintsAsc: programTrends.sprints.map((s) => {
+            const ref = progSprintRefMap.get(s.sprintId)!;
+            return {
+              id: s.sprintId,
+              name: s.sprintName,
+              startDate: ref.startDate,
+              endDate: ref.endDate,
+            };
+          }),
+          allBugs: allBurndownBugs.map((b) => ({
+            state: b.state,
+            changedDate: b.adoChangedDate,
+          })),
+        });
+        for (const bd of burndownResults) {
+          const sprint = programTrends.sprints.find((s) => s.sprintId === bd.sprintId);
+          if (sprint) {
+            sprint.activeBugs = bd.activeBugs;
+            sprint.bugsClosed = bd.bugsClosed;
+          }
+        }
+
         const toMetric = (m: MetricWithRag, inc: boolean) => {
           const o: {
             value: number | null;

@@ -1,1 +1,14 @@
 /* Chart overflow handling is now built into lib/charts/ChartContainer */
+
+.recharts-wrapper,
+.recharts-tooltip-wrapper {
+  overflow: visible !important;
+}
+
+.workstream-card {
+  position: relative;
+  z-index: 0;
+}
+.workstream-card:hover {
+  z-index: 10;
+}
