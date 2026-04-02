@@ -2,8 +2,8 @@
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
 # platform: cursor
-# version: 3b3c64b
-# date: 2026-04-01T20:19:49Z
+# version: 4118fab
+# date: 2026-04-02T18:25:55Z
 # source: https://github.com/sellke/writ.git
 d142aff406ac331b028781f0d781369b6fef0b6e9f74dad09882abda859caeab  commands/assess-spec.md
 5d2a83c5192910488e2a50163ada64a78fdd92d415f66627ce590d75a881c1fd  commands/create-adr.md
@@ -23,13 +23,16 @@ c8dd5ac96af441b350360209fb4efc1dd18198cd908df6d30ed385125a5f8bb2  commands/initi
 2316426092f7595484b2c20de074b35a1485c68e06d4009f8139727254c627ec  commands/ralph.md
 7d526f2154fba8b651ef8f4081eaba4a5b651e77725f7b70c3660cc3f5e74592  commands/refactor.md
 8fa07b84594f3016b3fea5b485c73e2117c1843365df2a4548443ca467b59b3b  commands/refresh-command.md
+9c3c29b8582934ad03941d94b702aaec53b422be0ed0fe13085611b8cfe9b25e  commands/reinstall-writ.md
 3a3636fb399923237c4882816754a7f5d2c9ca4f929eb0c7da3f384d0b7f93a8  commands/release.md
 3f1ee453337f83f3a52d0dca1a12f3c11833a0fb8385ee5b842b76a4219595be  commands/research.md
 ff0d9b18faa92aba41984d5e50f15717464decd78ff7a16fa9d148db81fa0b78  commands/retro.md
 3d7846a034b6f6c5741221b03b2b360671cdc943fea056615a869ea5e4968446  commands/review.md
 e2c6d354af8d7b21646631f92dc0ea14b953bfa99d27641a1beb74730ce3ed25  commands/security-audit.md
 efbc57505295945e7a24cdddbcad93763f06f5383531c118d1663bdc33e9fa98  commands/ship.md
-45dc4e17bd6b2aadac4f927d9cecd4fb5593c8aa0eaa3e22a42efe64a36caf25  commands/status.md
+1c9f6d769930fe92c2a0af4c1765d4f096665d92bd25cf163669dffecbf8206f  commands/status.md
+135cc393a171f3a7518bfddc8480ce48149037452b719e7f51c070a2be6ba9d0  commands/uninstall-writ.md
+165b7187309f69597e04ed31dd2d999619313d08e3d74e44c963e916a3d20458  commands/update-writ.md
 1cbcc1deade214bc40975052225f167b0405795886ece8df394be39a76f0a6a5  commands/verify-spec.md
 baa052630c6d0f9a0a237da1ac593faf87c0df276741ba6359b3ef3a0149dc7e  agents/architecture-check-agent.md
 65f4b3ded188b4b4ffb375a60d6402af7774f6d6e112b666df57fb12555dda33  agents/coding-agent.md
