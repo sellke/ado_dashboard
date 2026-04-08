@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, Tabs } from '@mantine/core';
+import { Badge, Tabs, Tooltip } from '@mantine/core';
 import type { SprintStoryViewModel } from '@/lib/dashboard/types';
 
 export interface SprintTabSelectorProps {
@@ -39,9 +39,11 @@ export function SprintTabSelector({
             {sprint.name}
             {sprint.isCurrent ? ' (current)' : ''}
             {sprint.totalStories > 0 && (
-              <Badge size="xs" ml={4} variant="light">
-                {sprint.totalStories}
-              </Badge>
+              <Tooltip label={`${sprint.totalStories} stories in this sprint`} withArrow>
+                <Badge size="xs" ml={4} variant="light">
+                  {sprint.totalStories}
+                </Badge>
+              </Tooltip>
             )}
           </Tabs.Tab>
         ))}
