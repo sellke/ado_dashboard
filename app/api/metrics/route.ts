@@ -18,8 +18,8 @@ import { buildTrendSeries, computeBugBurndown } from '@/lib/metrics/trend-servic
 import { DONE_STATES, type MetricWithRag, type ThresholdConfigInput, type WorkstreamMetrics } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
 
-/** Hours of meeting/ceremony overhead per team member per sprint (Story 6). */
-const MEETING_HOURS_PER_MEMBER_PER_SPRINT = 10.25;
+/** Synthetic meeting hours per eligible member (dev / QA / BA) per sprint — dashboard charts only. */
+const MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT = 8.25;
 
 /** Build API metric shape: value, optional avg, rag. */
 function toMetricWithRag(
@@ -124,7 +124,7 @@ function formatWorkstreamResponse(
       velocityRate: number | null;
       activeBugs: number;
       bugsClosed: number;
-      mode: 'actual';
+      mode: 'actual' | 'current';
       velocityAvg: number | null;
       overheadPercentAvg: number | null;
       carryOverRateAvg: number | null;
@@ -341,7 +341,7 @@ export async function GET(request: Request) {
     const wsFilterForSW = workstreamIdParam
       ? { workstreamId: workstreamIdParam }
       : { workstreamId: { in: allowedWsIds } };
-    const trendSprintWorkstreams = await prisma.sprintWorkstream.findMany({
+    const trendSprintWorkstreamsBase = await prisma.sprintWorkstream.findMany({
       where: {
         sprintId: { in: rollingSprintIds },
         ...wsFilterForSW,
@@ -352,6 +352,27 @@ export async function GET(request: Request) {
         fteCount: true,
       },
     });
+
+    // Fetch meetingOverheadMemberCount via raw SQL so this works even if the
+    // Prisma client was generated before the column was added.
+    let meetingOverheadMap = new Map<string, number | null>();
+    try {
+      const rows = await prisma.$queryRaw<Array<{ sprintId: string; workstreamId: string; meetingOverheadMemberCount: number | null }>>`
+        SELECT "sprintId", "workstreamId", "meetingOverheadMemberCount"
+        FROM "sprint_workstreams"
+        WHERE "sprintId" = ANY(${rollingSprintIds}::text[])
+      `;
+      for (const row of rows) {
+        meetingOverheadMap.set(`${row.sprintId}:${row.workstreamId}`, row.meetingOverheadMemberCount ?? null);
+      }
+    } catch {
+      // Column not yet in DB — fall back to fteCount at usage site.
+    }
+
+    const trendSprintWorkstreams = trendSprintWorkstreamsBase.map((sw) => ({
+      ...sw,
+      meetingOverheadMemberCount: meetingOverheadMap.get(`${sw.sprintId}:${sw.workstreamId}`) ?? null,
+    }));
     const trendBugInputs = trendBugs.map((bug) => ({
       sprintId: bug.sprintId,
       workstreamId: bug.workstreamId,
@@ -486,11 +507,13 @@ export async function GET(request: Request) {
           const wsId = s.workstreamId;
           const sprintId = sprint.sprintId;
 
-          const meetingFteCount =
-            trendSprintWorkstreams.find(
-              (sw) => sw.sprintId === sprintId && sw.workstreamId === wsId
-            )?.fteCount ?? 0;
-          const meetingHours = MEETING_HOURS_PER_MEMBER_PER_SPRINT * meetingFteCount;
+          const swRow = trendSprintWorkstreams.find(
+            (sw) => sw.sprintId === sprintId && sw.workstreamId === wsId
+          );
+          const meetingHeadcount =
+            swRow?.meetingOverheadMemberCount ?? swRow?.fteCount ?? 0;
+          const meetingHours =
+            MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT * meetingHeadcount;
           const spikeHours = trendSpikes
             .filter((sp) => sp.sprintId === sprintId && sp.workstreamId === wsId)
             .reduce((sum, sp) => sum + (sp.storyPoints ?? 0), 0);
@@ -510,14 +533,25 @@ export async function GET(request: Request) {
             completedPoints: snap?.completedPoints ?? null,
             carryOverPoints: snap?.carryOverPoints ?? null,
             grossHours: snap?.grossHours ?? null,
-            overheadComposition: {
-              ceremonyHours: snap?.ceremonyHours ?? null,
-              bugHours: snap?.bugHours ?? null,
-              spikeHours: snap?.spikeHours ?? null,
-              supportHours: snap?.supportHours ?? null,
-              totalOverheadHours: snap?.overheadHours ?? null,
-              overheadPercent: snap?.overheadPercent ?? null,
-            },
+            overheadComposition: (() => {
+              const bugH = bugHoursBreakdown;
+              const spikeH = spikeHours;
+              const supportH = supportHoursBreakdown;
+              const totalSynth = meetingHours + bugH + spikeH + supportH;
+              const gross = snap?.grossHours ?? null;
+              const pctSynth =
+                gross !== null && gross !== undefined && gross > 0
+                  ? (totalSynth / gross) * 100
+                  : null;
+              return {
+                ceremonyHours: meetingHours,
+                bugHours: bugH,
+                spikeHours: spikeH,
+                supportHours: supportH,
+                totalOverheadHours: totalSynth,
+                overheadPercent: pctSynth,
+              };
+            })(),
             bugs: trendBugs
               .filter((b) => b.sprintId === sprintId && b.workstreamId === wsId)
               .sort((a, b) => a.adoId - b.adoId)

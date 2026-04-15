@@ -74,6 +74,33 @@ describe('calculateVelocity', () => {
     ];
     expect(calculateVelocity(items)).toBe(11); // 2+8+1
   });
+
+  it('should exclude Bug items regardless of state', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 10 }), // done Bug — excluded
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 3 }),  // active Bug — excluded
+      makeItem({ state: 'Done', storyPoints: 8 }),
+    ];
+    expect(calculateVelocity(items)).toBe(13); // 5+8 only; both Bug rows excluded
+  });
+
+  it('should return 0 when all done items are Bugs', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 7 }),
+      makeItem({ type: 'Bug', state: 'Done', storyPoints: 4 }),
+    ];
+    expect(calculateVelocity(items)).toBe(0);
+  });
+
+  it('should exclude Spike items regardless of state', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 6 }),
+      makeItem({ type: 'Spike', state: 'Closed', storyPoints: 5 }), // done Spike — excluded
+      makeItem({ type: 'Spike', state: 'Active', storyPoints: 3 }), // active Spike — excluded
+    ];
+    expect(calculateVelocity(items)).toBe(6); // only UserStory counts
+  });
 });
 
 // ============================================================================
@@ -313,6 +340,51 @@ describe('calculatePredictability', () => {
     expect(result!.completedPoints).toBe(0); // null→0
     expect(result!.predictability).toBe(0);
   });
+
+  it('should exclude Bug items from plannedPoints and completedPoints', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ state: 'Active', storyPoints: 5 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 20 }), // excluded
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 10 }), // excluded
+    ];
+    const result = calculatePredictability(items);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(10);   // only UserStory items: 5+5
+    expect(result!.completedPoints).toBe(5);  // only closed UserStory: 5
+    expect(result!.predictability).toBe(50);  // 5/10*100
+  });
+
+  it('should return null when only Bug items are present', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 8 }),
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 5 }),
+    ];
+    expect(calculatePredictability(items)).toBeNull();
+  });
+
+  it('should exclude Spike items from plannedPoints and completedPoints', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ state: 'Active', storyPoints: 5 }),
+      makeItem({ type: 'Spike', state: 'Closed', storyPoints: 20 }), // excluded
+      makeItem({ type: 'Spike', state: 'Active', storyPoints: 10 }), // excluded
+    ];
+    const result = calculatePredictability(items);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(10);   // only UserStory items: 5+5
+    expect(result!.completedPoints).toBe(5);  // only closed UserStory: 5
+    expect(result!.predictability).toBe(50);
+  });
+
+  it('should return null when only Spike items are present', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Spike', state: 'Closed', storyPoints: 8 }),
+    ];
+    expect(calculatePredictability(items)).toBeNull();
+  });
 });
 
 // ============================================================================
@@ -386,5 +458,52 @@ describe('calculateCarryOver', () => {
 
   it('should return null when no items', () => {
     expect(calculateCarryOver([])).toBeNull();
+  });
+
+  it('should exclude Bug items from plannedPoints and carryOverPoints', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ state: 'Active', storyPoints: 3 }),
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 20 }), // excluded
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 10 }), // excluded
+    ];
+    const result = calculateCarryOver(items);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(8);      // only UserStory items: 5+3
+    expect(result!.carryOverItems).toBe(1);     // one incomplete UserStory
+    expect(result!.carryOverPoints).toBe(3);    // active UserStory only
+    expect(result!.carryOverRate).toBe(37.5);   // 3/8*100
+  });
+
+  it('should return null when only Bug items are present', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 8 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 5 }),
+    ];
+    expect(calculateCarryOver(items)).toBeNull();
+  });
+
+  it('should exclude Spike items from plannedPoints and carryOverPoints', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ state: 'Active', storyPoints: 3 }),
+      makeItem({ type: 'Spike', state: 'Active', storyPoints: 20 }), // excluded
+      makeItem({ type: 'Spike', state: 'Closed', storyPoints: 10 }), // excluded
+    ];
+    const result = calculateCarryOver(items);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(8);    // only UserStory items: 5+3
+    expect(result!.carryOverItems).toBe(1);   // one incomplete UserStory
+    expect(result!.carryOverPoints).toBe(3);  // active UserStory only
+    expect(result!.carryOverRate).toBe(37.5); // 3/8*100
+  });
+
+  it('should return null when only Spike items are present', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Spike', state: 'Active', storyPoints: 8 }),
+    ];
+    expect(calculateCarryOver(items)).toBeNull();
   });
 });

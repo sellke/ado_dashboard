@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { AppLineChart, ChartLegend } from '@/lib/charts';
 import { Stack, Text } from '@mantine/core';
 import type { TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
@@ -8,16 +9,23 @@ export interface VelocityTrendChartProps {
   trendSprints: TrendSprintViewModel[];
   prediction: WorkstreamCardViewModel['prediction'];
   activeSprintId?: string;
+  /** ID of the currently in-flight sprint — used to overlay forecast and render hollow dot. */
+  currentSprintId?: string;
 }
 
-type ChartDataPoint = { sprint: string; 'Completed Points'?: number; Forecasted?: number };
+type ChartDataPoint = {
+  sprint: string;
+  'Completed Points'?: number;
+  Forecasted?: number;
+  isCurrentSprint?: boolean;
+};
 
 function buildChartData(
   sprints: TrendSprintViewModel[],
   prediction: VelocityTrendChartProps['prediction']
 ): ChartDataPoint[] {
   const data: ChartDataPoint[] = sprints.map((s) => {
-    const point: ChartDataPoint = { sprint: s.sprintName };
+    const point: ChartDataPoint = { sprint: s.sprintName, isCurrentSprint: s.isCurrent };
     if (s.rawVelocity !== null) {
       point['Completed Points'] = s.rawVelocity;
     }
@@ -25,29 +33,51 @@ function buildChartData(
   });
 
   if (prediction && data.length > 0) {
-    const basePredictionLabel = prediction.sprintLabel || 'Current Sprint';
-    const existingLabels = new Set(data.map((p) => p.sprint));
+    // Prefer the sprint explicitly marked current; fall back to the last sprint.
+    const currentIdx = sprints.findIndex((s) => s.isCurrent);
+    const targetIdx = currentIdx >= 0 ? currentIdx : data.length - 1;
 
-    let predictionLabel = `${basePredictionLabel} (Forecasted)`;
-    let index = 2;
-    while (existingLabels.has(predictionLabel)) {
-      predictionLabel = `${basePredictionLabel} (Forecasted ${index})`;
-      index += 1;
-    }
-
-    const lastActual = data[data.length - 1]['Completed Points'];
-    if (typeof lastActual === 'number') {
-      data[data.length - 1].Forecasted = lastActual;
-    }
-
-    const predictionPoint: ChartDataPoint = { sprint: predictionLabel };
+    // Place the forecast on the current sprint's data point so it shares the
+    // same x-axis tick rather than appearing as a separate "(F)" entry.
     if (prediction.rawVelocity != null) {
-      predictionPoint.Forecasted = prediction.rawVelocity;
+      data[targetIdx].Forecasted = prediction.rawVelocity;
+
+      // Bridge the prior sprint so the dashed forecast line has a visible
+      // connecting segment from the previous actual value to the forecast dot.
+      if (targetIdx > 0) {
+        const priorActual = data[targetIdx - 1]['Completed Points'];
+        if (typeof priorActual === 'number') {
+          data[targetIdx - 1].Forecasted = priorActual;
+        }
+      }
     }
-    data.push(predictionPoint);
   }
 
   return data;
+}
+
+function completedPointsDot(props: Record<string, unknown>): React.ReactElement | null {
+  const { cx, cy, stroke, payload } = props as {
+    cx?: number;
+    cy?: number;
+    stroke: string;
+    payload: ChartDataPoint;
+  };
+  if (cx == null || cy == null) return null;
+  if (payload.isCurrentSprint) {
+    return (
+      <circle
+        key={`dot-${cx}-${cy}`}
+        cx={cx}
+        cy={cy}
+        r={4}
+        stroke={stroke}
+        strokeWidth={2}
+        fill="white"
+      />
+    );
+  }
+  return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={stroke} />;
 }
 
 function computeRollingAvg(sprints: TrendSprintViewModel[]): number | null {
@@ -58,7 +88,11 @@ function computeRollingAvg(sprints: TrendSprintViewModel[]): number | null {
   return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
 }
 
-export function VelocityTrendChart({ trendSprints, prediction, activeSprintId }: VelocityTrendChartProps) {
+export function VelocityTrendChart({
+  trendSprints,
+  prediction,
+  activeSprintId,
+}: VelocityTrendChartProps) {
   if (trendSprints.length === 0) {
     return (
       <Text size="sm" c="dimmed">
@@ -83,13 +117,12 @@ export function VelocityTrendChart({ trendSprints, prediction, activeSprintId }:
         connectNulls={false}
         curveType="linear"
         series={[
-          { name: 'Completed Points', color: 'blue.6' },
+          { name: 'Completed Points', color: 'blue.6', dot: completedPointsDot },
           { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
         ]}
         xAxisProps={{
           interval: 0,
-          tickFormatter: (v: string) =>
-            v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+          tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
           angle: -20,
           textAnchor: 'end',
           height: 52,

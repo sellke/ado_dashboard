@@ -69,50 +69,52 @@ describe('ProgramSummarySection', () => {
       },
     ],
     programTrendSprints: [
-      {
-        sprintId: 's1',
-        sprintName: 'Sprint 1',
-        velocity: '120 pts',
-        velocityRate: '1.40 pts/hr',
-        activeBugs: '10',
-        bugsClosed: '14',
-        rawVelocity: 120,
-        rawVelocityRate: 1.4,
-        rawActiveBugs: 10,
-        rawBugsClosed: 14,
-        bugs: [],
-        velocityAvg: null,
-        overheadPercentAvg: null,
-        carryOverRateAvg: null,
-        plannedPoints: null,
-        completedPoints: null,
-        carryOverPoints: null,
-        grossHours: null,
-        rawOverheadPercent: null,
-        rawCarryOverRate: null,
-      },
-      {
-        sprintId: 's2',
-        sprintName: 'Sprint 2',
-        velocity: '126 pts',
-        velocityRate: '1.55 pts/hr',
-        activeBugs: '8',
-        bugsClosed: '15',
-        rawVelocity: 126,
-        rawVelocityRate: 1.55,
-        rawActiveBugs: 8,
-        rawBugsClosed: 15,
-        bugs: [],
-        velocityAvg: null,
-        overheadPercentAvg: null,
-        carryOverRateAvg: null,
-        plannedPoints: null,
-        completedPoints: null,
-        carryOverPoints: null,
-        grossHours: null,
-        rawOverheadPercent: null,
-        rawCarryOverRate: null,
-      },
+        {
+          sprintId: 's1',
+          sprintName: 'Sprint 1',
+          isCurrent: false,
+          velocity: '120 pts',
+          velocityRate: '1.40 pts/hr',
+          activeBugs: '10',
+          bugsClosed: '14',
+          rawVelocity: 120,
+          rawVelocityRate: 1.4,
+          rawActiveBugs: 10,
+          rawBugsClosed: 14,
+          bugs: [],
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
+        },
+        {
+          sprintId: 's2',
+          sprintName: 'Sprint 2',
+          isCurrent: false,
+          velocity: '126 pts',
+          velocityRate: '1.55 pts/hr',
+          activeBugs: '8',
+          bugsClosed: '15',
+          rawVelocity: 126,
+          rawVelocityRate: 1.55,
+          rawActiveBugs: 8,
+          rawBugsClosed: 15,
+          bugs: [],
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
+        },
     ],
     sprint5Prediction: {
       velocity: '132 pts',
@@ -168,7 +170,8 @@ describe('ProgramSummarySection', () => {
       { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
     ]);
     const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
-    expect(velocityPoints).toHaveLength(3);
+    // 2 sprints — forecast merges onto the last sprint, no extra entry
+    expect(velocityPoints).toHaveLength(2);
 
     const barCharts = screen.getAllByTestId('bar-chart');
     expect(barCharts).toHaveLength(1);
@@ -183,13 +186,14 @@ describe('ProgramSummarySection', () => {
     expect(screen.queryByText('Sprint 5 Predicted Velocity')).not.toBeInTheDocument();
   });
 
-  it('keeps prediction as a distinct fifth category when sprint labels collide', () => {
+  it('merges forecast onto the last sprint when no sprint is marked isCurrent', () => {
     const vmDuplicateSprintLabel: DashboardViewModel = {
       ...populatedViewModel,
       programTrendSprints: [
         {
           sprintId: 's1',
           sprintName: 'Sprint 26.18',
+          isCurrent: false,
           velocity: '31 pts',
           velocityRate: '1.10 pts/hr',
           activeBugs: '9',
@@ -205,6 +209,7 @@ describe('ProgramSummarySection', () => {
         {
           sprintId: 's2',
           sprintName: 'Sprint 26.19',
+          isCurrent: false,
           velocity: '61 pts',
           velocityRate: '1.20 pts/hr',
           activeBugs: '8',
@@ -220,6 +225,7 @@ describe('ProgramSummarySection', () => {
         {
           sprintId: 's3',
           sprintName: 'Sprint 26.20',
+          isCurrent: false,
           velocity: '90 pts',
           velocityRate: '1.30 pts/hr',
           activeBugs: '7',
@@ -235,6 +241,7 @@ describe('ProgramSummarySection', () => {
         {
           sprintId: 's4',
           sprintName: 'Sprint 26.21',
+          isCurrent: false,
           velocity: '54 pts',
           velocityRate: '1.40 pts/hr',
           activeBugs: '6',
@@ -260,9 +267,12 @@ describe('ProgramSummarySection', () => {
 
     const lineChart = screen.getAllByTestId('line-chart')[0];
     const velocityPoints = JSON.parse(lineChart.getAttribute('data-points')!);
-    expect(velocityPoints).toHaveLength(5);
-    expect(velocityPoints[4].sprint).toBe('Sprint 26.21 (Forecasted)');
-    expect(velocityPoints[4].Forecasted).toBe(58);
+    // 4 sprints — forecast merges onto the last sprint, no extra entry
+    expect(velocityPoints).toHaveLength(4);
+    expect(velocityPoints[3].sprint).toBe('Sprint 26.21');
+    expect(velocityPoints[3].Forecasted).toBe(58);
+    // Bridge on the prior sprint for a visible dashed line segment
+    expect(velocityPoints[2].Forecasted).toBe(velocityPoints[2]['Completed Points']);
   });
 
   it('renders N/A for metrics with null values with stable layout', () => {
@@ -391,6 +401,7 @@ describe('ProgramSummarySection', () => {
         {
           sprintId: 's1',
           sprintName: 'Sprint 1',
+          isCurrent: false,
           velocity: 'N/A',
           velocityRate: 'N/A',
           activeBugs: 'N/A',
@@ -418,8 +429,10 @@ describe('ProgramSummarySection', () => {
     const lineCharts = screen.getAllByTestId('line-chart');
     expect(lineCharts).toHaveLength(1);
     const velocityPoints = JSON.parse(lineCharts[0].getAttribute('data-points')!);
-    expect(velocityPoints).toHaveLength(2);
-    expect(velocityPoints[1].sprint).toBe('Sprint 26.21');
+    // 1 sprint — no forecast merged (rawVelocity is null), no extra entry
+    expect(velocityPoints).toHaveLength(1);
+    expect(velocityPoints[0].sprint).toBe('Sprint 1');
+    expect(velocityPoints[0]).not.toHaveProperty('Forecasted');
     expect(screen.getAllByTestId('bar-chart')).toHaveLength(1);
   });
 });

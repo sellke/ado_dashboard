@@ -28,6 +28,7 @@ function makeSprint(
   return {
     sprintId: sprintName,
     sprintName,
+    isCurrent: false,
     velocity: '40 pts',
     velocityRate: '0.67 pts/hr',
     activeBugs: '2',
@@ -74,6 +75,7 @@ describe('OverheadBreakdownChart', () => {
         {
           sprintId: 's1',
           sprintName: 'Sprint 1',
+          isCurrent: false,
           velocity: '40 pts',
           velocityRate: '0.67 pts/hr',
           activeBugs: '2',
@@ -112,6 +114,7 @@ describe('OverheadBreakdownChart', () => {
         {
           sprintId: 's1',
           sprintName: 'Sprint 1',
+          isCurrent: false,
           velocity: '40 pts',
           velocityRate: '0.67 pts/hr',
           activeBugs: '2',
@@ -184,6 +187,7 @@ describe('OverheadBreakdownChart', () => {
         {
           sprintId: 's1',
           sprintName: 'Sprint 1',
+          isCurrent: false,
           velocity: '40 pts',
           velocityRate: '0.67 pts/hr',
           activeBugs: '2',

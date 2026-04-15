@@ -29,7 +29,7 @@ export interface TrendSprintMetrics {
   velocityRate: number | null;
   activeBugs: number;
   bugsClosed: number;
-  mode: 'actual';
+  mode: 'actual' | 'current';
 }
 
 export interface SprintPrediction {
@@ -156,7 +156,7 @@ export function calculateVelocityRate(
   if (netCapacityHours === null || netCapacityHours === undefined || netCapacityHours <= 0) {
     return null;
   }
-  return doneLikeStoryPoints / netCapacityHours;
+  return Math.round((doneLikeStoryPoints / netCapacityHours) * 100) / 100;
 }
 
 export function buildTrendSeries(params: {
@@ -218,17 +218,32 @@ export function buildTrendSeries(params: {
     .filter((value): value is number => value !== null);
   const averageVelocityRate =
     velocityRates.length > 0
-      ? velocityRates.reduce((sum, value) => sum + value, 0) / velocityRates.length
+      ? Math.round((velocityRates.reduce((sum, value) => sum + value, 0) / velocityRates.length) * 100) / 100
       : null;
 
   const prediction: SprintPrediction = {
     velocity:
       averageVelocityRate !== null && currentNetCapacity !== null
-        ? averageVelocityRate * currentNetCapacity
+        ? Math.round(averageVelocityRate * currentNetCapacity * 100) / 100
         : null,
     mode: 'predicted',
     formula: 'average velocity rate × current sprint net capacity hours',
   };
+
+  const currentRef = rollingSprintsDesc.find((s) => s.id === selectedCurrentSprintId);
+  if (currentRef) {
+    const currentVelocity = sumNullable(currentSnapshots.map((s) => s.velocity));
+    const currentVelocityRate = calculateVelocityRate(currentVelocity, currentNetCapacity);
+    sprints.push({
+      sprintId: currentRef.id,
+      sprintName: currentRef.name,
+      velocity: currentVelocity,
+      velocityRate: currentVelocityRate,
+      activeBugs: 0,
+      bugsClosed: 0,
+      mode: 'current',
+    });
+  }
 
   return { sprints, prediction, averageVelocityRate };
 }

@@ -2,7 +2,7 @@
 
 > Source: Complete mission.md
 > Purpose: Efficient AI context for development
-> Last Updated: 2026-02-18
+> Last Updated: 2026-04-09
 
 ## Core Value
 
@@ -23,7 +23,7 @@ Single operator (Scrum Master) runs the tool locally, produces reports consumed 
   - Action Tracker — operational actions from data
   - KPI Services — KPI aggregation (area path: Tier Boards)
   - UCM — Unified Configuration Manager (area path: Unified Configuration Manager)
-- **Sprint cadence:** 2-week, synchronized, Q4 FY26 Sprint 2, Week 2
+- **Sprint cadence:** 2-week, synchronized, Q4 FY26
 
 ## Key Differentiator
 
@@ -45,7 +45,7 @@ Combines quantitative ADO sprint metrics with AI-extracted qualitative ceremony 
 
 ## Milestone Model
 
-ADO Features tagged with monthly goal identifiers (e.g., `Feb-Goal`). Child User Stories and their story points are the unit of progress. % Complete = completed SP / total SP. Total SP is a living number. Target = end of tagged month.
+ADO Features tagged `ADP-{MON}` (e.g., `ADP-MAR`) with `Qx` quarter tags (e.g., `Q4`). Child User Stories bearing matching `ADP-MON` tags are the unit of progress. % Complete = completed SP / total SP. Total SP is a living number. Status derived at API time via `deriveMilestoneStatus()`. Quarterly grouping via explicit `Qx` tags.
 
 ## Success Definition
 
@@ -54,8 +54,13 @@ Report generation goes from hours of manual assembly to < 15 minutes of review a
 ## Current Phase
 
 **Phase 1A (Done):** ADO data sync → metric engine → APIs — fully operational.
-**Phase 1B–1F (Next):** Report UI (Program Summary → Workstream Velocity → Workstream Overhead → Workstream Milestones → PowerPoint Export).
+**Phase 1B (Done):** Program Summary UI — metric tiles, workstream health cards, trend charts, sync trigger, Storybook.
+**Phase 1C (Done):** Workstream Velocity — per-workstream line charts, prediction, velocity rate, per-sprint bug lists.
+**Phase 1D (Done):** Workstream Overhead — composition stacked bar chart, bug/spike/support item tables with ADO links.
+**Phase 1E (Phase 1 Done):** Workstream Milestones — ADO Feature tag sync, burnup charts, quarterly panel. ADP extension remaining.
+**Cross-Cutting (Done):** Recharts migration, shared sprint tabs, sprint plan snapshots, full sprint-scoped data, metrics audit, current sprint chart visibility.
+**Phase 1F (Next):** PowerPoint Export.
 
 ## Technical Stack
 
-Next.js 15 (App Router) + Mantine 8 + Prisma 6 + PostgreSQL 16. ADO data via installed MCP server. Local deployment only. PowerPoint via pptxgenjs.
+Next.js 15 (App Router) + Mantine 8 + Recharts + Prisma 6 + PostgreSQL 16. Charts via thin Recharts wrappers in `lib/charts/` (dark mode, Mantine theme). ADO data via installed MCP server. Local deployment only. PowerPoint via pptxgenjs.

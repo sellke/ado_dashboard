@@ -46,6 +46,9 @@ const mockMilestonesWithData = () =>
             totalPoints: 0,
             percentComplete: null,
             burnupData: [],
+            /** Required for program-level quarterly ADP panel (`groupMilestonesByQuarter`). */
+            quarter: 'Q1',
+            workstreamBreakdown: [],
           },
         ],
         programRollup: EMPTY_PROGRAM_ROLLUP,
@@ -86,7 +89,7 @@ describe('DashboardContainer integration', () => {
     expect(screen.getByText(/120\.5 pts/)).toBeInTheDocument();
   });
 
-  it('renders milestone panel with mocked API when milestones exist', async () => {
+  it('renders program ADP milestone panel with mocked API when milestones exist', async () => {
     const fullResponse = createApiResponse();
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
@@ -100,10 +103,9 @@ describe('DashboardContainer integration', () => {
     render(<DashboardContainer />);
 
     expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByTestId('milestone-quarterly-panel')).toBeInTheDocument();
     expect((await screen.findAllByText('Platform Phase 1')).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Mar 2026/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/In Progress/)).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: /milestones/i })).toBeInTheDocument();
+    expect(screen.getByText('Q1')).toBeInTheDocument();
   });
 
   it('transitions loading → success with mixed RAG across workstreams', async () => {
@@ -278,7 +280,7 @@ describe('DashboardContainer integration', () => {
       expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
     });
 
-    it('refetches milestones after successful sync so new milestones appear', async () => {
+    it('refetches milestones after successful sync so new milestones appear in program summary', async () => {
       const fullResponse = createApiResponse();
       const fetchMock = global.fetch as jest.Mock;
       let milestonesCallCount = 0;
@@ -308,11 +310,12 @@ describe('DashboardContainer integration', () => {
       render(<DashboardContainer />);
 
       expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
-      expect(screen.queryByText('Platform Phase 1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('milestone-quarterly-panel')).not.toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
 
+      expect(await screen.findByTestId('milestone-quarterly-panel')).toBeInTheDocument();
       expect((await screen.findAllByText('Platform Phase 1')).length).toBeGreaterThan(0);
     });
 

@@ -27,11 +27,11 @@ export function calculateRollingAverages(priorSnapshots: PriorSnapshot[]): Rolli
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Arithmetic mean of non-null values. Returns null if all values are null or array is empty. */
+/** Arithmetic mean of non-null values, rounded to the nearest hundredth. Returns null if all values are null or array is empty. */
 function averageNonNull(values: (number | null)[]): number | null {
   const nonNull = values.filter((v): v is number => v !== null);
   if (nonNull.length === 0) {
     return null;
   }
-  return nonNull.reduce((sum, v) => sum + v, 0) / nonNull.length;
+  return Math.round((nonNull.reduce((sum, v) => sum + v, 0) / nonNull.length) * 100) / 100;
 }

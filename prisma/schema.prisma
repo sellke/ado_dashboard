@@ -67,19 +67,21 @@ model Sprint {
 }
 
 model SprintWorkstream {
-  id              String   @id @default(cuid())
-  sprintId        String
-  workstreamId    String
-  plannedPoints   Float?
-  completedPoints Float?
-  grossHours      Float?
-  ptoHours        Float?
-  ceremonyHours   Float?
-  fteCount        Int?
-  capacityLocked  Boolean  @default(false)
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                         String   @id @default(cuid())
+  sprintId                   String
+  workstreamId               String
+  plannedPoints              Float?
+  completedPoints            Float?
+  grossHours                 Float?
+  ptoHours                   Float?
+  ceremonyHours              Float?
+  fteCount                   Int?
+  /// Dev / QA / BA headcount for synthetic meeting overhead (8.25h × this per sprint).
+  meetingOverheadMemberCount Int?
+  capacityLocked             Boolean  @default(false)
+  notes                      String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   // Relations
   sprint     Sprint     @relation(fields: [sprintId], references: [id], onDelete: Cascade)

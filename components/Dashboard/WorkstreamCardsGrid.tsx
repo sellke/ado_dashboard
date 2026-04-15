@@ -9,8 +9,6 @@ import { WorkstreamHealthCard } from './WorkstreamHealthCard';
 
 export interface WorkstreamCardsGridProps {
   cards: WorkstreamCardViewModel[];
-  milestonesLoading?: boolean;
-  milestonesError?: string | null;
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
@@ -18,8 +16,6 @@ export interface WorkstreamCardsGridProps {
 
 export function WorkstreamCardsGrid({
   cards,
-  milestonesLoading,
-  milestonesError,
   sprintStoriesMap,
   storiesLoading,
   storiesError,
@@ -64,8 +60,6 @@ export function WorkstreamCardsGrid({
           <WorkstreamHealthCard
             key={card.workstreamId}
             card={card}
-            milestonesLoading={milestonesLoading}
-            milestonesError={milestonesError}
             sprintStories={sprintStoriesMap?.[card.workstreamId]}
             activeSprintId={activeSprintId}
             currentSprintId={currentSprintId}

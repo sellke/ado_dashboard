@@ -1,34 +1,17 @@
 'use client';
 
 import { Stack, Text } from '@mantine/core';
-import type {
-  OverheadCompositionViewModel,
-  OverheadSprintViewModel,
-  TrendSprintViewModel,
-} from '@/lib/dashboard/types';
-import { CurrentSprintItemTables } from './CurrentSprintItemTables';
+import type { TrendSprintViewModel } from '@/lib/dashboard/types';
 import { OverheadBreakdownChart } from './OverheadBreakdownChart';
-import { OverheadCompositionChart } from './OverheadCompositionChart';
 
 export interface OverheadBreakdownPanelProps {
   trendSprints: TrendSprintViewModel[];
-  overheadItemsBySprint: OverheadSprintViewModel[];
-  activeSprintId: string;
-  overheadComposition?: OverheadCompositionViewModel[];
 }
 
 /**
- * Umbrella panel that composes OverheadBreakdownChart and CurrentSprintItemTables.
- * Finds the selected sprint's items from overheadItemsBySprint and passes them down.
+ * Panel that renders the overhead line chart showing overhead hours by category over time.
  */
-export function OverheadBreakdownPanel({
-  trendSprints,
-  overheadItemsBySprint,
-  activeSprintId,
-  overheadComposition = [],
-}: OverheadBreakdownPanelProps) {
-  const selected = overheadItemsBySprint.find((s) => s.sprintId === activeSprintId);
-
+export function OverheadBreakdownPanel({ trendSprints }: OverheadBreakdownPanelProps) {
   return (
     <Stack
       gap="xs"
@@ -40,13 +23,7 @@ export function OverheadBreakdownPanel({
       <Text size="xs" c="dimmed" tt="uppercase">
         Overhead Breakdown (Hours)
       </Text>
-      <OverheadCompositionChart composition={overheadComposition} />
       <OverheadBreakdownChart trendSprints={trendSprints} />
-      <CurrentSprintItemTables
-        bugItems={selected?.bugs ?? []}
-        spikeItems={selected?.spikes ?? []}
-        supportItems={selected?.support ?? []}
-      />
     </Stack>
   );
 }

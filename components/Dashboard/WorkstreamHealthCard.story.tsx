@@ -8,6 +8,7 @@ export default {
 };
 
 const enrichedDefaults = {
+  isCurrent: false as boolean,
   velocityAvg: null as number | null,
   overheadPercentAvg: null as number | null,
   carryOverRateAvg: null as number | null,
@@ -56,8 +57,8 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawActiveBugs: 2,
       rawBugsClosed: 5,
       bugs: [
-        { adoId: '12345', title: 'Login crash', isClosed: true },
-        { adoId: '67890', title: 'Slow query', isClosed: false },
+        { adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345' },
+        { adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890' },
       ],
       ...enrichedDefaults,
     },
@@ -72,7 +73,7 @@ const fullDataCard: WorkstreamCardViewModel = {
       rawVelocityRate: 0.7,
       rawActiveBugs: 3,
       rawBugsClosed: 4,
-      bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
+      bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111' }],
       ...enrichedDefaults,
     },
   ],
@@ -86,7 +87,6 @@ const fullDataCard: WorkstreamCardViewModel = {
   },
   overheadComposition: [],
   overheadItemsBySprint: [],
-  milestoneGroups: [],
 };
 
 export const SingleWorkstream = () => <WorkstreamHealthCard card={fullDataCard} />;

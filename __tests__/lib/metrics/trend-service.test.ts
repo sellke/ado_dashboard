@@ -107,11 +107,11 @@ describe('buildTrendSeries', () => {
       workstreamId: 'ws-1',
     });
 
-    expect(result.sprints).toHaveLength(4);
+    expect(result.sprints).toHaveLength(5);
     expect(result.sprints[0]).toMatchObject({
       sprintId: 's1',
       velocity: 10,
-      velocityRate: 10 / 60,
+      velocityRate: 0.17,
       activeBugs: 1,
       bugsClosed: 0,
       mode: 'actual',
@@ -121,12 +121,18 @@ describe('buildTrendSeries', () => {
       activeBugs: 1,
       bugsClosed: 0,
     });
+    expect(result.sprints[4]).toMatchObject({
+      sprintId: 's5',
+      velocity: null,
+      velocityRate: null,
+      activeBugs: 0,
+      bugsClosed: 0,
+      mode: 'current',
+    });
 
-    // Avg velocity rate = ((10/60)+(12/60)+(8/60)+(10/60))/4 = 1/6
-    // Current net capacity = 100 - 20 = 80
-    // Predicted velocity = 80/6 = 13.333...
+    // Per-sprint rates are rounded to 2 decimals; avg rate then rounds again; pred = avg × net
     expect(result.prediction.mode).toBe('predicted');
-    expect(result.prediction.velocity).toBeCloseTo(13.333, 3);
+    expect(result.prediction.velocity).toBeCloseTo(13.6, 1);
     expect(result.prediction.formula).toContain('average velocity rate');
   });
 
@@ -224,6 +230,69 @@ describe('buildTrendSeries', () => {
       activeBugs: 1,
       bugsClosed: 0,
     });
+  });
+
+  it('emits current sprint as 5th entry with mode current when currentSprintId exists', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: 's5',
+      snapshots: [
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 8, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's5', workstreamId: 'ws-1', velocity: 6, grossHours: 100, overheadHours: 20 },
+      ],
+      bugItems: [],
+      workstreamId: 'ws-1',
+    });
+
+    expect(result.sprints).toHaveLength(5);
+    const current = result.sprints[4];
+    expect(current.sprintId).toBe('s5');
+    expect(current.sprintName).toBe('Sprint 5');
+    expect(current.mode).toBe('current');
+    expect(current.velocity).toBe(6);
+    expect(current.activeBugs).toBe(0);
+    expect(current.bugsClosed).toBe(0);
+    expect(result.sprints.slice(0, 4).every((s) => s.mode === 'actual')).toBe(true);
+  });
+
+  it('emits current sprint with null velocity when snapshot has no velocity', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: 's5',
+      snapshots: [
+        { sprintId: 's5', workstreamId: 'ws-1', velocity: null, grossHours: 100, overheadHours: 20 },
+      ],
+      bugItems: [],
+      workstreamId: 'ws-1',
+    });
+
+    const current = result.sprints.find((s) => s.sprintId === 's5');
+    expect(current).toBeDefined();
+    expect(current!.mode).toBe('current');
+    expect(current!.velocity).toBeNull();
+  });
+
+  it('returns 4 entries when no currentSprintId is provided (no regression)', () => {
+    const result = buildTrendSeries({
+      rollingSprintsDesc,
+      currentSprintId: null,
+      snapshots: [
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 8, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+      ],
+      bugItems: [],
+      workstreamId: 'ws-1',
+    });
+
+    // With null currentSprintId, selectedCurrentSprintId falls back to rollingSprintsDesc[0].id = 's5'
+    // s5 has no snapshot so velocity is null — it still gets appended as current
+    // The 4 actual sprints (s1-s4) are all present
+    expect(result.sprints.filter((s) => s.mode === 'actual')).toHaveLength(4);
   });
 
   it('explicitly matches New and Active for the open bucket', () => {

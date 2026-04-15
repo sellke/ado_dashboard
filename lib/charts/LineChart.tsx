@@ -85,7 +85,11 @@ export function AppLineChart<T = Record<string, unknown>>({
             stroke={theme.resolveColor(s.color)}
             strokeWidth={2}
             strokeDasharray={s.strokeDasharray}
-            dot={withDots ? { r: 3, fill: theme.resolveColor(s.color) } : false}
+            dot={
+              s.dot !== undefined
+                ? (s.dot as React.ComponentProps<typeof Line>['dot'])
+                : withDots ? { r: 3, fill: theme.resolveColor(s.color) } : false
+            }
             connectNulls={connectNulls}
             activeDot={withDots ? { r: 5 } : undefined}
           />

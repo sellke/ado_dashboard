@@ -216,20 +216,22 @@ export function mapProgramMilestoneRollup(
   };
 }
 
-/** Format metric value with unit; null -> "N/A" */
+/** Format metric value with unit, rounded to the nearest hundredth; null -> "N/A" */
 export function formatMetricValue(value: number | null, unit: string): string {
   if (value === null || value === undefined) {
     return 'N/A';
   }
-  return `${value} ${unit}`;
+  const rounded = Math.round(value * 100) / 100;
+  return `${rounded} ${unit}`;
 }
 
-/** Format percentage value; null -> "N/A" */
+/** Format percentage value, rounded to the nearest hundredth; null -> "N/A" */
 export function formatPercent(value: number | null): string {
   if (value === null || value === undefined) {
     return 'N/A';
   }
-  return `${value}%`;
+  const rounded = Math.round(value * 100) / 100;
+  return `${rounded}%`;
 }
 
 /** Safely cast API rag string to RagStatus */
@@ -337,6 +339,7 @@ function mapBugToViewModel(bug: {
     adoId: String(bug.adoId),
     title: bug.title,
     isClosed: (BUG_RESOLVED_STATES as readonly string[]).includes(bug.state),
+    adoUrl: buildAdoWorkItemUrl(bug.adoId),
   };
 }
 
@@ -353,6 +356,7 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
   return {
     sprintId: sprint.sprintId,
     sprintName: sprint.sprintName,
+    isCurrent: sprint.mode === 'current',
     velocity: formatMetricValue(sprint.velocity, 'pts'),
     velocityRate: formatVelocityRate(sprint.velocityRate),
     activeBugs: formatNumber(sprint.activeBugs),
@@ -370,12 +374,14 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     completedPoints: sprint.completedPoints ?? null,
     carryOverPoints: sprint.carryOverPoints ?? null,
     grossHours: sprint.grossHours ?? null,
-    rawOverheadPercent: sprint.overheadComposition?.overheadPercent ?? null,
+    rawOverheadPercent: sprint.overheadComposition?.overheadPercent != null
+      ? Math.round(sprint.overheadComposition.overheadPercent * 100) / 100
+      : null,
     rawCarryOverRate:
       sprint.carryOverPoints != null &&
       sprint.plannedPoints != null &&
       sprint.plannedPoints > 0
-        ? (sprint.carryOverPoints / sprint.plannedPoints) * 100
+        ? Math.round((sprint.carryOverPoints / sprint.plannedPoints) * 100 * 100) / 100
         : null,
   };
 }
@@ -436,7 +442,6 @@ function formatDetailValue(value: number | null): string {
 /** Map API response to full DashboardViewModel (success or empty) */
 export function mapApiResponseToDashboardViewModel(
   response: ApiResponse,
-  milestones: ApiMilestoneWithProgress[] = [],
   today: Date = new Date()
 ): DashboardViewModel {
   const isEmpty =
@@ -577,10 +582,6 @@ export function mapApiResponseToDashboardViewModel(
 
     const d = ws.detail ?? {};
     const wsPrediction = ws.prediction;
-    const wsMilestones = milestones
-      .filter((m) => m.workstreamId === ws.workstreamId)
-      .map((m) => mapMilestoneToGoalViewModel(m, today));
-    const milestoneGroups = groupMilestonesByMonth(wsMilestones, today);
 
     return {
       workstreamId: ws.workstreamId,
@@ -612,7 +613,6 @@ export function mapApiResponseToDashboardViewModel(
           support: sprintItems.support.map(mapOverheadItem),
         })
       ),
-      milestoneGroups,
     };
   });
 

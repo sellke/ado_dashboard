@@ -12,6 +12,7 @@ export default {
 };
 
 const enrichedDefaults = {
+  isCurrent: false as boolean,
   velocityAvg: null as number | null,
   overheadPercentAvg: null as number | null,
   carryOverRateAvg: null as number | null,

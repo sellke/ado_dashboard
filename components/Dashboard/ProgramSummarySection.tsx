@@ -32,29 +32,24 @@ function buildVelocityChartData(
     }));
 
   if (prediction && data.length > 0) {
-    const existingLabels = new Set(data.map((point) => point.sprint));
-    const basePredictionLabel = prediction.sprintLabel || 'Current Sprint';
-    let predictionLabel = basePredictionLabel;
+    // Prefer the sprint explicitly marked current; fall back to the last sprint.
+    const currentIdx = sprints.findIndex((s) => s.isCurrent);
+    const targetIdx = currentIdx >= 0 ? currentIdx : data.length - 1;
 
-    if (existingLabels.has(predictionLabel)) {
-      predictionLabel = `${basePredictionLabel} (Forecasted)`;
-      let index = 2;
-      while (existingLabels.has(predictionLabel)) {
-        predictionLabel = `${basePredictionLabel} (Forecasted ${index})`;
-        index += 1;
+    // Place the forecast on the current sprint's data point so it shares the
+    // same x-axis tick rather than appearing as a separate "(F)" entry.
+    if (prediction.rawVelocity != null) {
+      data[targetIdx].Forecasted = prediction.rawVelocity;
+
+      // Bridge the prior sprint so the dashed forecast line has a visible
+      // connecting segment from the previous actual value to the forecast dot.
+      if (targetIdx > 0) {
+        const priorActual = data[targetIdx - 1]['Completed Points'];
+        if (typeof priorActual === 'number') {
+          data[targetIdx - 1].Forecasted = priorActual;
+        }
       }
     }
-
-    const lastActual = data[data.length - 1]['Completed Points'];
-    if (typeof lastActual === 'number') {
-      data[data.length - 1].Forecasted = lastActual;
-    }
-
-    const predictionPoint: { sprint: string; Forecasted?: number } = { sprint: predictionLabel };
-    if (prediction.rawVelocity != null) {
-      predictionPoint.Forecasted = prediction.rawVelocity;
-    }
-    data.push(predictionPoint);
   }
 
   return data;
@@ -171,8 +166,7 @@ export function ProgramSummarySection({
                   ]}
                   xAxisProps={{
                     interval: 0,
-                    tickFormatter: (v: string) =>
-                      v.replace(/^Sprint\s*/i, '').replace(/\s*\(Forecasted(?:\s+\d+)?\)/i, ' (F)'),
+                    tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
                     angle: -20,
                     textAnchor: 'end',
                     height: 52,

@@ -121,6 +121,7 @@ export function createWorkstreamCard(
       {
         sprintId: 's1',
         sprintName: 'Sprint 1',
+        isCurrent: false,
         velocity: '40 pts',
         velocityRate: '0.67 pts/hr',
         activeBugs: '2',
@@ -130,8 +131,8 @@ export function createWorkstreamCard(
         rawActiveBugs: 2,
         rawBugsClosed: 5,
         bugs: [
-          { adoId: '12345', title: 'Login crash', isClosed: true },
-          { adoId: '67890', title: 'Slow query', isClosed: false },
+          { adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345' },
+          { adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890' },
         ],
         overheadBreakdown: [
           { category: 'Meetings' as const, hours: 10.25 },
@@ -152,6 +153,7 @@ export function createWorkstreamCard(
       {
         sprintId: 's2',
         sprintName: 'Sprint 2',
+        isCurrent: false,
         velocity: '42 pts',
         velocityRate: '0.70 pts/hr',
         activeBugs: '3',
@@ -160,7 +162,7 @@ export function createWorkstreamCard(
         rawVelocityRate: 0.7,
         rawActiveBugs: 3,
         rawBugsClosed: 4,
-        bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true }],
+        bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111' }],
         overheadBreakdown: [
           { category: 'Meetings' as const, hours: 10.25 },
           { category: 'Spikes' as const, hours: 2 },
@@ -195,7 +197,6 @@ export function createWorkstreamCard(
         overheadPercent: '27%',
       }),
     ],
-    milestoneGroups: [],
     overheadItemsBySprint: [
       {
         sprintId: 's1',
@@ -285,6 +286,7 @@ export function createDashboardViewModel(
         {
           sprintId: 's1',
           sprintName: 'Sprint 1',
+          isCurrent: false,
           velocity: '110 pts',
           velocityRate: '1.20 pts/hr',
           activeBugs: '11',
@@ -307,6 +309,7 @@ export function createDashboardViewModel(
         {
           sprintId: 's2',
           sprintName: 'Sprint 2',
+          isCurrent: false,
           velocity: '118 pts',
           velocityRate: '1.25 pts/hr',
           activeBugs: '9',

@@ -1,9 +1,13 @@
+import type React from 'react';
+
 export interface ChartSeries {
   name: string;
   /** Mantine color token (e.g. 'blue.6') or CSS color value */
   color: string;
   label?: string;
   strokeDasharray?: string;
+  /** Custom dot renderer for Recharts Line. Overrides the global withDots setting for this series. */
+  dot?: boolean | Record<string, unknown> | ((props: Record<string, unknown>) => React.ReactElement | null);
 }
 
 export interface ChartTheme {

@@ -89,7 +89,7 @@ describe('Trend Series & Prediction Validation', () => {
     it('rate = velocity / (grossHours - overheadHours)', () => {
       const net = calculateNetCapacityHours(80, 20);
       expect(net).toBe(60);
-      expect(calculateVelocityRate(20, net)).toBeCloseTo(20 / 60, 5);
+      expect(calculateVelocityRate(20, net)).toBeCloseTo(0.33, 2);
     });
 
     it('handles null/zero denominators', () => {
@@ -113,22 +113,22 @@ describe('Trend Series & Prediction Validation', () => {
         workstreamId: 'ws-1',
       });
 
-      expect(result.sprints).toHaveLength(4); // s1..s4 (excludes current s5)
+      expect(result.sprints).toHaveLength(5); // s1..s4 (actual) + s5 (current)
 
-      // Sprint 1: vel=20, net=60, rate=20/60
+      // Sprint 1: vel=20, net=60, rate rounded to 2 decimals
       expect(result.sprints[0]).toMatchObject({
         sprintId: 's1',
         sprintName: 'Sprint 1',
         velocity: 20,
-        velocityRate: 20 / 60,
+        velocityRate: 0.33,
         mode: 'actual',
       });
 
-      // Sprint 4: vel=28, net=60, rate=28/60
+      // Sprint 4: vel=28, net=60
       expect(result.sprints[3]).toMatchObject({
         sprintId: 's4',
         velocity: 28,
-        velocityRate: 28 / 60,
+        velocityRate: 0.47,
       });
     });
 
@@ -141,12 +141,9 @@ describe('Trend Series & Prediction Validation', () => {
         workstreamId: 'ws-1',
       });
 
-      // ws-1 rates: 20/60, 25/60, 22/60, 28/60
-      // avg = (20+25+22+28)/(4*60) = 95/240 = 0.39583...
-      // current net = 100 - 20 = 80
-      // prediction = 0.39583 × 80 ≈ 31.67
+      // Per-sprint rates are rounded before averaging (see trend-service)
       expect(result.prediction.mode).toBe('predicted');
-      expect(result.prediction.velocity).toBeCloseTo(31.67, 1);
+      expect(result.prediction.velocity).toBeCloseTo(32, 0);
       expect(result.prediction.formula).toContain('average velocity rate');
     });
   });
@@ -161,20 +158,20 @@ describe('Trend Series & Prediction Validation', () => {
         // no workstreamId = program level
       });
 
-      expect(result.sprints).toHaveLength(4);
+      expect(result.sprints).toHaveLength(5); // s1..s4 (actual) + s5 (current)
 
-      // Sprint 1: vel=20+15=35, net=60+50=110, rate=35/110
+      // Sprint 1: vel=20+15=35, net=60+50=110
       expect(result.sprints[0]).toMatchObject({
         sprintId: 's1',
         velocity: 35,
-        velocityRate: 35 / 110,
+        velocityRate: 0.32,
       });
 
-      // Sprint 4: vel=28+20=48, net=60+50=110, rate=48/110
+      // Sprint 4: vel=28+20=48, net=60+50=110
       expect(result.sprints[3]).toMatchObject({
         sprintId: 's4',
         velocity: 48,
-        velocityRate: 48 / 110,
+        velocityRate: 0.44,
       });
     });
 
@@ -186,11 +183,8 @@ describe('Trend Series & Prediction Validation', () => {
         bugItems: emptyBugItems,
       });
 
-      // Program rates: 35/110, 43/110, 34/110, 48/110
-      // avg = (35+43+34+48)/(4*110) = 160/440 = 0.36364...
-      // current net = 80 + 50 = 130
-      // prediction = 0.36364 × 130 ≈ 47.27
-      expect(result.prediction.velocity).toBeCloseTo(47.27, 1);
+      // Program-level rates use rounded per-sprint velocity rates before averaging
+      expect(result.prediction.velocity).toBeCloseTo(48.1, 1);
     });
   });
 });

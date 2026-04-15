@@ -17,10 +17,10 @@ type ChartDataPoint = {
 };
 
 const OVERHEAD_SERIES = [
-  { name: 'Meetings' as const, color: 'gray.7' },
-  { name: 'Spikes' as const, color: 'green.9' },
+  { name: 'Meetings' as const, color: 'gray.9' },
+  { name: 'Spikes' as const, color: 'violet.6' },
   { name: 'Bugs' as const, color: 'red.6' },
-  { name: 'Support' as const, color: 'pink.6' },
+  { name: 'Support' as const, color: 'orange.6' },
 ];
 
 function buildChartData(sprints: TrendSprintViewModel[]): ChartDataPoint[] {
@@ -68,7 +68,11 @@ export function OverheadBreakdownChart({ trendSprints }: OverheadBreakdownChartP
         series={OVERHEAD_SERIES}
         xAxisProps={{
           interval: 0,
-          tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
+          tickFormatter: (v: string) => {
+            const label = v.replace(/^Sprint\s*/i, '');
+            const isCurrent = trendSprints.find((s) => s.sprintName === v)?.isCurrent;
+            return isCurrent ? `${label} (Cur)` : label;
+          },
           angle: -20,
           textAnchor: 'end',
           height: 52,

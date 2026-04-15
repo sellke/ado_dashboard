@@ -8,10 +8,10 @@ export interface OverheadCompositionChartProps {
 }
 
 const SERIES = [
-  { name: 'Meetings', color: 'gray.7' },
+  { name: 'Meetings', color: 'gray.9' },
   { name: 'Bugs', color: 'red.6' },
-  { name: 'Spikes', color: 'green.9' },
-  { name: 'Support', color: 'pink.6' },
+  { name: 'Spikes', color: 'violet.6' },
+  { name: 'Support', color: 'orange.6' },
 ];
 
 export function OverheadCompositionChart({ composition }: OverheadCompositionChartProps) {

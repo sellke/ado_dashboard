@@ -113,7 +113,7 @@ export interface ApiTrendSprint {
   activeBugs: number;
   /** Bugs in resolved states (Resolved|Testing|Closed) with changedDate within sprint window. */
   bugsClosed: number;
-  mode: 'actual';
+  mode: 'actual' | 'current';
   bugs?: Array<{ adoId: number; title: string; state: string }>;
   overheadComposition?: ApiOverheadComposition;
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
@@ -259,7 +259,6 @@ export interface WorkstreamCardViewModel {
   } | null;
   overheadComposition: OverheadCompositionViewModel[];
   overheadItemsBySprint: OverheadSprintViewModel[];
-  milestoneGroups: MilestoneMonthGroup[];
 }
 
 export interface TrendBugViewModel {
@@ -267,11 +266,14 @@ export interface TrendBugViewModel {
   title: string;
   /** True when bug state is in BUG_RESOLVED_STATES (Resolved|Testing|Closed). */
   isClosed: boolean;
+  adoUrl: string;
 }
 
 export interface TrendSprintViewModel {
   sprintId: string;
   sprintName: string;
+  /** True when this sprint is the currently in-flight sprint (mode: 'current'). */
+  isCurrent: boolean;
   velocity: string;
   velocityRate: string;
   /** Formatted active bug count — bugs in New|Active states. */

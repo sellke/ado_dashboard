@@ -21,15 +21,11 @@ export interface DashboardShellProps {
 
 function WorkstreamSection({
   viewModel,
-  milestonesLoading,
-  milestonesError,
   sprintStoriesMap,
   storiesLoading,
   storiesError,
 }: {
   viewModel: DashboardViewModel;
-  milestonesLoading?: boolean;
-  milestonesError?: string | null;
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
@@ -44,8 +40,6 @@ function WorkstreamSection({
   return (
     <WorkstreamCardsGrid
       cards={workstreamCards}
-      milestonesLoading={milestonesLoading}
-      milestonesError={milestonesError}
       sprintStoriesMap={sprintStoriesMap}
       storiesLoading={storiesLoading}
       storiesError={storiesError}
@@ -145,8 +139,6 @@ export function DashboardShell({
       />
       <WorkstreamSection
         viewModel={viewModel}
-        milestonesLoading={milestonesLoading}
-        milestonesError={milestonesError}
         sprintStoriesMap={sprintStoriesMap}
         storiesLoading={storiesLoading}
         storiesError={storiesError}

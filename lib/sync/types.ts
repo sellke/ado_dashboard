@@ -77,6 +77,8 @@ export interface AggregatedCapacity {
   ptoHours: number;
   ceremonyHours: number;
   fteCount: number;
+  /** Members counted for meeting overhead (dev / QA / BA); see countMeetingOverheadMembers. */
+  meetingOverheadMemberCount: number;
 }
 
 /** Per-workstream capacity sync result (for SyncLog / diagnostics). */

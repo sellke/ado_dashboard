@@ -162,7 +162,14 @@ export async function upsertWorkItems(
   let updated = 0;
   let unchanged = 0;
 
+  // WIQL batches can return the same ADO id twice (e.g. overlapping queries); last row wins.
+  const byAdoId = new Map<number, MappedWorkItem>();
   for (const item of items) {
+    byAdoId.set(item.adoId, item);
+  }
+  const uniqueItems = Array.from(byAdoId.values());
+
+  for (const item of uniqueItems) {
     const workstreamId = resolveWorkstreamId(item.areaPath, workstreams);
     const sprintId = resolveSprintId(item.iterationPath, sprintIdMap);
 

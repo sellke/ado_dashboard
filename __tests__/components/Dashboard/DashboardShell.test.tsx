@@ -72,7 +72,6 @@ describe('DashboardShell', () => {
         prediction: null,
         overheadComposition: [],
         overheadItemsBySprint: [],
-        milestoneGroups: [],
       },
     ],
   };
@@ -215,7 +214,6 @@ describe('DashboardShell', () => {
           prediction: null,
           overheadComposition: [],
           overheadItemsBySprint: [],
-          milestoneGroups: [],
         },
       ],
     };

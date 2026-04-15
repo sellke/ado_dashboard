@@ -17,12 +17,13 @@
 
 import {
   aggregateCapacity,
+  countMeetingOverheadMembers,
   getWorkstreamTeamId,
   syncCapacityForAllWorkstreams,
   syncCapacityForWorkstream,
   type CapacitySyncContext,
 } from '@/lib/sync/capacity';
-import type { AdoCapacityMember, AggregatedCapacity } from '@/lib/sync/types';
+import type { AdoCapacityMember } from '@/lib/sync/types';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
 
 // =============================================================================
@@ -54,6 +55,7 @@ describe('aggregateCapacity', () => {
     // Total: 160
     expect(result.grossHours).toBe(160);
     expect(result.fteCount).toBe(2);
+    expect(result.meetingOverheadMemberCount).toBe(2);
     expect(result.ptoHours).toBe(0);
   });
 
@@ -73,6 +75,7 @@ describe('aggregateCapacity', () => {
     expect(result.grossHours).toBe(64);
     expect(result.ptoHours).toBe(16);
     expect(result.fteCount).toBe(1);
+    expect(result.meetingOverheadMemberCount).toBe(1);
   });
 
   it('should extract ceremony hours from activities named Meeting or Ceremony', () => {
@@ -90,6 +93,7 @@ describe('aggregateCapacity', () => {
     expect(result.grossHours).toBe(80); // 8 * 10
     expect(result.ceremonyHours).toBe(20); // 2 * 10
     expect(result.fteCount).toBe(1);
+    expect(result.meetingOverheadMemberCount).toBe(1);
   });
 
   it('should return zeros for empty members', () => {
@@ -98,6 +102,7 @@ describe('aggregateCapacity', () => {
     expect(result.ptoHours).toBe(0);
     expect(result.ceremonyHours).toBe(0);
     expect(result.fteCount).toBe(0);
+    expect(result.meetingOverheadMemberCount).toBe(0);
   });
 
   it('should handle members with no activities', () => {
@@ -105,6 +110,7 @@ describe('aggregateCapacity', () => {
     const result = aggregateCapacity(members, sprintStart, sprintEnd);
     expect(result.grossHours).toBe(0);
     expect(result.fteCount).toBe(1);
+    expect(result.meetingOverheadMemberCount).toBe(1);
   });
 
   it('should handle members with undefined activities', () => {
@@ -112,6 +118,27 @@ describe('aggregateCapacity', () => {
     const result = aggregateCapacity(members, sprintStart, sprintEnd);
     expect(result.grossHours).toBe(0);
     expect(result.fteCount).toBe(1);
+    expect(result.meetingOverheadMemberCount).toBe(1);
+  });
+});
+
+describe('countMeetingOverheadMembers', () => {
+  it('counts members with QA or BA activity names', () => {
+    expect(
+      countMeetingOverheadMembers([
+        { activities: [{ name: 'Testing', capacityPerDay: 8 }], daysOff: [] },
+        { activities: [{ name: 'Requirements', capacityPerDay: 6 }], daysOff: [] },
+      ])
+    ).toBe(2);
+  });
+
+  it('falls back to full team size when no activity matches', () => {
+    expect(
+      countMeetingOverheadMembers([
+        { activities: [{ name: 'Scrum Master', capacityPerDay: 8 }], daysOff: [] },
+        { activities: [{ name: 'Project Management', capacityPerDay: 8 }], daysOff: [] },
+      ])
+    ).toBe(2);
   });
 });
 
@@ -211,6 +238,7 @@ describe('syncCapacityForWorkstream', () => {
     expect(sw).not.toBeNull();
     expect(sw!.grossHours).toBe(80); // 8 * 10 days
     expect(sw!.fteCount).toBe(1);
+    expect(sw!.meetingOverheadMemberCount).toBe(1);
     expect(sw!.capacityLocked).toBe(false);
   });
 

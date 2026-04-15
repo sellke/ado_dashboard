@@ -46,6 +46,7 @@ const createMetricTile = (overrides: Partial<MetricTileViewModel> = {}): MetricT
 });
 
 const enrichedDefaults = {
+  isCurrent: false as boolean,
   velocityAvg: null as number | null,
   overheadPercentAvg: null as number | null,
   carryOverRateAvg: null as number | null,
@@ -78,7 +79,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawVelocityRate: 0.17,
       rawActiveBugs: 2,
       rawBugsClosed: 4,
-      bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true }],
+      bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345' }],
       overheadBreakdown: [
         { category: 'Meetings' as const, hours: 10.25 },
         { category: 'Spikes' as const, hours: 4 },
@@ -98,7 +99,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawVelocityRate: 0.2,
       rawActiveBugs: 1,
       rawBugsClosed: 5,
-      bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false }],
+      bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890' }],
       overheadBreakdown: [
         { category: 'Meetings' as const, hours: 10.25 },
         { category: 'Spikes' as const, hours: 2 },
@@ -525,7 +526,8 @@ describe('WorkstreamHealthCard', () => {
           currentSprintId="current-sprint"
         />
       );
-      expect(screen.getByText('Sprint 26.18')).toBeInTheDocument();
+      // Sprint 26.18 appears in both the detail label and the SprintBugList header — both are correct
+      expect(screen.getAllByText('Sprint 26.18').length).toBeGreaterThan(0);
       expect(screen.queryByText('Sprint 26.17')).not.toBeInTheDocument();
     });
 
@@ -599,83 +601,17 @@ describe('WorkstreamHealthCard', () => {
       expect(screen.getByTestId('overhead-line-chart')).toBeInTheDocument();
     });
 
-    it('renders bug, spike, and support item tables', () => {
-      render(<WorkstreamHealthCard card={fullDataCard} activeSprintId="s1" />);
-      expect(screen.getByTestId('bug-items')).toBeInTheDocument();
-      expect(screen.getByTestId('spike-items')).toBeInTheDocument();
-      expect(screen.getByTestId('support-items')).toBeInTheDocument();
-    });
-
-    it('does not render overhead panel when all overhead data is absent', () => {
+    it('does not render overhead panel when overheadBreakdown data is absent', () => {
       const noOverheadCard: WorkstreamCardViewModel = {
         ...fullDataCard,
         trendSprints: fullDataCard.trendSprints.map((s) => ({
           ...s,
           overheadBreakdown: [],
         })),
-        overheadItemsBySprint: [],
       };
 
       render(<WorkstreamHealthCard card={noOverheadCard} />);
       expect(screen.queryByTestId('overhead-breakdown-panel')).not.toBeInTheDocument();
-    });
-
-    it('renders panel when only bug items are present (no overhead breakdown)', () => {
-      const bugOnlyCard: WorkstreamCardViewModel = createWorkstreamCard({
-        trendSprints: createWorkstreamCard().trendSprints.map((s) => ({
-          ...s,
-          overheadBreakdown: [],
-        })),
-        overheadItemsBySprint: [
-          {
-            sprintId: 's1',
-            bugs: [
-              {
-                adoId: '#99',
-                title: 'Crash on load',
-                state: 'Active',
-                hours: '1 hr',
-                isClosed: false,
-                adoUrl: 'https://dev.azure.com/test/99',
-              },
-            ],
-            spikes: [],
-            support: [],
-          },
-        ],
-      });
-
-      render(<WorkstreamHealthCard card={bugOnlyCard} activeSprintId="s1" />);
-      expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
-    });
-
-    it('renders panel when only support items are present', () => {
-      const supportOnlyCard: WorkstreamCardViewModel = createWorkstreamCard({
-        trendSprints: createWorkstreamCard().trendSprints.map((s) => ({
-          ...s,
-          overheadBreakdown: [],
-        })),
-        overheadItemsBySprint: [
-          {
-            sprintId: 's1',
-            bugs: [],
-            spikes: [],
-            support: [
-              {
-                adoId: '#55',
-                title: 'Deploy request',
-                state: 'Done',
-                hours: '2 hrs',
-                isClosed: true,
-                adoUrl: 'https://dev.azure.com/test/55',
-              },
-            ],
-          },
-        ],
-      });
-
-      render(<WorkstreamHealthCard card={supportOnlyCard} activeSprintId="s1" />);
-      expect(screen.getByTestId('overhead-breakdown-panel')).toBeInTheDocument();
     });
   });
 });

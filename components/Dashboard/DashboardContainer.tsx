@@ -55,8 +55,8 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     if (!rawMetrics) {
       return createLoadingViewModel();
     }
-    return mapApiResponseToDashboardViewModel(rawMetrics, milestones);
-  }, [metricsViewState, metricsError, rawMetrics, milestones]);
+    return mapApiResponseToDashboardViewModel(rawMetrics);
+  }, [metricsViewState, metricsError, rawMetrics]);
 
   const milestoneQuarterGroups = useMemo(
     () => groupMilestonesByQuarter(milestones),
@@ -148,10 +148,20 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ syncType: 'Full' }),
       });
-      const data = (await res.json()) as { success?: boolean; error?: string };
+      const data = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        summary?: { errorMessage?: string | null };
+      };
 
       if (!res.ok || !data.success) {
-        const msg = data?.error ?? `Request failed: ${res.status}`;
+        const msg =
+          data.error ??
+          (res.ok && data.summary?.errorMessage?.trim()
+            ? data.summary.errorMessage.trim()
+            : !res.ok
+              ? `Request failed: ${res.status}`
+              : 'Sync finished with errors');
         setSyncError(msg);
         return;
       }

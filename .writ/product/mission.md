@@ -1,7 +1,8 @@
 # Product Mission — Unified LiveLink Health Report
 
 > Created: 2026-02-08
-> Status: Planning
+> Last Updated: 2026-04-09
+> Status: Phase 1 In Progress (1A–1D Complete, 1E Partial, 1F Not Started)
 > Contract Locked: ✅
 
 ## Pitch
@@ -53,13 +54,13 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 
 ### Core Features (MVP — Phase 1)
 
-- **ADO Data Sync:** Automated fetch of work items, iterations, and capacity data for all Unified LiveLink workstreams via ADO MCP, scoped by area paths.
-- **Metric Calculation Engine:** Computes velocity (story points completed), gross/net hours, overhead% (ceremony + bug + spike + support), sprint predictability (planned vs. actual), and carry-over rate.
-- **Program Summary:** Top-level dashboard section showing program-wide Average Velocity, Average Velocity Rate, Carry-over %, Overhead %, Monthly Milestone Completion %, and Quarterly Milestone Progress — all RAG-coded.
-- **Workstream Velocity:** Per-workstream velocity, velocity rate, and carry-over trends with rolling averages. Current in-progress sprint shows predicted velocity and carry-over based on historical averages and available hours.
-- **Workstream Overhead:** Per-workstream overhead % composition breakdown (ceremony, bug, support, spike hours) plus individual bug and support item listings with title, hours, and status.
-- **Workstream Milestones:** ADO Features tagged with monthly goal identifiers tracked by child story point completion (completed SP / total SP = % complete). Monthly targets with quarterly roll-up.
-- **PowerPoint Export:** One-click export of all 4 report sections to `.pptx` slides for offline distribution.
+- ✅ **ADO Data Sync:** Automated fetch of work items, iterations, and capacity data for all Unified LiveLink workstreams via ADO MCP, scoped by area paths. Sprint plan snapshots capture assignments for accurate carry-over tracking.
+- ✅ **Metric Calculation Engine:** Computes velocity (story points completed), gross/net hours, overhead% (ceremony + bug + spike + support), and carry-over rate. Rolling 5-sprint averages, RAG evaluation, MetricSnapshot persistence.
+- ✅ **Program Summary:** Top-level dashboard section showing Average Velocity, Overhead %, Carry-Over %, Monthly Milestone %, and Quarterly Milestone Progress — RAG-coded metric tiles with trend data.
+- ✅ **Workstream Velocity:** Per-workstream velocity, velocity rate, and carry-over with Recharts trend charts. Current sprint shown with hollow-dot styling and forecast overlay. Per-sprint bug lists with ADO links.
+- ✅ **Workstream Overhead:** Per-workstream overhead composition stacked bar chart (ceremony/bug/spike/support). Individual bug, spike, and support item tables with ADO links, sprint-selectable via shared tabs.
+- ✅ **Workstream Milestones:** ADO Features tagged `ADP-{MON}` with `Qx` quarter tags, tracked by child story point completion. Burnup charts, quarterly-grouped panel. ADP extension (tag migration, status derivation) in progress.
+- ⬜ **PowerPoint Export:** One-click export of all 4 report sections to `.pptx` slides for offline distribution.
 
 ### Growth Features (Phase 2)
 
@@ -82,8 +83,8 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 - **Organization:** Operations-Innovation / Event Streaming Platform
 - **Team:** Yellow Boxers
 - **Sprint cadence:** 2-week sprints, all teams synchronized
-- **Current position:** Sprint 1 of Q4 FY26, Week 2 starting Feb 10, 2026
-- **Historical data:** 5 prior sprints available in ADO
+- **Current position:** Q4 FY26 (2-week sprints ongoing since Feb 2026)
+- **Historical data:** Rolling 5-sprint window maintained in ADO
 
 ### Workstream Structure
 
@@ -136,7 +137,7 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 | **Monthly Milestone Completion %** | Completed SP ÷ Total SP for current month's tagged Features | Are we hitting monthly goals? |
 | **Quarterly Milestone Progress** | Roll-up of all monthly milestones within the quarter | Is the quarter on track overall? |
 
-**Milestone model:** ADO Features tagged with monthly goal identifiers (e.g., `Feb-Goal`). Child User Stories and their story points are the unit of progress. Total SP is a living number — stories may be added mid-month. Target date is always end of the tagged month.
+**Milestone model:** ADO Features tagged `ADP-{MON}` (e.g., `ADP-MAR`) with `Qx` quarter tags. Child User Stories bearing matching `ADP-MON` tags are the unit of progress. Total SP is a living number. Status derived at API time via `deriveMilestoneStatus()`. Quarterly grouping via explicit `Qx` tags.
 
 ### Qualitative Insights (Phase 2)
 
@@ -152,7 +153,8 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 
 ## Technical Approach
 
-- **Stack:** Next.js 15 (App Router) + Mantine 8 + Prisma 6 + PostgreSQL 16
+- **Stack:** Next.js 15 (App Router) + Mantine 8 + Recharts + Prisma 6 + PostgreSQL 16
+- **Charts:** Recharts with thin wrappers in `lib/charts/` (Mantine theme integration, dark mode); migrated from `@mantine/charts`
 - **Data source:** Azure DevOps via installed MCP server
 - **LLM processing:** Provider-agnostic; semi-manual upload of VTT transcripts (Phase 2)
 - **Slide export:** `pptxgenjs` library for PowerPoint generation

@@ -399,6 +399,22 @@ describe('upsertWorkItems', () => {
     };
   }
 
+  it('dedupes duplicate adoIds in the same batch (last wins)', async () => {
+    const items = [
+      makeMappedItem({ adoId: 2002, title: 'First' }),
+      makeMappedItem({ adoId: 2002, title: 'Second', adoRevision: 2 }),
+    ];
+    const result = await upsertWorkItems(items, getWorkstreams(), getSprintIdMap(), prisma);
+
+    expect(result.created).toBe(1);
+    expect(result.updated).toBe(0);
+
+    const wi = await prisma.workItem.findUnique({ where: { adoId: 2002 } });
+    expect(wi).not.toBeNull();
+    expect(wi!.title).toBe('Second');
+    expect(wi!.adoRevision).toBe(2);
+  });
+
   it('should create a new work item when adoId does not exist', async () => {
     const items = [makeMappedItem()];
     const result = await upsertWorkItems(items, getWorkstreams(), getSprintIdMap(), prisma);

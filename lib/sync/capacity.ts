@@ -20,6 +20,44 @@ import type { AdoCapacityMember, AggregatedCapacity } from './types';
 
 const CEREMONY_ACTIVITY_NAMES = ['Meeting', 'Ceremony', 'Standup', 'Planning', 'Retrospective'];
 
+/**
+ * ADO capacity activity names that imply developer, QA/test, or BA/RA for meeting overhead headcount.
+ * Member counts if any activity name matches (case-insensitive).
+ */
+const MEETING_OVERHEAD_ACTIVITY_PATTERNS: RegExp[] = [
+  /\b(?:dev|development|developer|engineering|coding)\b/i,
+  /\b(?:test|testing|qa|quality|qc)\b/i,
+  /\b(?:requirement|requirements|analyst|analysis|business|ba\b)\b/i,
+];
+
+/**
+ * Count capacity members who qualify for per-sprint meeting overhead (8.25h each).
+ * Uses activity names from ADO team capacity; members with no activities count as delivery FTE.
+ * If no member matches any pattern (custom activity names), falls back to full team size.
+ */
+export function countMeetingOverheadMembers(members: AdoCapacityMember[]): number {
+  if (members.length === 0) {
+    return 0;
+  }
+
+  let eligible = 0;
+  for (const m of members) {
+    const activities = m.activities ?? [];
+    if (activities.length === 0) {
+      eligible++;
+      continue;
+    }
+    const matched = activities.some((a) =>
+      MEETING_OVERHEAD_ACTIVITY_PATTERNS.some((p) => p.test((a.name ?? '').trim()))
+    );
+    if (matched) {
+      eligible++;
+    }
+  }
+
+  return eligible > 0 ? eligible : members.length;
+}
+
 function isCeremonyActivity(name: string): boolean {
   const lower = name.toLowerCase();
   return CEREMONY_ACTIVITY_NAMES.some((n) => lower.includes(n.toLowerCase()));
@@ -76,6 +114,7 @@ function countDaysInRange(startStr?: string, endStr?: string): number {
  * ptoHours = sum of (capacityPerDay * daysOff) per member.
  * ceremonyHours = sum of capacityPerDay for Meeting/Ceremony activities * workingDays.
  * fteCount = number of members.
+ * meetingOverheadMemberCount = dev / QA / BA headcount for synthetic dashboard meeting hours.
  *
  * @param members - ADO capacity API response
  * @param sprintStart - Sprint start date
@@ -114,6 +153,7 @@ export function aggregateCapacity(
     ptoHours,
     ceremonyHours,
     fteCount: members.length,
+    meetingOverheadMemberCount: countMeetingOverheadMembers(members),
   };
 }
 
@@ -242,6 +282,23 @@ export async function syncCapacityForWorkstream(
         fteCount: agg.fteCount,
       },
     });
+
+    // Set meeting headcount outside Prisma upsert so sync works if @prisma/client was generated
+    // before `meetingOverheadMemberCount` existed (avoids "Unknown argument" until `prisma generate`).
+    try {
+      await db.$executeRaw`
+        UPDATE "sprint_workstreams"
+        SET "meetingOverheadMemberCount" = ${agg.meetingOverheadMemberCount}
+        WHERE "sprintId" = ${sprintId} AND "workstreamId" = ${workstream.id}
+      `;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/42703|does not exist|undefined column/i.test(msg)) {
+        throw e;
+      }
+      // Migration not applied yet — dashboard metrics fall back to fteCount for meeting overhead.
+    }
+
     sprintsUpserted++;
   }
 

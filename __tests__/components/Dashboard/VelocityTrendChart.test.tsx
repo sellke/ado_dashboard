@@ -26,6 +26,7 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
   return {
     sprintId: 's1',
     sprintName: 'Sprint 1',
+    isCurrent: false,
     velocity: '40 pts',
     velocityRate: '0.67 pts/hr',
     activeBugs: '2',
@@ -139,25 +140,38 @@ describe('VelocityTrendChart', () => {
   });
 
   describe('prediction point', () => {
-    it('appends a prediction data point with "(Forecasted)" suffix in the label', () => {
+    it('places the forecast value on the last sprint data point (no extra entry)', () => {
       render(<VelocityTrendChart trendSprints={fourSprints} prediction={prediction} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
-      expect(points).toHaveLength(5);
-
-      const predictionPoint = points[4];
-      expect(predictionPoint.sprint).toContain('(Forecasted)');
-      expect(predictionPoint.Forecasted).toBe(48);
+      // No new x-axis entry — same 4 sprints
+      expect(points).toHaveLength(4);
+      expect(points[3].sprint).toBe('Sprint 26.20');
+      expect(points[3].Forecasted).toBe(48);
     });
 
-    it('bridges the last actual point to the prediction with a Forecasted value', () => {
+    it('bridges the prior sprint so the dashed line has a connecting segment', () => {
       render(<VelocityTrendChart trendSprints={fourSprints} prediction={prediction} />);
 
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
-      const lastActualPoint = points[3];
-      expect(lastActualPoint.Forecasted).toBe(lastActualPoint['Completed Points']);
+      // Bridge is on the sprint BEFORE the forecast target
+      expect(points[2].Forecasted).toBe(points[2]['Completed Points']);
+      // The forecast target itself carries the predicted value, not its own actual
+      expect(points[3].Forecasted).toBe(48);
+    });
+
+    it('never appends a "(Forecasted)" label entry to the data', () => {
+      render(<VelocityTrendChart trendSprints={fourSprints} prediction={prediction} />);
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      const hasForecasted = points.some(
+        (p: Record<string, unknown>) =>
+          typeof p.sprint === 'string' && String(p.sprint).includes('(Forecasted)')
+      );
+      expect(hasForecasted).toBe(false);
     });
 
     it('renders without prediction segment when prediction is null', () => {
@@ -181,8 +195,10 @@ describe('VelocityTrendChart', () => {
 
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
-      const predictionPoint = points[4];
-      expect(predictionPoint).not.toHaveProperty('Forecasted');
+      // No Forecasted key on any point when rawVelocity is null
+      points.forEach((p: Record<string, unknown>) => {
+        expect(p).not.toHaveProperty('Forecasted');
+      });
     });
   });
 
@@ -210,6 +226,108 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const referenceLines = parseReferenceLines(chart);
       expect(referenceLines).toHaveLength(0);
+    });
+  });
+
+  describe('current sprint overlay (isCurrent)', () => {
+    const fourActualSprints: TrendSprintViewModel[] = [
+      makeSprint({ sprintId: 's1', sprintName: 'Sprint 26.17', rawVelocity: 38 }),
+      makeSprint({ sprintId: 's2', sprintName: 'Sprint 26.18', rawVelocity: 42 }),
+      makeSprint({ sprintId: 's3', sprintName: 'Sprint 26.19', rawVelocity: 45 }),
+      makeSprint({ sprintId: 's4', sprintName: 'Sprint 26.20', rawVelocity: 40 }),
+    ];
+    const currentSprint = makeSprint({
+      sprintId: 's5',
+      sprintName: 'Sprint 26.21',
+      rawVelocity: 12,
+      isCurrent: true,
+    });
+    const fiveSprintsWithCurrent = [...fourActualSprints, currentSprint];
+
+    it('places Forecasted on the current sprint data point when last sprint is current', () => {
+      render(
+        <VelocityTrendChart
+          trendSprints={fiveSprintsWithCurrent}
+          prediction={prediction}
+          currentSprintId="s5"
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      // 5 sprints — no extra forecast entry appended
+      expect(points).toHaveLength(5);
+      const lastPoint = points[4];
+      expect(lastPoint.sprint).toBe('Sprint 26.21');
+      expect(lastPoint.Forecasted).toBe(48);
+    });
+
+    it('does NOT append a separate forecasted entry when current sprint is last', () => {
+      render(
+        <VelocityTrendChart
+          trendSprints={fiveSprintsWithCurrent}
+          prediction={prediction}
+          currentSprintId="s5"
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      const hasForecasted = points.some(
+        (p: Record<string, unknown>) => typeof p.sprint === 'string' && String(p.sprint).includes('(Forecasted)')
+      );
+      expect(hasForecasted).toBe(false);
+    });
+
+    it('marks the current sprint data point with isCurrentSprint: true', () => {
+      render(
+        <VelocityTrendChart
+          trendSprints={fiveSprintsWithCurrent}
+          prediction={null}
+          currentSprintId="s5"
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      expect(points[4].isCurrentSprint).toBe(true);
+      expect(points.slice(0, 4).every((p: Record<string, unknown>) => !p.isCurrentSprint)).toBe(true);
+    });
+
+    it('falls back to last sprint when no sprint is marked isCurrent', () => {
+      render(
+        <VelocityTrendChart
+          trendSprints={fourSprints}
+          prediction={prediction}
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      // Still 4 points — forecast merges onto the last sprint, no new entry
+      expect(points).toHaveLength(4);
+      expect(points[3].sprint).toBe('Sprint 26.20');
+      expect(points[3].Forecasted).toBe(48);
+    });
+
+    it('places no Forecasted on current sprint when prediction.rawVelocity is null', () => {
+      const nullPrediction: WorkstreamCardViewModel['prediction'] = {
+        ...prediction,
+        rawVelocity: null,
+      };
+
+      render(
+        <VelocityTrendChart
+          trendSprints={fiveSprintsWithCurrent}
+          prediction={nullPrediction}
+          currentSprintId="s5"
+        />
+      );
+
+      const chart = screen.getByTestId('velocity-line-chart');
+      const points = JSON.parse(chart.getAttribute('data-points')!);
+      expect(points).toHaveLength(5);
+      expect(points[4]).not.toHaveProperty('Forecasted');
     });
   });
 

@@ -365,11 +365,12 @@ describe('dashboard adapter', () => {
         const vm = mapApiResponseToDashboardViewModel(responseWithBugs);
         const bugs = vm.workstreamCards[0].trendSprints[0].bugs;
 
+        const ADO_BASE = 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit';
         expect(bugs).toHaveLength(4);
-        expect(bugs[0]).toEqual({ adoId: '12345', title: 'Login crash', isClosed: true });
-        expect(bugs[1]).toEqual({ adoId: '67890', title: 'Slow query', isClosed: false });
-        expect(bugs[2]).toEqual({ adoId: '11111', title: 'Memory leak', isClosed: true });
-        expect(bugs[3]).toEqual({ adoId: '22222', title: 'UI glitch', isClosed: true });
+        expect(bugs[0]).toEqual({ adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: `${ADO_BASE}/12345` });
+        expect(bugs[1]).toEqual({ adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: `${ADO_BASE}/67890` });
+        expect(bugs[2]).toEqual({ adoId: '11111', title: 'Memory leak', isClosed: true, adoUrl: `${ADO_BASE}/11111` });
+        expect(bugs[3]).toEqual({ adoId: '22222', title: 'UI glitch', isClosed: true, adoUrl: `${ADO_BASE}/22222` });
       });
 
       it('returns empty bugs array when bugs field is missing', () => {
@@ -377,6 +378,54 @@ describe('dashboard adapter', () => {
         const sprint = vm.workstreamCards[0].trendSprints[0];
 
         expect(sprint.bugs).toEqual([]);
+      });
+    });
+
+    describe('isCurrent flag mapping', () => {
+      it('sets isCurrent: true when mode is "current"', () => {
+        const responseWithCurrentSprint: ApiResponse = {
+          ...fullApiResponse,
+          workstreams: [
+            {
+              ...fullApiResponse.workstreams[0]!,
+              trends: {
+                sprints: [
+                  {
+                    sprintId: 'sprint-a',
+                    sprintName: 'Sprint 1',
+                    velocity: 30,
+                    velocityRate: 0.5,
+                    activeBugs: 0,
+                    bugsClosed: 0,
+                    mode: 'actual' as const,
+                  },
+                  {
+                    sprintId: 'sprint-b',
+                    sprintName: 'Sprint 2',
+                    velocity: 8,
+                    velocityRate: null,
+                    activeBugs: 0,
+                    bugsClosed: 0,
+                    mode: 'current' as const,
+                  },
+                ],
+              },
+            },
+          ],
+        };
+
+        const vm = mapApiResponseToDashboardViewModel(responseWithCurrentSprint);
+        const sprints = vm.workstreamCards[0].trendSprints;
+
+        expect(sprints[0].isCurrent).toBe(false);
+        expect(sprints[1].isCurrent).toBe(true);
+      });
+
+      it('sets isCurrent: false for all sprints when mode is "actual"', () => {
+        const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
+        const sprints = vm.workstreamCards[0].trendSprints;
+
+        expect(sprints.every((s) => s.isCurrent === false)).toBe(true);
       });
     });
 
@@ -1041,90 +1090,6 @@ describe('dashboard adapter', () => {
       expect(vm.quarterlyComplete).toBe(3);
       expect(vm.quarterlyInProgress).toBe(5);
       expect(vm.quarterlyNotStarted).toBe(2);
-    });
-  });
-
-  describe('mapApiResponseToDashboardViewModel with milestones', () => {
-    const milestoneFeb: ApiMilestoneWithProgress = {
-      id: 'm1',
-      title: 'Launch Feature X',
-      workstreamId: 'ws-1',
-      targetMonth: '2026-02-01T00:00:00.000Z',
-      status: 'InProgress',
-      adoFeatureId: 12345,
-      notes: null,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-      workstream: { id: 'ws-1', name: 'Action Tracker' },
-      completedPoints: 73,
-      totalPoints: 100,
-      percentComplete: 73,
-      burnupData: [],
-      quarter: null,
-    };
-
-    it('populates milestoneGroups on workstreamCards when milestones provided', () => {
-      const milestones = [milestoneFeb];
-      const vm = mapApiResponseToDashboardViewModel(fullApiResponse, milestones);
-
-      expect(vm.workstreamCards).toHaveLength(1);
-      const ws = vm.workstreamCards[0];
-      expect(ws.milestoneGroups).toBeDefined();
-      expect(Array.isArray(ws.milestoneGroups)).toBe(true);
-      expect(ws.milestoneGroups.length).toBeGreaterThan(0);
-      expect(ws.milestoneGroups[0]).toMatchObject({
-        monthLabel: 'February 2026',
-        milestones: expect.any(Array),
-        groupCompletionPercent: expect.any(String),
-      });
-    });
-
-    it('filters milestones to correct workstream', () => {
-      const milestoneWs2: ApiMilestoneWithProgress = {
-        ...milestoneFeb,
-        id: 'm2',
-        workstreamId: 'ws-2',
-        workstream: { id: 'ws-2', name: 'Other' },
-      };
-      const responseWithTwoWorkstreams: ApiResponse = {
-        ...fullApiResponse,
-        workstreams: [
-          fullApiResponse.workstreams[0]!,
-          { ...fullApiResponse.workstreams[0]!, workstreamId: 'ws-2', workstreamName: 'Other' },
-        ],
-      };
-      const vm = mapApiResponseToDashboardViewModel(responseWithTwoWorkstreams, [
-        milestoneFeb,
-        milestoneWs2,
-      ]);
-
-      const ws1 = vm.workstreamCards.find((c) => c.workstreamId === 'ws-1');
-      const ws2 = vm.workstreamCards.find((c) => c.workstreamId === 'ws-2');
-      expect(ws1?.milestoneGroups.some((g) => g.milestones.some((m) => m.id === 'm1'))).toBe(true);
-      expect(ws2?.milestoneGroups.some((g) => g.milestones.some((m) => m.id === 'm2'))).toBe(true);
-      expect(ws1?.milestoneGroups.some((g) => g.milestones.some((m) => m.id === 'm2'))).toBe(false);
-      expect(ws2?.milestoneGroups.some((g) => g.milestones.some((m) => m.id === 'm1'))).toBe(false);
-    });
-
-    it('has milestoneGroups as [] when no milestones for that workstream', () => {
-      const responseWithTwoWorkstreams: ApiResponse = {
-        ...fullApiResponse,
-        workstreams: [
-          fullApiResponse.workstreams[0]!,
-          { ...fullApiResponse.workstreams[0]!, workstreamId: 'ws-2', workstreamName: 'Other' },
-        ],
-      };
-      const vm = mapApiResponseToDashboardViewModel(responseWithTwoWorkstreams, [milestoneFeb]);
-
-      const ws2 = vm.workstreamCards.find((c) => c.workstreamId === 'ws-2');
-      expect(ws2?.milestoneGroups).toEqual([]);
-    });
-
-    it('is backwards compatible - milestoneGroups is [] when no milestones parameter', () => {
-      const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
-
-      expect(vm.workstreamCards).toHaveLength(1);
-      expect(vm.workstreamCards[0].milestoneGroups).toEqual([]);
     });
   });
 

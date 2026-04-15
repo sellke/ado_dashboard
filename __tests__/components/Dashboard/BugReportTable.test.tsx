@@ -9,6 +9,7 @@ import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
  */
 
 const defaultEnrichedFields = {
+  isCurrent: false as boolean,
   velocityAvg: null as number | null,
   overheadPercentAvg: null as number | null,
   carryOverRateAvg: null as number | null,
@@ -36,8 +37,8 @@ const platformCard = createWorkstreamCard({
       rawActiveBugs: 2,
       rawBugsClosed: 3,
       bugs: [
-        { adoId: '100', title: 'Login crash', isClosed: true },
-        { adoId: '101', title: 'Memory leak', isClosed: false },
+        { adoId: '100', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/100' },
+        { adoId: '101', title: 'Memory leak', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/101' },
       ],
       overheadBreakdown: [],
       ...defaultEnrichedFields,
@@ -53,7 +54,7 @@ const platformCard = createWorkstreamCard({
       rawVelocityRate: 0.7,
       rawActiveBugs: 1,
       rawBugsClosed: 2,
-      bugs: [{ adoId: '102', title: 'Slow query', isClosed: false }],
+      bugs: [{ adoId: '102', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/102' }],
       overheadBreakdown: [],
       ...defaultEnrichedFields,
     },
@@ -75,7 +76,7 @@ const appsCard = createWorkstreamCard({
       rawVelocityRate: 0.5,
       rawActiveBugs: 1,
       rawBugsClosed: 1,
-      bugs: [{ adoId: '200', title: 'UI glitch', isClosed: true }],
+      bugs: [{ adoId: '200', title: 'UI glitch', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/200' }],
       overheadBreakdown: [],
       ...defaultEnrichedFields,
     },

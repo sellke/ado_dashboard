@@ -1,8 +1,8 @@
 # Product Roadmap — Unified LiveLink Health Report
 
 > Based on Product Contract: 2026-02-08
-> Last Updated: 2026-02-18
-> Current Position: Q4 FY26, Sprint 2, Week 2
+> Last Updated: 2026-04-09
+> Current Position: Q4 FY26
 
 ## Phase 1A: Backend Foundation (Complete)
 
@@ -67,87 +67,89 @@ Complete metric pipeline from raw work items to program-level health:
 
 ---
 
-## Phase 1B: Program Summary UI
+## Phase 1B: Program Summary UI (Complete)
 
-**Status:** Not started
+**Status:** Done
 **Goal:** Top-level program health view — the first thing stakeholders see.
-**Effort:** M
+**Specs:** [program-dashboard-ui](../specs/2026-02-12-program-dashboard-ui/spec.md), [program-summary-ui](../specs/2026-02-18-program-summary-ui/spec.md)
+
+### What Was Delivered
+
+Completed in 10 user stories (55/55 tasks) across two spec cycles:
+
+1. **Dashboard Data Contract & Shell** — Mantine page layout, `GET /api/metrics` data contract, loading/error/empty states
+2. **Program Summary Section** — Metric tiles with RAG color coding
+3. **Workstream Health Cards** — Per-workstream cards with metric tiles and trend values
+4. **State Coverage & Storybook** — Loading, error, empty, and partial-data states; Storybook stories
+5. **Sync Trigger & Auto-Refresh** — "Sync Now" button triggers full ADO refresh, automatic metrics refetch
+6. **Metric Calculation Service & Trend API** — `buildTrendSeries()` service, additive trend payload (velocity, bug counts per sprint)
+7. **Trend & Bug Metrics UI** — Sprint-over-sprint velocity trend, bug burndown, current-sprint prediction
+8. **Metric Display Adjustments** — Removed predictability metric from UI, renamed "Carry-Over Rate" → "Carry-Over %"
+9. **Milestone Tile Placeholder UI** — Monthly Milestone % and Quarterly Milestone Progress tiles with null/placeholder state
+10. **End-to-End Validation** — Metrics validated against known ADO sprint data
 
 ### Metrics Displayed
 
-| Metric | Calculation | Source |
-|---|---|---|
-| **Average Velocity** | Rolling avg of total SP completed per sprint, all workstreams combined | MetricSnapshot (program-level) |
-| **Average Velocity Rate** | Average velocity / net capacity hours (program-wide) | MetricSnapshot + SprintWorkstream capacity |
-| **Carry-over %** | Rolling avg of incomplete SP / planned SP per sprint (program-wide) | MetricSnapshot (program-level) |
-| **Overhead %** | (Ceremony + Bug + Spike + Support hours) / Gross Hours (program-wide) | MetricSnapshot (program-level) |
-| **Monthly Milestone Completion %** | Completed SP / Total SP for current month's tagged Features | ADO Features tagged with monthly goals |
-| **Quarterly Milestone Progress** | Roll-up of all monthly milestones within the current quarter | Aggregated monthly milestone data |
-
-### Deliverables
-
-- [ ] Mantine page layout with program summary header section
-- [ ] Metric cards for each program-level KPI with RAG color coding
-- [ ] Monthly milestone completion % display (current month)
-- [ ] Quarterly milestone progress roll-up
-- [ ] Data fetching from existing `GET /api/metrics` endpoint
-- [ ] End-to-end validation against known sprint data
-
-### Open Questions (to resolve during spec)
-
-- Program summary card layout (single row of KPI cards? summary panel?)
-- RAG thresholds for monthly milestone % (what's Green vs. Amber vs. Red?)
+| # | Tile | Source |
+|---|------|--------|
+| 1 | Average Velocity | MetricSnapshot program-level |
+| 2 | Overhead % | MetricSnapshot program-level |
+| 3 | Carry-Over % | MetricSnapshot program-level |
+| 4 | Monthly Milestone % | Milestone data (Phase 1E) |
+| 5 | Quarterly Milestone Progress | Milestone data (Phase 1E) |
 
 ---
 
-## Phase 1C: Workstream Velocity Section
+## Phase 1C: Workstream Velocity Section (Complete)
 
-**Status:** Not started
+**Status:** Done
 **Goal:** Per-workstream velocity, velocity rate, and carry-over with trend visualization and current-sprint prediction.
-**Effort:** M–L
+**Spec:** [workstream-velocity](../specs/2026-02-19-workstream-velocity/spec.md)
+
+### What Was Delivered
+
+Completed in 5 stories (35/35 tasks):
+
+1. **API Data Contract Extension** — Per-workstream prediction (velocity, velocityRate, mode, formula) and per-sprint bug array added to `GET /api/metrics`
+2. **Dashboard Types & Adapter** — Extended view models for velocity rate tile, bug mapping, prediction mapping
+3. **Velocity Trend Chart** — Recharts LineChart per workstream: completed sprints (solid) + current sprint prediction (dashed), rolling average reference line
+4. **Sprint Bug List** — Per-sprint bug listing with ADO ID, title, state; closed bugs with strikethrough styling
+5. **Card Integration & Testing** — Velocity rate as 4th metric tile (Velocity, Velocity Rate, Overhead %, Carry-Over %), chart and bug list wired into WorkstreamHealthCard
 
 ### Metrics Per Workstream Per Sprint
 
 | Metric | Calculation | Notes |
 |---|---|---|
 | **Velocity** | SP completed (Done-like states) in sprint | Trend visualization across rolling window |
-| **Velocity Rate** | SP completed / net capacity hours | Efficiency signal |
+| **Velocity Rate** | SP completed / net capacity hours | Efficiency signal (informational, no RAG) |
 | **Carry-over %** | Incomplete SP / planned SP | Overcommitment signal |
 | **Rolling Averages** | 5-sprint rolling avg for each metric above | Trend context, smooths outliers |
 
 ### Current Sprint Prediction
 
-For the in-progress sprint (not yet completed):
 - **Predicted Velocity** = Average Velocity Rate × Net Hours available in current sprint
-- **Predicted Carry-over** = Historical carry-over rate applied to current sprint's planned scope
-- Visually distinguished from actuals (e.g., dashed line, different shading)
-
-### Deliverables
-
-- [ ] Per-workstream velocity cards/panels
-- [ ] Sprint-over-sprint trend visualization (bar or line chart)
-- [ ] Velocity rate and carry-over % per workstream per sprint
-- [ ] Rolling average overlays on trend charts
-- [ ] Current-sprint prediction engine (avg velocity rate × available hours)
-- [ ] Current-sprint prediction display (visually distinct from actuals)
-
-### Open Questions (to resolve during spec)
-
-- Chart type: bar chart with trend line overlay vs. pure line chart
-- How many sprints in the visible rolling window (5? all available?)
-- Workstream layout: accordion panels, tabs, or stacked cards
+- Displayed as dashed extension with "(Forecasted)" label, visually distinguished from actuals
 
 ---
 
-## Phase 1D: Workstream Overhead Section
+## Phase 1D: Workstream Overhead Section (Complete)
 
-**Status:** Not started
-**Goal:** Per-workstream overhead breakdown with composition view and individual bug/support item detail.
-**Effort:** M
+**Status:** Done
+**Goal:** Per-workstream overhead breakdown with composition view and individual bug/support/spike item detail.
+**Spec:** [workstream-overhead](../specs/2026-02-20-workstream-overhead/spec.md)
+
+### What Was Delivered
+
+Completed in 6 stories (39/39 tasks):
+
+1. **Schema Migration & Calculator Breakdown** — Added `ceremonyHours`, `bugHours`, `spikeHours`, `supportHours` to MetricSnapshot; extended `calculateOverhead()` to return per-component breakdown
+2. **API Contract Extension** — Added `overheadComposition` per trend sprint and `overheadItemsBySprint` per workstream to `GET /api/metrics`
+3. **Dashboard Types & Adapter** — `OverheadCompositionViewModel`, `OverheadItemViewModel` with ADO URL links
+4. **Overhead Composition Chart** — Stacked bar chart (ceremony/bug/spike/support hours) per sprint via Recharts
+5. **Current Sprint Item Tables** — Bug, spike, and support item listings with ADO ID, title, hours, state, and clickable ADO links
+6. **OverheadBreakdownPanel & Card Integration** — Umbrella panel wired into WorkstreamHealthCard; sprint-selectable items driven by shared SprintTabSelector
 
 ### Overhead Composition Breakdown
-
-Per workstream, per sprint:
 
 | Component | Source | Calculation |
 |---|---|---|
@@ -155,75 +157,100 @@ Per workstream, per sprint:
 | **Bug Hours** | CompletedWork (fallback: OriginalEstimate) | ADO Bug work items |
 | **Support Hours** | CompletedWork (fallback: OriginalEstimate) | ADO Support work items |
 | **Spike Hours** | StoryPoints × 1 (1 point = 1 hour) | ADO Spike work items |
-| **Overhead %** | (Ceremony + Bug + Spike + Support) / Gross Hours × 100 | Calculated |
-
-### Item-Level Detail
-
-For bugs and support items within each workstream:
-- **Title** — Work item title from ADO
-- **Hours** — CompletedWork or OriginalEstimate
-- **Status** — Current ADO state
-- Filterable/sortable by sprint
-
-### Deliverables
-
-- [ ] Per-workstream overhead % with RAG color coding
-- [ ] Composition breakdown visualization (stacked bar or donut showing ceremony/bug/support/spike proportions)
-- [ ] Bug item listing table (title, hours, status) per workstream
-- [ ] Support item listing table (title, hours, status) per workstream
-- [ ] Sprint filtering for item-level detail
-- [ ] API additions if needed for item-level bug/support queries
-
-### Open Questions (to resolve during spec)
-
-- Composition chart type: stacked bar across sprints vs. donut for current sprint
-- Should spike items also be listed individually, or just hours?
-- Item listing pagination/limits for workstreams with many bugs
 
 ---
 
-## Phase 1E: Workstream Milestones Section
+## Phase 1E: Workstream Milestones Section (Phase 1 Complete — ADP Extension In Progress)
 
-**Status:** Not started
+**Status:** Phase 1 Done, ADP Extension In Progress
 **Goal:** Monthly goal tracking per workstream — Features tagged in ADO with monthly targets, tracked by child story point completion.
-**Effort:** M–L
+**Specs:** [workstream-milestones](../specs/2026-02-20-workstream-milestones/spec.md), [manual-milestone-entry](../specs/2026-02-13-manual-milestone-entry/spec.md), [adp-milestones-panel](../specs/2026-03-23-adp-milestones-panel/spec.md)
 
-### Monthly Goal Model
+### What Was Delivered
 
-- ADO **Features** are tagged with monthly goal identifiers (e.g., `Feb-Goal`, `Mar-Goal`)
-- Child **User Stories** and their **story points** are the unit of progress
-- **% Complete** = Completed SP / Total SP for child stories under the tagged Feature
-- Target date = end of the tagged month
-- Total SP is a living number — stories may be added mid-month
+#### Phase 1 Milestones (6 stories, complete)
 
-### Per-Workstream Display
+1. **Feature Goal Sync** — WIQL query per workstream fetching ADO Features with `ADP-{MON}` tags; auto-creates Milestone records with targetMonth parsing
+2. **Progress Calculator** — Pure functions for completed SP / total SP computation and per-sprint burnup data
+3. **API Extension** — Extended `GET /api/milestones` with `completedPoints`, `totalPoints`, `burnupData`, quarter grouping
+4. **Types & Adapter** — `MilestoneGoalViewModel`, `MilestoneMonthGroup` view models with mapping functions
+5. **MilestoneGoalsPanel Component** — BurnupChart (area chart) + FeatureMilestoneCard + month-grouped panel layout
+6. **Dashboard Integration** — Replaced manual CRUD MilestonePanel with ADO-driven MilestoneGoalsPanel
 
-- List of Features tagged as monthly goals for the workstream
-- Per Feature: title, total SP, completed SP, % complete
-- Visual progress indicator (burnup chart or percentage bar — TBD)
-- Monthly grouping: current month goals highlighted, prior months shown as historical
+#### Manual Milestone Entry (3 stories, superseded)
 
-### Program-Level Roll-Up (feeds Phase 1B)
+REST API (GET/POST/PUT/DELETE `/api/milestones`), milestone table UI, inline status cycling — delivered as interim solution before ADO Feature tag sync was implemented.
 
-- **Monthly Milestone Completion %**: aggregate % across all workstreams for current month
-- **Quarterly Milestone Progress**: how many monthly milestones are on track / complete within the quarter
+#### ADP Milestones Panel Fix (2 stories, complete)
 
-### Deliverables
+1. **Data Pipeline Fix** — Repaired type/computation/prop-forwarding pipeline for quarterly milestone data reaching ProgramSummarySection
+2. **ADP-MON Tag Filter** — Restricted milestone progress to only child stories bearing `ADP-MON` tags
 
-- [ ] ADO sync enhancement: fetch Features with monthly goal tags and their child story relationships
-- [ ] Milestone % complete calculation (completed SP / total SP per tagged Feature)
-- [ ] Per-workstream milestone display with progress indicators
-- [ ] Monthly grouping with current month highlighted
-- [ ] Program-level monthly/quarterly milestone aggregation (feeds Program Summary)
-- [ ] API endpoint for milestone data (`GET /api/milestones` or extension of metrics API)
-- [ ] Visual progress representation (burnup vs. percentage bar — decided during spec)
+### ADP Extension (Remaining — 4 stories)
 
-### Open Questions (to resolve during spec)
+- [ ] ADP Tag Format Migration — replace legacy `-Goal` tags with strict `ADP-{MON}`
+- [ ] Quarter Tag Parsing & Rollup — parse `Qx` tags for quarter-driven program rollup
+- [ ] Milestone Status Derivation Fix — wire `deriveMilestoneStatus()` into API
+- [ ] Program Rollup UI — surface `programRollup` in ProgramSummarySection
 
-- Exact tag format for monthly goals (e.g., `Feb-Goal`, `2026-02`, custom field?)
-- How to handle Features that span multiple months
-- Burnup chart vs. percentage bar vs. both
-- What "on track" means for quarterly roll-up (> X% complete by end of month?)
+### Milestone Model
+
+- ADO **Features** tagged `ADP-{MON}` (e.g., `ADP-MAR`) with `Qx` quarter tags (e.g., `Q4`)
+- Child **User Stories** with `ADP-MON` tags are the unit of progress
+- **% Complete** = Completed SP / Total SP
+- Status derived at API time via `deriveMilestoneStatus()` (not stored)
+- Quarterly grouping via explicit `Qx` tag on Features
+
+---
+
+## Cross-Cutting Enhancements (Complete)
+
+Infrastructure, UX, and data accuracy improvements delivered across multiple phases. Each has its own spec.
+
+### Recharts Chart Library Migration
+**Spec:** [recharts-chart-library](../specs/2026-03-05-recharts-chart-library/spec.md) — 6 stories
+
+Replaced `@mantine/charts` with reusable Recharts wrappers in `lib/charts/` with Mantine theme integration, dark mode, and Storybook stories. Migrated all 5 dashboard charts.
+
+### Sprint Story List Tabs
+**Spec:** [sprint-story-list-tabs](../specs/2026-03-05-sprint-story-list-tabs/spec.md) — 4 stories
+
+Per-workstream panel showing User Stories grouped by status (Planned/Active/Resolved/Completed) with Mantine Tabs for sprint selection. New API endpoint `GET /api/sprints/stories`, clickable rows linking to ADO.
+
+### Common Sprint Tab Selector
+**Spec:** [common-sprint-tab-selector](../specs/2026-03-05-common-sprint-tab-selector/spec.md) — 3 stories
+
+Replaced four duplicate per-workstream sprint tab bars with a single shared selector above the cards grid. One tab change updates all cards.
+
+### Overhead Sprint-Selectable ADO Links
+**Spec:** [overhead-sprint-ado-links](../specs/2026-03-05-overhead-sprint-ado-links/spec.md) — 3 stories
+
+Extended overhead items (Bugs, Spikes, Support) to be sprint-selectable via shared SprintTabSelector with clickable ADO work item links.
+
+### Sprint Plan Snapshot
+**Spec:** [sprint-plan-snapshot](../specs/2026-03-05-sprint-plan-snapshot/spec.md) — 4 stories
+
+New `SprintPlanSnapshot` table captures work item assignments during each sync cycle, fixing carry-over % accuracy for completed sprints.
+
+### Sprint Tabs Full Workstream Data
+**Spec:** [sprint-tabs-full-workstream-data](../specs/2026-03-17-sprint-tabs-full-workstream-data/spec.md) — 5 stories
+
+All workstream card sections now respond to sprint tab selection. Enriched API trend sprints with MetricSnapshot fields (rolling averages, planned/completed/carry-over points).
+
+### Dashboard Metrics Audit
+**Spec:** [dashboard-metrics-audit](../specs/2026-03-23-dashboard-metrics-audit/spec.md) — 5 stories
+
+Section-by-section audit: sprint-actual Overhead % and Carry-Over % tiles, 2-column workstream layout, overhead composition stacked bar chart, quarterly-grouped milestone rework, bug page dashboard filter.
+
+### Current Sprint Chart Visibility
+**Spec:** [current-sprint-chart-visibility](../specs/2026-04-08-current-sprint-chart-visibility/spec.md) — 3 stories
+
+Current sprint now appears in velocity, bug burndown, and overhead charts with hollow-dot styling and `(Cur)` x-axis label. Rolling window shows 5 entries (4 actual + 1 current).
+
+### Sprint Tab Badge Tooltip
+**Spec:** [sprint-tab-badge-tooltip](../specs/2026-04-08-sprint-tab-badge-tooltip/spec.md) — 1 story
+
+Added tooltip to sprint tab story-count badges: "N stories in this sprint".
 
 ---
 
@@ -261,13 +288,19 @@ Maps directly to the 4 report sections:
 
 ## Phase 1 Overall Success Criteria
 
-- ADO data for all workstreams fetched and stored reliably
-- Core sprint metrics calculated correctly (validated against 1 known sprint)
-- All 4 report sections display accurate, RAG-coded data
-- Current-sprint velocity prediction matches expected calculation
-- Monthly goal milestones tracked from ADO Feature tags
-- PowerPoint export produces stakeholder-ready slides without manual editing
-- Total report generation time: < 15 minutes (vs. hours today)
+- [x] ADO data for all workstreams fetched and stored reliably
+- [x] Core sprint metrics calculated correctly (validated against known sprint data)
+- [x] Program Summary section displays RAG-coded metric tiles (Velocity, Overhead %, Carry-Over %, Milestone placeholders)
+- [x] Workstream velocity with trend charts and current-sprint prediction
+- [x] Workstream overhead breakdown with composition charts and item tables
+- [x] Workstream milestones tracked from ADO Feature tags (ADP format)
+- [x] Sprint plan snapshots ensure accurate carry-over for completed sprints
+- [x] All workstream card sections respond to shared sprint tab selection
+- [x] Charts migrated to Recharts with dark mode and Mantine theme integration
+- [x] Current sprint visible in all charts with in-progress styling
+- [ ] Phase 1E ADP Extension (tag migration, quarter rollup, status derivation)
+- [ ] PowerPoint export produces stakeholder-ready slides without manual editing
+- [ ] Total report generation time: < 15 minutes (vs. hours today)
 
 ---
 
@@ -337,15 +370,22 @@ Database tables for Phase 2 (Transcript, CeremonyInsight) are already created as
 ## Build Order & Critical Path
 
 ```
-Phase 1A (Done) ──► Phase 1B (Program Summary) ──► Phase 1F (PowerPoint Export)
+Phase 1A (Done) ──► Phase 1B (Done) ──────────────────► Phase 1F (Not Started)
                           │
-                          ├──► Phase 1C (Workstream Velocity)
+                          ├──► Phase 1C (Done)
+                          │       └── + Recharts, Sprint Tabs, Plan Snapshot
                           │
-                          ├──► Phase 1D (Workstream Overhead)
+                          ├──► Phase 1D (Done)
+                          │       └── + Overhead ADO Links, Metrics Audit, Chart Visibility
                           │
-                          └──► Phase 1E (Workstream Milestones) ──► feeds back to 1B
+                          └──► Phase 1E (Phase 1 Done → ADP Extension In Progress)
+                                  └── + ADP Milestones Panel, Badge Tooltip
 ```
 
-**Critical path:** 1B establishes the page structure. 1C/1D/1E can be built in parallel once the layout is set. 1E feeds milestone data back into 1B's program summary. 1F (PowerPoint) comes last since it exports whatever the dashboard shows.
+**What's done:** Phases 1A–1D fully complete. Phase 1E Phase 1 complete with ADP extension remaining. Nine cross-cutting enhancement specs delivered alongside the main phases.
 
-**Next immediate action:** Spec out Phase 1B (Program Summary) in detail, then build.
+**Remaining work:**
+1. **Phase 1E ADP Extension** — 4 stories: tag migration, quarter parsing, status derivation, program rollup UI
+2. **Phase 1F PowerPoint Export** — Full scope, depends on dashboard being stable
+
+**Next immediate action:** Complete Phase 1E ADP Extension, then spec out Phase 1F (PowerPoint Export).

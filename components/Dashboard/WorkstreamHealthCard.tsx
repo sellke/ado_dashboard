@@ -4,17 +4,15 @@ import { useMemo } from 'react';
 import { Card, Group, Stack, Text } from '@mantine/core';
 import type { MetricTileViewModel, SprintStoryViewModel, TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { AppBarChart } from '@/lib/charts';
-import { MilestoneGoalsPanel } from './MilestoneGoalsPanel';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
+import { SprintBugList } from './SprintBugList';
 import { SprintStoryListPanel } from './SprintStoryListPanel';
 import { VelocityTrendChart } from './VelocityTrendChart';
 
 export interface WorkstreamHealthCardProps {
   /** Workstream card view model with metrics and detail */
   card: WorkstreamCardViewModel;
-  milestonesLoading?: boolean;
-  milestonesError?: string | null;
   sprintStories?: SprintStoryViewModel[];
   activeSprintId?: string;
   /** The current (in-flight) sprint ID — used to skip trend-sprint overrides for the default view. */
@@ -30,7 +28,8 @@ export interface WorkstreamHealthCardProps {
  */
 function formatMetricVal(value: number | null, unit: string): string {
   if (value === null) return 'N/A';
-  return `${value} ${unit}`;
+  const rounded = Math.round(value * 100) / 100;
+  return `${rounded} ${unit}`;
 }
 
 function formatRate(value: number | null): string {
@@ -53,8 +52,6 @@ function buildBugChartData(sprints: TrendSprintViewModel[]) {
 
 export function WorkstreamHealthCard({
   card,
-  milestonesLoading,
-  milestonesError,
   sprintStories,
   activeSprintId,
   currentSprintId,
@@ -68,8 +65,6 @@ export function WorkstreamHealthCard({
     detailSprintLabel,
     trendSprints = [],
     prediction,
-    milestoneGroups = [],
-    overheadItemsBySprint = [],
   } = card;
 
   const isNonCurrentSprint =
@@ -139,11 +134,9 @@ export function WorkstreamHealthCard({
     return matchedTrendSprint.sprintName;
   }, [detailSprintLabel, matchedTrendSprint]);
 
-  const hasOverheadData =
-    trendSprints.some((s) => (s.overheadBreakdown ?? []).some((item) => item.hours > 0)) ||
-    overheadItemsBySprint.some(
-      (s) => s.bugs.length > 0 || s.spikes.length > 0 || s.support.length > 0
-    );
+  const hasOverheadData = trendSprints.some((s) =>
+    (s.overheadBreakdown ?? []).some((item) => item.hours > 0)
+  );
 
   return (
     <Card withBorder padding="md" shadow="sm" className="workstream-card" style={{ overflow: 'visible' }}>
@@ -193,8 +186,32 @@ export function WorkstreamHealthCard({
           <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
             Velocity (Points)
           </Text>
-          <VelocityTrendChart trendSprints={trendSprints} prediction={prediction ?? null} activeSprintId={activeSprintId} />
+          <VelocityTrendChart
+            trendSprints={trendSprints}
+            prediction={prediction ?? null}
+            activeSprintId={activeSprintId}
+            currentSprintId={currentSprintId}
+          />
         </Stack>
+
+        {(sprintStories || storiesLoading || storiesError) && (
+          <Stack
+            gap="xs"
+            mt="xs"
+            pt="xs"
+            style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+          >
+            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+              Sprint Stories
+            </Text>
+            <SprintStoryListPanel
+              sprints={sprintStories ?? []}
+              activeSprintId={activeSprintId ?? ''}
+              loading={storiesLoading}
+              error={storiesError}
+            />
+          </Stack>
+        )}
 
         {trendSprints.length > 0 && (
           <Stack
@@ -219,53 +236,21 @@ export function WorkstreamHealthCard({
               ]}
               xAxisProps={{
                 interval: 0,
-                tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
+                tickFormatter: (v: string) => {
+                  const label = v.replace(/^Sprint\s*/i, '');
+                  const isCurrent = trendSprints.find((s) => s.sprintName === v)?.isCurrent;
+                  return isCurrent ? `${label} (Cur)` : label;
+                },
               }}
               yAxisProps={{ domain: [0, 'auto'] }}
             />
-          </Stack>
-        )}
-
-        {(sprintStories || storiesLoading || storiesError) && (
-          <Stack
-            gap="xs"
-            mt="xs"
-            pt="xs"
-            style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
-          >
-            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-              Sprint Stories
-            </Text>
-            <SprintStoryListPanel
-              sprints={sprintStories ?? []}
-              activeSprintId={activeSprintId ?? ''}
-              loading={storiesLoading}
-              error={storiesError}
-            />
+            <SprintBugList trendSprints={trendSprints} activeSprintId={activeSprintId} />
           </Stack>
         )}
 
         {hasOverheadData && (
-          <OverheadBreakdownPanel
-            trendSprints={trendSprints}
-            overheadItemsBySprint={overheadItemsBySprint}
-            activeSprintId={activeSprintId ?? ''}
-            overheadComposition={card.overheadComposition}
-          />
+          <OverheadBreakdownPanel trendSprints={trendSprints} />
         )}
-
-        <Stack
-          gap="xs"
-          mt="xs"
-          pt="xs"
-          style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
-        >
-          <MilestoneGoalsPanel
-            milestoneGroups={milestoneGroups}
-            loading={milestonesLoading}
-            error={milestonesError}
-          />
-        </Stack>
       </Stack>
     </Card>
   );
