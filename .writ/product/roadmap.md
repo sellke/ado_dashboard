@@ -22,7 +22,7 @@ Completed in 6 user stories (54/54 tasks):
 5. **Phase 2 Transcript & Insight Schema** — Transcript and CeremonyInsight models (built ahead of Phase 2)
 6. **Schema Cleanup, Seed Data & Migration** — Boilerplate removal, idiomatic seed script, end-to-end validation
 
-See [`.writ/specs/2026-02-08-database-schema/`](../.writ/specs/2026-02-08-database-schema/spec.md) for full specification and story details.
+See `[.writ/specs/2026-02-08-database-schema/](../.writ/specs/2026-02-08-database-schema/spec.md)` for full specification and story details.
 
 #### ADO Data Sync Engine (Feb 11–12)
 
@@ -48,22 +48,22 @@ Complete metric pipeline from raw work items to program-level health:
 
 ### Technical Foundation Checklist
 
-- [x] Prisma schema with 9+ models, 7 enums, indexes, and table mappings
-- [x] Prisma migrations created and applied (7 migrations)
-- [x] Seed script with workstreams, RAG thresholds, and historical sprints
-- [x] Comprehensive Prisma model tests (15 test files)
-- [x] Boilerplate User/Post models removed, codebase cleaned up
-- [x] ADO sync orchestrator with per-workstream isolation and SyncLog tracking
-- [x] ADO client: iterations, work items, capacity fetch via MCP tools
-- [x] Sync API route: `POST /api/sync/ado` (Full, WorkItems, Iterations, Capacity)
-- [x] Metric calculators: velocity, overhead%, predictability, carry-over (pure functions)
-- [x] Metric orchestrator with per-workstream isolation and program aggregation
-- [x] RAG evaluation engine with configurable thresholds
-- [x] Rolling 5-sprint averages for trend context
-- [x] MetricSnapshot persistence for computed metrics
-- [x] Metrics API routes: `GET /api/metrics`, `POST /api/metrics/compute`
-- [x] Sync config with 4 workstreams, ADO team IDs, and area path mappings
-- [x] Test coverage: 27 test files (Prisma models, sync modules, metrics, API routes)
+- Prisma schema with 9+ models, 7 enums, indexes, and table mappings
+- Prisma migrations created and applied (7 migrations)
+- Seed script with workstreams, RAG thresholds, and historical sprints
+- Comprehensive Prisma model tests (15 test files)
+- Boilerplate User/Post models removed, codebase cleaned up
+- ADO sync orchestrator with per-workstream isolation and SyncLog tracking
+- ADO client: iterations, work items, capacity fetch via MCP tools
+- Sync API route: `POST /api/sync/ado` (Full, WorkItems, Iterations, Capacity)
+- Metric calculators: velocity, overhead%, predictability, carry-over (pure functions)
+- Metric orchestrator with per-workstream isolation and program aggregation
+- RAG evaluation engine with configurable thresholds
+- Rolling 5-sprint averages for trend context
+- MetricSnapshot persistence for computed metrics
+- Metrics API routes: `GET /api/metrics`, `POST /api/metrics/compute`
+- Sync config with 4 workstreams, ADO team IDs, and area path mappings
+- Test coverage: 27 test files (Prisma models, sync modules, metrics, API routes)
 
 ---
 
@@ -90,13 +90,15 @@ Completed in 10 user stories (55/55 tasks) across two spec cycles:
 
 ### Metrics Displayed
 
-| # | Tile | Source |
-|---|------|--------|
-| 1 | Average Velocity | MetricSnapshot program-level |
-| 2 | Overhead % | MetricSnapshot program-level |
-| 3 | Carry-Over % | MetricSnapshot program-level |
-| 4 | Monthly Milestone % | Milestone data (Phase 1E) |
-| 5 | Quarterly Milestone Progress | Milestone data (Phase 1E) |
+
+| #   | Tile                         | Source                       |
+| --- | ---------------------------- | ---------------------------- |
+| 1   | Average Velocity             | MetricSnapshot program-level |
+| 2   | Overhead %                   | MetricSnapshot program-level |
+| 3   | Carry-Over %                 | MetricSnapshot program-level |
+| 4   | Monthly Milestone %          | Milestone data (Phase 1E)    |
+| 5   | Quarterly Milestone Progress | Milestone data (Phase 1E)    |
+
 
 ---
 
@@ -118,12 +120,14 @@ Completed in 5 stories (35/35 tasks):
 
 ### Metrics Per Workstream Per Sprint
 
-| Metric | Calculation | Notes |
-|---|---|---|
-| **Velocity** | SP completed (Done-like states) in sprint | Trend visualization across rolling window |
-| **Velocity Rate** | SP completed / net capacity hours | Efficiency signal (informational, no RAG) |
-| **Carry-over %** | Incomplete SP / planned SP | Overcommitment signal |
-| **Rolling Averages** | 5-sprint rolling avg for each metric above | Trend context, smooths outliers |
+
+| Metric               | Calculation                                | Notes                                     |
+| -------------------- | ------------------------------------------ | ----------------------------------------- |
+| **Velocity**         | SP completed (Done-like states) in sprint  | Trend visualization across rolling window |
+| **Velocity Rate**    | SP completed / net capacity hours          | Efficiency signal (informational, no RAG) |
+| **Carry-over %**     | Incomplete SP / planned SP                 | Overcommitment signal                     |
+| **Rolling Averages** | 5-sprint rolling avg for each metric above | Trend context, smooths outliers           |
+
 
 ### Current Sprint Prediction
 
@@ -151,12 +155,14 @@ Completed in 6 stories (39/39 tasks):
 
 ### Overhead Composition Breakdown
 
-| Component | Source | Calculation |
-|---|---|---|
-| **Ceremony Hours** | 10.25 hrs/FTE/sprint, prorated for PTO | SprintWorkstream.ceremonyHours |
-| **Bug Hours** | CompletedWork (fallback: OriginalEstimate) | ADO Bug work items |
-| **Support Hours** | CompletedWork (fallback: OriginalEstimate) | ADO Support work items |
-| **Spike Hours** | StoryPoints × 1 (1 point = 1 hour) | ADO Spike work items |
+
+| Component          | Source                                     | Calculation                    |
+| ------------------ | ------------------------------------------ | ------------------------------ |
+| **Ceremony Hours** | 10.25 hrs/FTE/sprint, prorated for PTO     | SprintWorkstream.ceremonyHours |
+| **Bug Hours**      | CompletedWork (fallback: OriginalEstimate) | ADO Bug work items             |
+| **Support Hours**  | CompletedWork (fallback: OriginalEstimate) | ADO Support work items         |
+| **Spike Hours**    | StoryPoints × 1 (1 point = 1 hour)         | ADO Spike work items           |
+
 
 ---
 
@@ -188,10 +194,10 @@ REST API (GET/POST/PUT/DELETE `/api/milestones`), milestone table UI, inline sta
 
 ### ADP Extension (Remaining — 4 stories)
 
-- [ ] ADP Tag Format Migration — replace legacy `-Goal` tags with strict `ADP-{MON}`
-- [ ] Quarter Tag Parsing & Rollup — parse `Qx` tags for quarter-driven program rollup
-- [ ] Milestone Status Derivation Fix — wire `deriveMilestoneStatus()` into API
-- [ ] Program Rollup UI — surface `programRollup` in ProgramSummarySection
+- ADP Tag Format Migration — replace legacy `-Goal` tags with strict `ADP-{MON}`
+- Quarter Tag Parsing & Rollup — parse `Qx` tags for quarter-driven program rollup
+- Milestone Status Derivation Fix — wire `deriveMilestoneStatus()` into API
+- Program Rollup UI — surface `programRollup` in ProgramSummarySection
 
 ### Milestone Model
 
@@ -208,46 +214,55 @@ REST API (GET/POST/PUT/DELETE `/api/milestones`), milestone table UI, inline sta
 Infrastructure, UX, and data accuracy improvements delivered across multiple phases. Each has its own spec.
 
 ### Recharts Chart Library Migration
+
 **Spec:** [recharts-chart-library](../specs/2026-03-05-recharts-chart-library/spec.md) — 6 stories
 
 Replaced `@mantine/charts` with reusable Recharts wrappers in `lib/charts/` with Mantine theme integration, dark mode, and Storybook stories. Migrated all 5 dashboard charts.
 
 ### Sprint Story List Tabs
+
 **Spec:** [sprint-story-list-tabs](../specs/2026-03-05-sprint-story-list-tabs/spec.md) — 4 stories
 
 Per-workstream panel showing User Stories grouped by status (Planned/Active/Resolved/Completed) with Mantine Tabs for sprint selection. New API endpoint `GET /api/sprints/stories`, clickable rows linking to ADO.
 
 ### Common Sprint Tab Selector
+
 **Spec:** [common-sprint-tab-selector](../specs/2026-03-05-common-sprint-tab-selector/spec.md) — 3 stories
 
 Replaced four duplicate per-workstream sprint tab bars with a single shared selector above the cards grid. One tab change updates all cards.
 
 ### Overhead Sprint-Selectable ADO Links
+
 **Spec:** [overhead-sprint-ado-links](../specs/2026-03-05-overhead-sprint-ado-links/spec.md) — 3 stories
 
 Extended overhead items (Bugs, Spikes, Support) to be sprint-selectable via shared SprintTabSelector with clickable ADO work item links.
 
 ### Sprint Plan Snapshot
+
 **Spec:** [sprint-plan-snapshot](../specs/2026-03-05-sprint-plan-snapshot/spec.md) — 4 stories
 
 New `SprintPlanSnapshot` table captures work item assignments during each sync cycle, fixing carry-over % accuracy for completed sprints.
 
 ### Sprint Tabs Full Workstream Data
+
 **Spec:** [sprint-tabs-full-workstream-data](../specs/2026-03-17-sprint-tabs-full-workstream-data/spec.md) — 5 stories
 
 All workstream card sections now respond to sprint tab selection. Enriched API trend sprints with MetricSnapshot fields (rolling averages, planned/completed/carry-over points).
 
 ### Dashboard Metrics Audit
+
 **Spec:** [dashboard-metrics-audit](../specs/2026-03-23-dashboard-metrics-audit/spec.md) — 5 stories
 
 Section-by-section audit: sprint-actual Overhead % and Carry-Over % tiles, 2-column workstream layout, overhead composition stacked bar chart, quarterly-grouped milestone rework, bug page dashboard filter.
 
 ### Current Sprint Chart Visibility
+
 **Spec:** [current-sprint-chart-visibility](../specs/2026-04-08-current-sprint-chart-visibility/spec.md) — 3 stories
 
 Current sprint now appears in velocity, bug burndown, and overhead charts with hollow-dot styling and `(Cur)` x-axis label. Rolling window shows 5 entries (4 actual + 1 current).
 
 ### Sprint Tab Badge Tooltip
+
 **Spec:** [sprint-tab-badge-tooltip](../specs/2026-04-08-sprint-tab-badge-tooltip/spec.md) — 1 story
 
 Added tooltip to sprint tab story-count badges: "N stories in this sprint".
@@ -263,6 +278,7 @@ Added tooltip to sprint tab story-count badges: "N stories in this sprint".
 ### Slide Structure
 
 Maps directly to the 4 report sections:
+
 1. **Program Summary slide** — KPI cards, monthly/quarterly milestone status
 2. **Workstream Velocity slides** — One per workstream with trend charts and current-sprint prediction
 3. **Workstream Overhead slides** — Composition breakdown + bug/support highlights per workstream
@@ -270,13 +286,13 @@ Maps directly to the 4 report sections:
 
 ### Deliverables
 
-- [ ] pptxgenjs integration and slide template design
-- [ ] Program Summary slide generation
-- [ ] Workstream Velocity slides with embedded chart images or table representations
-- [ ] Workstream Overhead slides with composition breakdown and item highlights
-- [ ] Workstream Milestone slides with progress indicators
-- [ ] One-click export trigger from dashboard UI
-- [ ] Exported file naming convention (e.g., `LiveLink-Health-Report-2026-02-18.pptx`)
+- pptxgenjs integration and slide template design
+- Program Summary slide generation
+- Workstream Velocity slides with embedded chart images or table representations
+- Workstream Overhead slides with composition breakdown and item highlights
+- Workstream Milestone slides with progress indicators
+- One-click export trigger from dashboard UI
+- Exported file naming convention (e.g., `LiveLink-Health-Report-2026-02-18.pptx`)
 
 ### Open Questions (to resolve during spec)
 
@@ -288,19 +304,19 @@ Maps directly to the 4 report sections:
 
 ## Phase 1 Overall Success Criteria
 
-- [x] ADO data for all workstreams fetched and stored reliably
-- [x] Core sprint metrics calculated correctly (validated against known sprint data)
-- [x] Program Summary section displays RAG-coded metric tiles (Velocity, Overhead %, Carry-Over %, Milestone placeholders)
-- [x] Workstream velocity with trend charts and current-sprint prediction
-- [x] Workstream overhead breakdown with composition charts and item tables
-- [x] Workstream milestones tracked from ADO Feature tags (ADP format)
-- [x] Sprint plan snapshots ensure accurate carry-over for completed sprints
-- [x] All workstream card sections respond to shared sprint tab selection
-- [x] Charts migrated to Recharts with dark mode and Mantine theme integration
-- [x] Current sprint visible in all charts with in-progress styling
-- [ ] Phase 1E ADP Extension (tag migration, quarter rollup, status derivation)
-- [ ] PowerPoint export produces stakeholder-ready slides without manual editing
-- [ ] Total report generation time: < 15 minutes (vs. hours today)
+- ADO data for all workstreams fetched and stored reliably
+- Core sprint metrics calculated correctly (validated against known sprint data)
+- Program Summary section displays RAG-coded metric tiles (Velocity, Overhead %, Carry-Over %, Milestone placeholders)
+- Workstream velocity with trend charts and current-sprint prediction
+- Workstream overhead breakdown with composition charts and item tables
+- Workstream milestones tracked from ADO Feature tags (ADP format)
+- Sprint plan snapshots ensure accurate carry-over for completed sprints
+- All workstream card sections respond to shared sprint tab selection
+- Charts migrated to Recharts with dark mode and Mantine theme integration
+- Current sprint visible in all charts with in-progress styling
+- Phase 1E ADP Extension (tag migration, quarter rollup, status derivation)
+- PowerPoint export produces stakeholder-ready slides without manual editing
+- Total report generation time: < 15 minutes (vs. hours today)
 
 ---
 
@@ -318,11 +334,11 @@ Maps directly to the 4 report sections:
 
 ### Growth Features
 
-- [ ] **VTT transcript upload** — Upload interface for ceremony transcripts `[Effort: S]`
-- [ ] **LLM insight extraction** — Risks, blockers, dependencies, themes, sentiment `[Effort: L]`
-- [ ] **Ceremony insight display** — Integrated into workstream cards and program summary `[Effort: M]`
-- [ ] **Advanced metrics** — Aging WIP, scope creep index `[Effort: M]`
-- [ ] **Historical trend charts** — Expanded sparklines and charts for metric trends over sprints `[Effort: M]`
+- **VTT transcript upload** — Upload interface for ceremony transcripts `[Effort: S]`
+- **LLM insight extraction** — Risks, blockers, dependencies, themes, sentiment `[Effort: L]`
+- **Ceremony insight display** — Integrated into workstream cards and program summary `[Effort: M]`
+- **Advanced metrics** — Aging WIP, scope creep index `[Effort: M]`
+- **Historical trend charts** — Expanded sparklines and charts for metric trends over sprints `[Effort: M]`
 
 ### Dependencies
 
@@ -344,11 +360,11 @@ Database tables for Phase 2 (Transcript, CeremonyInsight) are already created as
 
 ### Advanced Features
 
-- [ ] **Automated transcript pipeline** — Reduce manual VTT download/upload `[Effort: XL]`
-- [ ] **Cross-team dependency graph** — Visual map of inter-workstream dependencies `[Effort: L]`
-- [ ] **Stakeholder-specific views** — PO vs. Director vs. Senior Director slide templates `[Effort: M]`
-- [ ] **Report scheduling** — Automated weekly report generation trigger `[Effort: M]`
-- [ ] **Predictive insights** — Sprint completion forecasting based on velocity trends `[Effort: L]`
+- **Automated transcript pipeline** — Reduce manual VTT download/upload `[Effort: XL]`
+- **Cross-team dependency graph** — Visual map of inter-workstream dependencies `[Effort: L]`
+- **Stakeholder-specific views** — PO vs. Director vs. Senior Director slide templates `[Effort: M]`
+- **Report scheduling** — Automated weekly report generation trigger `[Effort: M]`
+- **Predictive insights** — Sprint completion forecasting based on velocity trends `[Effort: L]`
 
 ### Market Position
 
@@ -359,13 +375,15 @@ Database tables for Phase 2 (Transcript, CeremonyInsight) are already created as
 
 ## Effort Sizing
 
-| Size | Duration | Example |
-|---|---|---|
-| **XS** | 1-2 hours | Hardcoded config, simple UI tweaks |
-| **S** | 3-5 hours | Upload form, simple chart, data display |
-| **M** | 1-2 days | Metric engine, dashboard layout, export logic |
-| **L** | 3-5 days | ADO integration, LLM processing pipeline |
-| **XL** | 1+ weeks | Automated transcript pipeline, major integrations |
+
+| Size   | Duration  | Example                                           |
+| ------ | --------- | ------------------------------------------------- |
+| **XS** | 1-2 hours | Hardcoded config, simple UI tweaks                |
+| **S**  | 3-5 hours | Upload form, simple chart, data display           |
+| **M**  | 1-2 days  | Metric engine, dashboard layout, export logic     |
+| **L**  | 3-5 days  | ADO integration, LLM processing pipeline          |
+| **XL** | 1+ weeks  | Automated transcript pipeline, major integrations |
+
 
 ## Build Order & Critical Path
 
@@ -385,6 +403,7 @@ Phase 1A (Done) ──► Phase 1B (Done) ────────────�
 **What's done:** Phases 1A–1D fully complete. Phase 1E Phase 1 complete with ADP extension remaining. Nine cross-cutting enhancement specs delivered alongside the main phases.
 
 **Remaining work:**
+
 1. **Phase 1E ADP Extension** — 4 stories: tag migration, quarter parsing, status derivation, program rollup UI
 2. **Phase 1F PowerPoint Export** — Full scope, depends on dashboard being stable
 

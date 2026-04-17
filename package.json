@@ -1,6 +1,6 @@
 {
   "name": "mantine-next-template",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "node scripts/clean-next-dev.mjs && next dev",
@@ -36,7 +36,9 @@
     "@next/bundle-analyzer": "^15.3.3",
     "@prisma/client": "^6.3.0",
     "@tabler/icons-react": "^3.34.0",
+    "html-to-image": "^1.11.13",
     "next": "15.3.3",
+    "pptxgenjs": "^4.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^2.15.4"
@@ -55,6 +57,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.11",
     "@types/react": "19.1.8",
+    "@types/react-dom": "^19.2.3",
     "babel-loader": "^10.0.0",
     "eslint": "^9.29.0",
     "eslint-config-mantine": "^4.0.3",

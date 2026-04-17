@@ -135,5 +135,8 @@ dist
 .cursor.backup/
 _tmp_*
 
+# Writ ephemeral agent state (do not ship)
+.writ/state/
+
 # Generated Storybook build output
 storybook-static/

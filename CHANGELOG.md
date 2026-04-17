@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+(nothing yet)
+
+## [0.4.0] - 2026-04-17
+
+### Added
+
+- **PowerPoint export (Phase 1F)** — client-side `.pptx` download from the dashboard
+  header. Decks include Program Summary plus per-workstream Velocity, Bug Burndown,
+  Overhead, and Milestone slides. Charts are **PNG captures** of live Recharts
+  components (`html-to-image` + hidden offscreen mount) so visuals match the
+  dashboard. New `lib/export/` builders, `ExportControl`, shared `BugBurndownChart`,
+  and tests. (PowerPoint Export spec, Stories 1–9)
+- **Sprint bug burndown** — program and workstream bug trend visualization aligned
+  with velocity work.
+- **Velocity trend and dashboard chart refinements** — shared chart container and
+  component updates for consistency.
+
 ### Changed
+
+- **Sprint metrics: Bug and Spike excluded from velocity and point-based carry-over**
+  — `calculateVelocity`, `calculateCarryOver`, and `calculatePredictability` now
+  exclude `Bug` and `Spike` work items from story-point sums; overhead still
+  includes bug/spike/support hours. End-to-end validation tests updated accordingly.
+- **Next.js client bundle for pptxgenjs** — webpack resolves the ES build with
+  `jszip`; do not alias to `pptxgen.bundle.js` (avoids `JSZip is not defined`).
+  `NormalModuleReplacementPlugin` rewrites `node:*` imports for browser builds.
+
+### Fixed
+
+- **Sync ADO integration test** — raised Jest timeout to 60s for orchestrator-heavy
+  partial-failure scenario on slower environments.
+
+### Internal
 
 - **ADP Milestones panel — accurate quarterly data** — fixed three-layer pipeline
   break preventing quarterly milestone data from reaching `MilestoneQuarterlyPanel`.
@@ -20,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   longer inflate milestone completion percentages. New `hasAdpMonTag` helper in
   `lib/milestones/format.ts`.
   (ADP Milestones Panel spec, Story 2)
+- Spec and verification metadata for PowerPoint Export (`spec.md` complete, spec-lite,
+  user-stories README, `verification-2026-04-17.md`).
 
 ## [0.3.0] - 2026-03-23
 

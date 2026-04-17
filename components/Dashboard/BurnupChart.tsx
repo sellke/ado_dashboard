@@ -6,6 +6,10 @@ import type { ApiBurnupPoint } from '@/lib/dashboard/types';
 export interface BurnupChartProps {
   burnupData: ApiBurnupPoint[];
   height?: number;
+  /** Forwarded to AppAreaChart. Set false for static renders (e.g. PPTX export). */
+  animateSeries?: boolean;
+  /** Explicit pixel width. Forwarded to AppAreaChart (skips ResizeObserver). */
+  width?: number;
 }
 
 const SERIES = [
@@ -13,7 +17,7 @@ const SERIES = [
   { name: 'totalSP', label: 'Target SP', color: 'gray.4', strokeDasharray: '4 2' },
 ];
 
-export function BurnupChart({ burnupData, height = 160 }: BurnupChartProps) {
+export function BurnupChart({ burnupData, height = 160, animateSeries, width }: BurnupChartProps) {
   if (burnupData.length === 0) {
     return null;
   }
@@ -27,10 +31,12 @@ export function BurnupChart({ burnupData, height = 160 }: BurnupChartProps) {
   return (
     <AppAreaChart
       height={height}
+      width={width}
       data={chartData}
       dataKey="sprint"
       series={SERIES}
       curveType="linear"
+      animateSeries={animateSeries}
       xAxisProps={{
         interval: 0,
         tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),

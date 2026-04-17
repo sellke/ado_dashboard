@@ -86,6 +86,20 @@ describe('ChartContainer', () => {
     expect(getByTestId('responsive-container')).toHaveAttribute('data-height', '250');
   });
 
+  it('with fixed pixel width, skips ResponsiveContainer and passes width/height to the chart', () => {
+    const ChartStub = (props: { width?: number; height?: number }) => (
+      <div data-testid="chart-stub" data-width={props.width} data-height={props.height} />
+    );
+    const { queryByTestId, getByTestId } = render(
+      <ChartContainer height={370} width={620}>
+        <ChartStub />
+      </ChartContainer>
+    );
+    expect(queryByTestId('responsive-container')).not.toBeInTheDocument();
+    expect(getByTestId('chart-stub')).toHaveAttribute('data-width', '620');
+    expect(getByTestId('chart-stub')).toHaveAttribute('data-height', '370');
+  });
+
   it('has the chart-container className', () => {
     const { container } = render(
       <ChartContainer height={200}>

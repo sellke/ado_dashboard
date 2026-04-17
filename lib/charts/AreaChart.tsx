@@ -24,6 +24,14 @@ export interface AppAreaChartProps<T = Record<string, unknown>> {
   xAxisProps?: Partial<XAxisProps>;
   yAxisProps?: Partial<YAxisProps>;
   tooltipProps?: Partial<TooltipProps<number, string>>;
+  /**
+   * When false, disables Recharts' area entry/update animation. Used by the
+   * PowerPoint export path so `html-to-image` captures the final state
+   * instead of a mid-animation frame. Defaults to true (dashboard behavior).
+   */
+  animateSeries?: boolean;
+  /** Explicit pixel width. See AppLineChart for rationale. */
+  width?: number;
   children?: React.ReactNode;
 }
 
@@ -36,6 +44,8 @@ export function AppAreaChart<T = Record<string, unknown>>({
   xAxisProps,
   yAxisProps,
   tooltipProps,
+  animateSeries = true,
+  width,
   children,
 }: AppAreaChartProps<T>) {
   const theme = useChartTheme();
@@ -45,7 +55,7 @@ export function AppAreaChart<T = Record<string, unknown>>({
   );
 
   return (
-    <ChartContainer height={height}>
+    <ChartContainer height={height} width={width}>
       <RechartsAreaChart data={data as Record<string, unknown>[]}>
         <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} vertical={false} />
         <XAxis
@@ -79,6 +89,7 @@ export function AppAreaChart<T = Record<string, unknown>>({
             fillOpacity={0.3}
             strokeWidth={2}
             strokeDasharray={s.strokeDasharray}
+            isAnimationActive={animateSeries}
           />
         ))}
         {children}

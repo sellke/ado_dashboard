@@ -9,15 +9,17 @@ import { render, screen } from '@/test-utils';
  */
 
 jest.mock('@/lib/charts', () => ({
-  AppBarChart: (props: Record<string, unknown>) => (
+  AppLineChart: (props: Record<string, unknown>) => (
     <div
-      data-testid="overhead-bar-chart"
+      data-testid="overhead-line-chart"
       data-series={JSON.stringify(props.series)}
-      data-data={JSON.stringify(props.data)}
+      data-points={JSON.stringify(props.data)}
       data-height={String(props.height)}
-      data-with-legend={String(props.withLegend)}
-      data-type={String(props.type)}
+      data-with-dots={String(props.withDots)}
     />
+  ),
+  ChartLegend: ({ items }: { items: Array<{ label: string; color: string }> }) => (
+    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
   ),
 }));
 
@@ -69,29 +71,29 @@ describe('OverheadCompositionChart', () => {
   describe('empty state', () => {
     it('renders nothing when composition is empty', () => {
       render(<OverheadCompositionChart composition={[]} />);
-      expect(screen.queryByTestId('overhead-bar-chart')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('overhead-line-chart')).not.toBeInTheDocument();
     });
   });
 
   describe('renders with data', () => {
-    it('renders a BarChart when composition data is provided', () => {
+    it('renders a line chart when composition data is provided', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
-      expect(screen.getByTestId('overhead-bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('overhead-line-chart')).toBeInTheDocument();
     });
 
-    it('passes one data point per sprint (5 sprints → 5 bars)', () => {
+    it('passes one data point per sprint (5 sprints → 5 points)', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
-      const data = JSON.parse(chart.getAttribute('data-data')!);
+      const chart = screen.getByTestId('overhead-line-chart');
+      const data = JSON.parse(chart.getAttribute('data-points')!);
       expect(data).toHaveLength(5);
     });
 
-    it('maps OverheadCompositionViewModel to correct BarChart data keys', () => {
+    it('maps OverheadCompositionViewModel to correct line chart data keys', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
-      const data = JSON.parse(chart.getAttribute('data-data')!);
+      const chart = screen.getByTestId('overhead-line-chart');
+      const data = JSON.parse(chart.getAttribute('data-points')!);
 
       expect(data[0]).toMatchObject({
         sprint: 'Sprint 26.16',
@@ -113,8 +115,8 @@ describe('OverheadCompositionChart', () => {
       const sprintWithZeroBugs = makeSprint({ sprintName: 'Sprint 1', bugHours: 0 });
       render(<OverheadCompositionChart composition={[sprintWithZeroBugs]} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
-      const data = JSON.parse(chart.getAttribute('data-data')!);
+      const chart = screen.getByTestId('overhead-line-chart');
+      const data = JSON.parse(chart.getAttribute('data-points')!);
       expect(data[0].Bugs).toBe(0);
     });
   });
@@ -123,7 +125,7 @@ describe('OverheadCompositionChart', () => {
     it('renders four series: Meetings, Bugs, Spikes, Support', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
+      const chart = screen.getByTestId('overhead-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
 
       expect(series).toHaveLength(4);
@@ -134,7 +136,7 @@ describe('OverheadCompositionChart', () => {
     it('assigns distinct colors to each series', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
+      const chart = screen.getByTestId('overhead-line-chart');
       const series = JSON.parse(chart.getAttribute('data-series')!);
 
       const colors = series.map((s: { color: string }) => s.color);
@@ -147,22 +149,29 @@ describe('OverheadCompositionChart', () => {
     it('has chart height of 200', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
+      const chart = screen.getByTestId('overhead-line-chart');
       expect(chart.getAttribute('data-height')).toBe('200');
     });
 
-    it('renders with a legend', () => {
+    it('renders a legend with four items', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
-      expect(chart.getAttribute('data-with-legend')).toBe('true');
+      const legend = screen.getByTestId('chart-legend');
+      const items = JSON.parse(legend.getAttribute('data-items')!);
+      expect(items).toHaveLength(4);
+      expect(items.map((i: { label: string }) => i.label)).toEqual([
+        'Meetings',
+        'Bugs',
+        'Spikes',
+        'Support',
+      ]);
     });
 
-    it('uses stacked type', () => {
+    it('uses dots on series', () => {
       render(<OverheadCompositionChart composition={fiveSprints} />);
 
-      const chart = screen.getByTestId('overhead-bar-chart');
-      expect(chart.getAttribute('data-type')).toBe('stacked');
+      const chart = screen.getByTestId('overhead-line-chart');
+      expect(chart.getAttribute('data-with-dots')).toBe('true');
     });
   });
 });

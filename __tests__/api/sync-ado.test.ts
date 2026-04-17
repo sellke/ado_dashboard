@@ -9,7 +9,8 @@ import { POST } from '@/app/api/sync/ado/route';
 import { cleanupTestData, prisma } from '../prisma/helpers';
 
 describe('POST /api/sync/ado', () => {
-  jest.setTimeout(15000);
+  // Orchestrator + DB can exceed 15s on slower hosts / OneDrive paths
+  jest.setTimeout(60000);
 
   beforeAll(async () => {
     await cleanupTestData();

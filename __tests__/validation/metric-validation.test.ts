@@ -67,7 +67,7 @@ const sprintWorkstreamAlpha: SprintWorkstreamInput = {
   ceremonyHours: 5,
 };
 
-// Expected Alpha: velocity=30, overhead=20h/20%, planned=45, carryOver=15pts/33.33%
+// Expected Alpha: velocity=30 (US only; Bug/Spike excluded), overhead=20h/20%, planned=40 for carry-over (Bug/Spike excluded from point plans), carryOver=10pts/25%
 
 // ---------------------------------------------------------------------------
 // Realistic Fixtures: Workstream Beta
@@ -117,7 +117,7 @@ const sprintWorkstreamBeta: SprintWorkstreamInput = {
   ceremonyHours: 10,
 };
 
-// Expected Beta: velocity=32, overhead=20h/25%, planned=42, carryOver=10pts/23.81%
+// Expected Beta: velocity=30 (Spike Done excluded from velocity), overhead=20h/25%, planned=40 for carry-over, carryOver=10pts/25%
 
 // ---------------------------------------------------------------------------
 // Threshold config for RAG assignment (aggregator)
@@ -195,9 +195,9 @@ describe('End-to-End Metric Validation', () => {
     });
 
     it('workstream Beta: sums done-like items SP correctly', () => {
-      // Done-like: Closed(15), Done(15), Bug Closed(null→0), Spike Done(2), Support Closed(null→0)
+      // Done-like User Stories only — Bug and Spike excluded from velocity (see calculators.ts).
       const result = calculateVelocity(workstreamBetaItems);
-      expect(result).toBe(32); // 15 + 15 + 2
+      expect(result).toBe(30); // 15 + 15 (Spike Done points do not count)
     });
   });
 
@@ -221,21 +221,21 @@ describe('End-to-End Metric Validation', () => {
     it('workstream Alpha: carryOverPoints / plannedPoints × 100', () => {
       const result = calculateCarryOver(workstreamAlphaItems);
       expect(result).not.toBeNull();
-      // Incomplete: Active US(10), Active Spike(5) → 2 items, 15 points
-      expect(result!.carryOverItems).toBe(2);
-      expect(result!.carryOverPoints).toBe(15);
-      expect(result!.plannedPoints).toBe(45); // 20+10+10+0+5+0
-      expect(result!.carryOverRate).toBeCloseTo(33.33, 1); // 15/45 × 100
+      // Bug/Spike excluded from point plans — incomplete: Active US(10) only
+      expect(result!.carryOverItems).toBe(1);
+      expect(result!.carryOverPoints).toBe(10);
+      expect(result!.plannedPoints).toBe(40); // 20+10+10+0 (Support has null SP)
+      expect(result!.carryOverRate).toBeCloseTo(25, 1); // 10/40 × 100
     });
 
     it('workstream Beta: carryOverPoints / plannedPoints × 100', () => {
       const result = calculateCarryOver(workstreamBetaItems);
       expect(result).not.toBeNull();
-      // Incomplete: Active US(10) only → 1 item, 10 points
+      // Incomplete: Active US(10) only
       expect(result!.carryOverItems).toBe(1);
       expect(result!.carryOverPoints).toBe(10);
-      expect(result!.plannedPoints).toBe(42); // 15+15+10+0+2+0
-      expect(result!.carryOverRate).toBeCloseTo(23.81, 1); // 10/42 × 100
+      expect(result!.plannedPoints).toBe(40); // 15+15+10+0 (Spike excluded from planned points)
+      expect(result!.carryOverRate).toBeCloseTo(25, 1); // 10/40 × 100
     });
   });
 
@@ -260,7 +260,7 @@ describe('End-to-End Metric Validation', () => {
 
       const program = aggregateToProgram([alphaMetrics, betaMetrics], thresholds);
       expect(program).not.toBeNull();
-      expect(program!.velocity.value).toBe(62); // 30 + 32
+      expect(program!.velocity.value).toBe(60); // 30 + 30
     });
 
     it('program overhead% = weighted average by planned points', () => {
@@ -307,8 +307,8 @@ describe('End-to-End Metric Validation', () => {
 
       const program = aggregateToProgram([alphaMetrics, betaMetrics], thresholds);
       expect(program).not.toBeNull();
-      // (33.33×45 + 23.81×42) / 87 ≈ 28.74
-      expect(program!.carryOverRate.value).toBeCloseTo(28.74, 1);
+      // Both workstreams at 25% carry-over; weighted average = 25
+      expect(program!.carryOverRate.value).toBeCloseTo(25, 1);
     });
 
     it('total planned/completed/overhead/gross match sums', () => {
@@ -331,8 +331,8 @@ describe('End-to-End Metric Validation', () => {
 
       const program = aggregateToProgram([alphaMetrics, betaMetrics], thresholds);
       expect(program).not.toBeNull();
-      expect(program!.totalPlannedPoints).toBe(87); // 45 + 42
-      expect(program!.totalCompletedPoints).toBe(62); // 30 + 32 (velocity = completed)
+      expect(program!.totalPlannedPoints).toBe(87); // helper sums raw story points incl. spike rows
+      expect(program!.totalCompletedPoints).toBe(62); // 30 + 32 (includes Spike Done SP in helper’s done-like sum)
       expect(program!.totalOverheadHours).toBe(40); // 20 + 20
       expect(program!.totalGrossHours).toBe(180); // 100 + 80
       expect(program!.workstreamCount).toBe(2);

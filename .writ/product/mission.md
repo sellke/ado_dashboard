@@ -88,18 +88,20 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 
 ### Workstream Structure
 
-| Workstream | ADO Epics | Area Path | Focus |
-|---|---|---|---|
-| Streams | 1 | `...\LiveLink - Yellow Box\Streams` | Real-time data ingestion from production lines |
-| Pitch Tracker | 1 | `...\LiveLink - Yellow Box\Pitch Tracker` | Pitch lifecycle management within shifts |
-| Action Tracker | 1 | `...\LiveLink - Yellow Box\Action Tracker` | Operational actions triggered by production data |
-| KPI Services | 1 | `...\LiveLink - Yellow Box\Tier Boards` | KPI aggregation dashboards |
-| UCM | 1 | `...\LiveLink - Yellow Box\Unified Configuration Manager` | Shared platform configuration |
+
+| Workstream     | ADO Epics | Area Path                                                 | Focus                                            |
+| -------------- | --------- | --------------------------------------------------------- | ------------------------------------------------ |
+| Streams        | 1         | `...\LiveLink - Yellow Box\Streams`                       | Real-time data ingestion from production lines   |
+| Pitch Tracker  | 1         | `...\LiveLink - Yellow Box\Pitch Tracker`                 | Pitch lifecycle management within shifts         |
+| Action Tracker | 1         | `...\LiveLink - Yellow Box\Action Tracker`                | Operational actions triggered by production data |
+| KPI Services   | 1         | `...\LiveLink - Yellow Box\Tier Boards`                   | KPI aggregation dashboards                       |
+| UCM            | 1         | `...\LiveLink - Yellow Box\Unified Configuration Manager` | Shared platform configuration                    |
+
 
 ### Azure DevOps Structure
 
-- **ADO URL:** https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform
-- **Backlog:** https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_backlogs/backlog/Yellow%20Boxers/Epics
+- **ADO URL:** [https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform](https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform)
+- **Backlog:** [https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_backlogs/backlog/Yellow%20Boxers/Epics](https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_backlogs/backlog/Yellow%20Boxers/Epics)
 - **Hierarchy:** Epic → Feature → User Story → Task (+ Bug)
 - **Area path pattern:** `Event Streaming Platform\App\LiveLink - Yellow Box\[Workstream]`
 - **Access method:** ADO MCP server (installed)
@@ -108,46 +110,54 @@ Directors live in PowerPoint. This tool exports dashboard views directly to `.pp
 
 ### Sprint Execution Metrics
 
-| Metric | Calculation | Source |
-|---|---|---|
-| **Velocity** | Story points in Done-like states (Resolved/Closed) assigned to sprint iteration | ADO work items |
-| **Gross Hours** | Total team capacity before deductions | ADO capacity / manual |
-| **Ceremony Hours** | 10.25 hrs/FTE/sprint, prorated for PTO | Calculated |
-| **Bug Hours** | CompletedWork field, fallback to OriginalEstimate | ADO Bug work items |
-| **Spike Hours** | StoryPoints × 1 (1 point = 1 hour) | ADO Spike work items |
-| **Support Hours** | CompletedWork field, fallback to OriginalEstimate | ADO Support work items |
-| **Overhead %** | (Ceremony + Bug + Spike + Support) ÷ Gross Hours × 100 | Calculated |
-| **Net Hours** | Gross Hours − PTO − Ceremony Hours | Calculated |
-| **Avg Velocity Rate** | Avg story points per sprint per net hour | Calculated (trend) |
+
+| Metric                | Calculation                                                                     | Source                 |
+| --------------------- | ------------------------------------------------------------------------------- | ---------------------- |
+| **Velocity**          | Story points in Done-like states (Resolved/Closed) assigned to sprint iteration | ADO work items         |
+| **Gross Hours**       | Total team capacity before deductions                                           | ADO capacity / manual  |
+| **Ceremony Hours**    | 10.25 hrs/FTE/sprint, prorated for PTO                                          | Calculated             |
+| **Bug Hours**         | CompletedWork field, fallback to OriginalEstimate                               | ADO Bug work items     |
+| **Spike Hours**       | StoryPoints × 1 (1 point = 1 hour)                                              | ADO Spike work items   |
+| **Support Hours**     | CompletedWork field, fallback to OriginalEstimate                               | ADO Support work items |
+| **Overhead %**        | (Ceremony + Bug + Spike + Support) ÷ Gross Hours × 100                          | Calculated             |
+| **Net Hours**         | Gross Hours − PTO − Ceremony Hours                                              | Calculated             |
+| **Avg Velocity Rate** | Avg story points per sprint per net hour                                        | Calculated (trend)     |
+
 
 ### Health Assessment Metrics
 
-| Metric | Calculation | Insight |
-|---|---|---|
-| **Sprint Predictability** | (Completed SP ÷ Planned SP at sprint start) × 100 | Can we trust forecasts? |
-| **Carry-Over Rate** | SP planned but rolled to next sprint ÷ Total planned SP | Are we chronically overcommitting? |
-| **Aging WIP** | Work items in Active/In Progress > X days | Is work getting stuck? |
-| **Scope Creep Index** | Items added/removed after sprint start ÷ Original sprint scope | Is planning stable? |
-| **Cross-Team Dependencies** | Items with predecessor/successor links across workstreams | Where are the coupling points? |
+
+| Metric                      | Calculation                                                    | Insight                            |
+| --------------------------- | -------------------------------------------------------------- | ---------------------------------- |
+| **Sprint Predictability**   | (Completed SP ÷ Planned SP at sprint start) × 100              | Can we trust forecasts?            |
+| **Carry-Over Rate**         | SP planned but rolled to next sprint ÷ Total planned SP        | Are we chronically overcommitting? |
+| **Aging WIP**               | Work items in Active/In Progress > X days                      | Is work getting stuck?             |
+| **Scope Creep Index**       | Items added/removed after sprint start ÷ Original sprint scope | Is planning stable?                |
+| **Cross-Team Dependencies** | Items with predecessor/successor links across workstreams      | Where are the coupling points?     |
+
 
 ### Monthly Milestone Metrics
 
-| Metric | Calculation | Insight |
-|---|---|---|
-| **Monthly Milestone Completion %** | Completed SP ÷ Total SP for current month's tagged Features | Are we hitting monthly goals? |
-| **Quarterly Milestone Progress** | Roll-up of all monthly milestones within the quarter | Is the quarter on track overall? |
+
+| Metric                             | Calculation                                                 | Insight                          |
+| ---------------------------------- | ----------------------------------------------------------- | -------------------------------- |
+| **Monthly Milestone Completion %** | Completed SP ÷ Total SP for current month's tagged Features | Are we hitting monthly goals?    |
+| **Quarterly Milestone Progress**   | Roll-up of all monthly milestones within the quarter        | Is the quarter on track overall? |
+
 
 **Milestone model:** ADO Features tagged `ADP-{MON}` (e.g., `ADP-MAR`) with `Qx` quarter tags. Child User Stories bearing matching `ADP-MON` tags are the unit of progress. Total SP is a living number. Status derived at API time via `deriveMilestoneStatus()`. Quarterly grouping via explicit `Qx` tags.
 
 ### Qualitative Insights (Phase 2)
 
-| Insight Type | Source Ceremonies | Purpose |
-|---|---|---|
-| **Risks & Blockers** | Standups, Scrum of Scrums | Surface impediments early |
-| **Cross-Team Dependencies** | Scrum of Scrums | Identify coupling and coordination needs |
-| **Commitment Concerns** | Sprint Planning, Backlog Refinement | Flag scope/capacity uncertainty |
-| **Recurring Themes** | All ceremonies | Detect systemic issues across meetings |
-| **Sentiment / Confidence** | All ceremonies | Gauge team confidence in sprint goals |
+
+| Insight Type                | Source Ceremonies                   | Purpose                                  |
+| --------------------------- | ----------------------------------- | ---------------------------------------- |
+| **Risks & Blockers**        | Standups, Scrum of Scrums           | Surface impediments early                |
+| **Cross-Team Dependencies** | Scrum of Scrums                     | Identify coupling and coordination needs |
+| **Commitment Concerns**     | Sprint Planning, Backlog Refinement | Flag scope/capacity uncertainty          |
+| **Recurring Themes**        | All ceremonies                      | Detect systemic issues across meetings   |
+| **Sentiment / Confidence**  | All ceremonies                      | Gauge team confidence in sprint goals    |
+
 
 **Note:** Retros are intentionally excluded to preserve them as a safe, off-the-record space.
 

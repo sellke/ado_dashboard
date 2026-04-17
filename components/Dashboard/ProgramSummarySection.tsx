@@ -1,13 +1,14 @@
 'use client';
 
-import { AppBarChart, AppLineChart, ChartLegend } from '@/lib/charts';
-import { Badge, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { AppLineChart, ChartLegend } from '@/lib/charts';
+import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type {
   DashboardViewModel,
   MilestoneQuarterGroup,
   TrendSprintViewModel,
 } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import { BugBurndownChart } from './BugBurndownChart';
 import { MilestoneQuarterlyPanel } from './MilestoneQuarterlyPanel';
 import { RagBadge } from './RagBadge';
 
@@ -61,14 +62,6 @@ function averageVelocity(sprints: TrendSprintViewModel[]): number | null {
     return null;
   }
   return Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 100) / 100;
-}
-
-function buildBugChartData(sprints: TrendSprintViewModel[]) {
-  return sprints.map((s) => ({
-    sprint: s.sprintName,
-    'Open (New/Active)': s.rawActiveBugs,
-    'Closed (Resolved/Testing/Closed)': s.rawBugsClosed,
-  }));
 }
 
 export function ProgramSummarySection({
@@ -197,23 +190,7 @@ export function ProgramSummarySection({
                 <Text size="sm" fw={500} c="dimmed">
                   Bug Burndown
                 </Text>
-                <AppBarChart
-                  height={220}
-                  data={buildBugChartData(programTrendSprints)}
-                  dataKey="sprint"
-                  type="stacked"
-                  withLegend
-                  legendProps={{ verticalAlign: 'bottom', height: 30 }}
-                  series={[
-                    { name: 'Open (New/Active)', color: 'red.6' },
-                    { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
-                  ]}
-                  xAxisProps={{
-                    interval: 0,
-                    tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
-                  }}
-                  yAxisProps={{ domain: [0, 'auto'] }}
-                />
+                <BugBurndownChart trendSprints={programTrendSprints} height={220} />
               </Stack>
             </Card>
           </SimpleGrid>

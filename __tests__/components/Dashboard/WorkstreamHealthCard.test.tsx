@@ -182,9 +182,10 @@ describe('WorkstreamHealthCard', () => {
 
     const chart = screen.getByTestId('velocity-line-chart');
     const points = JSON.parse(chart.getAttribute('data-points')!);
-    expect(points).toHaveLength(3); // 2 sprints + 1 prediction
-    expect(points[2].sprint).toContain('(Forecasted)');
-    expect(points[2].Forecasted).toBe(48);
+    // Forecast is merged onto the last sprint tick (plus bridge point on prior tick).
+    expect(points).toHaveLength(2);
+    expect(points[1].sprint).toBe('Sprint 2');
+    expect(points[1].Forecasted).toBe(48);
   });
 
   it('renders N/A for null detail values', () => {

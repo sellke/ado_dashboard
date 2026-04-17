@@ -16,7 +16,10 @@ import type {
   ApiMilestoneWithProgress,
   ApiProgramMilestoneRollup,
 } from '@/lib/milestones/types';
+import { buildPresentation } from '@/lib/export';
+import type { ExportInput } from '@/lib/export';
 import { DashboardShell } from './DashboardShell';
+import { ExportControl } from './ExportControl';
 import { SyncControl } from './SyncControl';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
@@ -42,6 +45,8 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncPartialSuccess, setSyncPartialSuccess] = useState(false);
+  const [exportInProgress, setExportInProgress] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const metricsUrl = dashboard ? `/api/metrics?dashboard=${dashboard}` : '/api/metrics';
 
@@ -178,6 +183,33 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
   }, [fetchMetrics, fetchMilestones]);
 
+  const handleExport = useCallback(async () => {
+    setExportError(null);
+    setExportInProgress(true);
+    try {
+      const PptxGenJS = (await import('pptxgenjs')).default;
+      const input: ExportInput = {
+        sprintName: rawMetrics?.sprint?.name ?? 'Unknown Sprint',
+        computedAt: rawMetrics?.computedAt ?? null,
+        programMetrics: viewModel.programMetrics,
+        programRollup,
+        programTrendSprints: viewModel.programTrendSprints,
+        sprint5Prediction: viewModel.sprint5Prediction,
+        workstreams: viewModel.workstreamCards,
+        rawWorkstreams: rawMetrics?.workstreams ?? [],
+        milestones,
+      };
+      const prs = await buildPresentation(PptxGenJS, input);
+      const date = new Date().toISOString().slice(0, 10);
+      await prs.writeFile({ fileName: `LiveLink-Health-Report-${date}.pptx` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setExportError(msg);
+    } finally {
+      setExportInProgress(false);
+    }
+  }, [rawMetrics, viewModel, programRollup, milestones]);
+
   const fetchSprintStories = useCallback(
     async (workstreamIds: string[]) => {
       if (workstreamIds.length === 0) {return;}
@@ -224,13 +256,21 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     <Stack gap="xl">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
         <Title order={1}>{title}</Title>
-        <SyncControl
-          onSync={handleSync}
-          syncInProgress={syncInProgress}
-          syncError={syncError}
-          syncPartialSuccess={syncPartialSuccess}
-          onDismissError={() => setSyncError(null)}
-        />
+        <Group gap="sm" align="flex-start">
+          <ExportControl
+            onExport={handleExport}
+            isExporting={exportInProgress}
+            exportError={exportError}
+            onDismissError={() => setExportError(null)}
+          />
+          <SyncControl
+            onSync={handleSync}
+            syncInProgress={syncInProgress}
+            syncError={syncError}
+            syncPartialSuccess={syncPartialSuccess}
+            onDismissError={() => setSyncError(null)}
+          />
+        </Group>
       </Group>
       <DashboardShell
         viewModel={viewModel}

@@ -28,6 +28,18 @@ export interface AppLineChartProps<T = Record<string, unknown>> {
   xAxisProps?: Partial<XAxisProps>;
   yAxisProps?: Partial<YAxisProps>;
   tooltipProps?: Partial<TooltipProps<number, string>>;
+  /**
+   * When false, disables Recharts' line entry/update animation. Used by the
+   * PowerPoint export path so `html-to-image` captures the final state
+   * instead of a mid-animation frame. Defaults to true (dashboard behavior).
+   */
+  animateSeries?: boolean;
+  /**
+   * Explicit pixel width. When set, ResponsiveContainer uses this number
+   * directly instead of observing its parent (eliminates the observer race
+   * condition in the PPTX export path). When omitted, uses `"100%"`.
+   */
+  width?: number;
   children?: React.ReactNode;
 }
 
@@ -43,6 +55,8 @@ export function AppLineChart<T = Record<string, unknown>>({
   xAxisProps,
   yAxisProps,
   tooltipProps,
+  animateSeries = true,
+  width,
   children,
 }: AppLineChartProps<T>) {
   const theme = useChartTheme();
@@ -52,7 +66,7 @@ export function AppLineChart<T = Record<string, unknown>>({
   );
 
   return (
-    <ChartContainer height={height}>
+    <ChartContainer height={height} width={width}>
       <RechartsLineChart data={data as Record<string, unknown>[]}>
         <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} vertical={false} />
         <XAxis
@@ -92,6 +106,7 @@ export function AppLineChart<T = Record<string, unknown>>({
             }
             connectNulls={connectNulls}
             activeDot={withDots ? { r: 5 } : undefined}
+            isAnimationActive={animateSeries}
           />
         ))}
         {referenceLines?.map((ref, i) => (

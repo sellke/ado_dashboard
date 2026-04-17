@@ -27,6 +27,14 @@ export interface AppBarChartProps<T = Record<string, unknown>> {
   yAxisProps?: Partial<YAxisProps>;
   tooltipProps?: Partial<TooltipProps<number, string>>;
   legendProps?: Record<string, unknown>;
+  /**
+   * When false, disables Recharts' bar entry/update animation. Used by the
+   * PowerPoint export path so `html-to-image` captures the final state
+   * instead of a mid-animation frame. Defaults to true (dashboard behavior).
+   */
+  animateSeries?: boolean;
+  /** Explicit pixel width. See AppLineChart for rationale. */
+  width?: number;
   children?: React.ReactNode;
 }
 
@@ -41,6 +49,8 @@ export function AppBarChart<T = Record<string, unknown>>({
   yAxisProps,
   tooltipProps,
   legendProps,
+  animateSeries = true,
+  width,
   children,
 }: AppBarChartProps<T>) {
   const theme = useChartTheme();
@@ -50,7 +60,7 @@ export function AppBarChart<T = Record<string, unknown>>({
   );
 
   return (
-    <ChartContainer height={height}>
+    <ChartContainer height={height} width={width}>
       <RechartsBarChart data={data as Record<string, unknown>[]} margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} vertical={false} />
         <XAxis
@@ -83,6 +93,7 @@ export function AppBarChart<T = Record<string, unknown>>({
             name={s.label ?? s.name}
             fill={theme.resolveColor(s.color)}
             stackId={type === 'stacked' ? 'stack' : undefined}
+            isAnimationActive={animateSeries}
           />
         ))}
         {children}

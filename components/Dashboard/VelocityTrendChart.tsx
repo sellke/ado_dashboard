@@ -11,6 +11,12 @@ export interface VelocityTrendChartProps {
   activeSprintId?: string;
   /** ID of the currently in-flight sprint — used to overlay forecast and render hollow dot. */
   currentSprintId?: string;
+  /** Forwarded to AppLineChart. Set false for static renders (e.g. PPTX export). */
+  animateSeries?: boolean;
+  /** Chart height in px. Defaults to 200 to match dashboard card usage. */
+  height?: number;
+  /** Explicit pixel width. Forwarded to AppLineChart (skips ResizeObserver). */
+  width?: number;
 }
 
 type ChartDataPoint = {
@@ -92,6 +98,9 @@ export function VelocityTrendChart({
   trendSprints,
   prediction,
   activeSprintId,
+  animateSeries,
+  height = 200,
+  width,
 }: VelocityTrendChartProps) {
   if (trendSprints.length === 0) {
     return (
@@ -110,12 +119,14 @@ export function VelocityTrendChart({
   return (
     <Stack gap={4} style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
       <AppLineChart
-        height={200}
+        height={height}
+        width={width}
         data={chartData}
         dataKey="sprint"
         withDots
         connectNulls={false}
         curveType="linear"
+        animateSeries={animateSeries}
         series={[
           { name: 'Completed Points', color: 'blue.6', dot: completedPointsDot },
           { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },

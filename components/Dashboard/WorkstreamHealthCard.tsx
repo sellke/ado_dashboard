@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { Card, Group, Stack, Text } from '@mantine/core';
-import type { MetricTileViewModel, SprintStoryViewModel, TrendSprintViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { AppBarChart } from '@/lib/charts';
+import type { MetricTileViewModel, SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { BugBurndownChart } from './BugBurndownChart';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
 import { SprintBugList } from './SprintBugList';
@@ -40,14 +40,6 @@ function formatRate(value: number | null): string {
 function formatPct(value: number | null): string {
   if (value === null) return 'N/A';
   return `${value.toFixed(2)}%`;
-}
-
-function buildBugChartData(sprints: TrendSprintViewModel[]) {
-  return sprints.map((s) => ({
-    sprint: s.sprintName,
-    'Open (New/Active)': s.rawActiveBugs,
-    'Closed (Resolved/Testing/Closed)': s.rawBugsClosed,
-  }));
 }
 
 export function WorkstreamHealthCard({
@@ -223,27 +215,7 @@ export function WorkstreamHealthCard({
             <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
               Bug Burndown
             </Text>
-            <AppBarChart
-              height={180}
-              data={buildBugChartData(trendSprints)}
-              dataKey="sprint"
-              type="stacked"
-              withLegend
-              legendProps={{ verticalAlign: 'bottom', height: 30 }}
-              series={[
-                { name: 'Open (New/Active)', color: 'red.6' },
-                { name: 'Closed (Resolved/Testing/Closed)', color: 'green.6' },
-              ]}
-              xAxisProps={{
-                interval: 0,
-                tickFormatter: (v: string) => {
-                  const label = v.replace(/^Sprint\s*/i, '');
-                  const isCurrent = trendSprints.find((s) => s.sprintName === v)?.isCurrent;
-                  return isCurrent ? `${label} (Cur)` : label;
-                },
-              }}
-              yAxisProps={{ domain: [0, 'auto'] }}
-            />
+            <BugBurndownChart trendSprints={trendSprints} height={180} />
             <SprintBugList trendSprints={trendSprints} activeSprintId={activeSprintId} />
           </Stack>
         )}
