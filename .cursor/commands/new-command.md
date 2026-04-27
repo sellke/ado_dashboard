@@ -135,6 +135,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 | **Command Process** | The workflow — phases, steps, decision points. Contract-style commands get Phase 1 (discovery) and Phase 2 (execution). Direct commands get a linear step sequence. |
 | **Core rules or conventions** | Non-obvious constraints, quality bars, patterns to follow |
 | **Integration with Writ** | Table mapping relationships to other commands |
+| **References** | Final section linking to `commands/_preamble.md` and `system-instructions.md` |
 
 **Command categories** inform structure but don't dictate templates:
 
@@ -152,6 +153,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 - Principles over prescriptions — tell the AI *what matters*, not *how to format*
 - No hardcoded line numbers or brittle references to other files
 - Language and shell agnostic — use Writ's tools, not platform-specific commands
+- Include the standard final `## References` section with `commands/_preamble.md` and `system-instructions.md`
 - Match the voice and density of existing refined commands
 
 #### Step 2.2: Validate Integration
@@ -182,3 +184,23 @@ Present a summary: file created, command name and usage, key integration points.
 | `/research` | Run before `/new-command` if the command design requires technical research |
 | `/create-adr` | Significant command design decisions (new execution styles, new categories) may warrant an ADR |
 | `/assess-spec` | After creating a command, assess whether its specification is complete |
+
+## Completion
+
+This command succeeds when:
+
+1. **Command file created** — a `.md` file exists in `commands/` with the new command's name, containing Overview, Invocation, Command Process, and Integration sections
+2. **No naming conflicts** — the command name doesn't collide with existing commands in `commands/`
+3. **Integration validated** — references to other commands are accurate and the command fits Writ's patterns
+4. **Summary presented** — the user received a completion summary with the file path and usage instructions
+
+**Suggested next step:** Test the new command by invoking it.
+
+**Terminal constraint:** This command produces a command definition (`commands/{name}.md`). Do not offer to implement, build, or execute what was defined. For testing, the user should invoke the new command directly. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -214,6 +214,10 @@ This command succeeds when the selected mode's output exists and is linked into 
 
 If the mode cannot complete (e.g., no running dev server for capture, no mockups exist for compare), report the blocker and suggest how to unblock rather than producing partial output.
 
+**Suggested next step:** `/create-spec` to formalize designs into a spec, or `/implement-story` if a spec already exists.
+
+**Terminal constraint:** This command produces design artifacts (mockups, wireframes, `component-inventory.md` in `.writ/specs/{spec-name}/mockups/`). Do not offer to implement, build, or execute what was designed. For specification, the user should run `/create-spec`. For implementation, use `/implement-story`. For quick prototyping, use `/prototype`.
+
 ## Integration with Writ
 
 | Command | Relationship |
@@ -221,3 +225,10 @@ If the mode cannot complete (e.g., no running dev server for capture, no mockups
 | `/create-spec` | Generates specs that `/design` adds visuals to |
 | `/implement-story` | Gate 1 loads mockups; Gate 4.5 runs visual QA |
 | `/assess-spec` | Visual complexity adds to story sizing signals |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

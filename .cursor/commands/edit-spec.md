@@ -118,6 +118,10 @@ This command succeeds when all of:
 
 If the user selects rollback at Step 2.3, restoring from backup is a valid successful outcome — the command completed its job by preserving the user's intent.
 
+**Suggested next step:** `/implement-spec` or `/implement-story` to continue implementation with the updated spec.
+
+**Terminal constraint:** This command produces updated spec artifacts (`.writ/specs/{spec-folder}/`). Do not offer to implement, build, or execute what was modified. For implementation, the user should run `/implement-spec` or `/implement-story`. For quick prototyping, use `/prototype`.
+
 ---
 
 ## Integration with Writ
@@ -128,3 +132,10 @@ If the user selects rollback at Step 2.3, restoring from backup is a valid succe
 | `/assess-spec` | Run after major edits to re-validate shape; assess can invoke edit for splits |
 | `/implement-spec` | After editing, re-run to update execution plan |
 | `/implement-story` | After editing, can target specific modified stories |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
