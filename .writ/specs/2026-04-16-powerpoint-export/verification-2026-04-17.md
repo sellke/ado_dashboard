@@ -7,29 +7,33 @@
 
 ## Summary
 
-| Check | Status | Details |
-|-------|--------|---------|
-| Story file integrity | ✅ | 9 `story-*.md` files; README rows aligned; required sections present |
-| Status consistency | ✅ | README ↔ story headers synced (all Complete ✅); task counts 14+23+13+12+15+18+17+11+27 = **150/150** |
-| Completion integrity | ✅ | Completed stories: all tasks and DoD lines marked `[x]`; acceptance criteria narrative (no checkboxes) |
-| Dependency validation | ✅ | Story 6 deps (2–5, 7) satisfied; Story 9 after Story 8; no cycles flagged |
-| Deliverables checklist | ⚠️ | `spec.md` has no `- [ ]` deliverable list — contract tracked in prose; **status set to Complete** to match shipped work |
-| Contract alignment | ✅ | Heuristic: `lib/export` + Recharts capture + ExportControl present; bundling note added for pptxgenjs/JSZip |
-| Spec-lite integrity | ✅ | Regenerated from `spec.md` (includes Next.js ES build / no bundle alias) |
+
+| Check                  | Status | Details                                                                                                                 |
+| ---------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Story file integrity   | ✅      | 9 `story-*.md` files; README rows aligned; required sections present                                                    |
+| Status consistency     | ✅      | README ↔ story headers synced (all Complete ✅); task counts 14+23+13+12+15+18+17+11+27 = **150/150**                    |
+| Completion integrity   | ✅      | Completed stories: all tasks and DoD lines marked `[x]`; acceptance criteria narrative (no checkboxes)                  |
+| Dependency validation  | ✅      | Story 6 deps (2–5, 7) satisfied; Story 9 after Story 8; no cycles flagged                                               |
+| Deliverables checklist | ⚠️     | `spec.md` has no `- [ ]` deliverable list — contract tracked in prose; **status set to Complete** to match shipped work |
+| Contract alignment     | ✅      | Heuristic: `lib/export` + Recharts capture + ExportControl present; bundling note added for pptxgenjs/JSZip             |
+| Spec-lite integrity    | ✅      | Regenerated from `spec.md` (includes Next.js ES build / no bundle alias)                                                |
+
 
 ## Stories
 
-| # | Title | Status | Tasks (checked/total) |
-|---|-------|--------|------------------------|
-| 1 | Export Infrastructure | ✅ | 14/14 |
-| 2 | Program Summary Slide | ✅ | 23/23 |
-| 3 | Velocity Slides | ✅ | 13/13 |
-| 4 | Overhead Slides | ✅ | 12/12 |
-| 5 | Milestone Slides | ✅ | 15/15 |
-| 6 | Export Orchestrator | ✅ | 18/18 |
-| 7 | Bug Burndown Slides | ✅ | 17/17 |
-| 8 | Chart Image Renderer | ✅ | 11/11 |
-| 9 | Migrate to Recharts Images | ✅ | 27/27 |
+
+| #   | Title                      | Status | Tasks (checked/total) |
+| --- | -------------------------- | ------ | --------------------- |
+| 1   | Export Infrastructure      | ✅      | 14/14                 |
+| 2   | Program Summary Slide      | ✅      | 23/23                 |
+| 3   | Velocity Slides            | ✅      | 13/13                 |
+| 4   | Overhead Slides            | ✅      | 12/12                 |
+| 5   | Milestone Slides           | ✅      | 15/15                 |
+| 6   | Export Orchestrator        | ✅      | 18/18                 |
+| 7   | Bug Burndown Slides        | ✅      | 17/17                 |
+| 8   | Chart Image Renderer       | ✅      | 11/11                 |
+| 9   | Migrate to Recharts Images | ✅      | 27/27                 |
+
 
 ## Issues Found & Resolved
 

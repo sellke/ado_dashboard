@@ -1,24 +1,24 @@
-import { ragColor, RAG_COLORS } from '@/lib/export/rag-colors';
+import { RAG_COLORS, ragColor } from '@/lib/export/rag-colors';
 
 describe('ragColor', () => {
-  it('returns green hex for "Green"', () => {
-    expect(ragColor('Green')).toBe('2f9e44');
+  it('returns MDT green hex for "Green"', () => {
+    expect(ragColor('Green')).toBe('2E7D4F');
   });
 
-  it('returns amber hex for "Amber"', () => {
-    expect(ragColor('Amber')).toBe('e67700');
+  it('returns MDT amber hex for "Amber"', () => {
+    expect(ragColor('Amber')).toBe('D19E00');
   });
 
-  it('returns red hex for "Red"', () => {
-    expect(ragColor('Red')).toBe('c92a2a');
+  it('returns MDT red hex for "Red"', () => {
+    expect(ragColor('Red')).toBe('B3261E');
   });
 
-  it('returns grey hex for null', () => {
-    expect(ragColor(null)).toBe('868e96');
+  it('returns body-muted hex for null', () => {
+    expect(ragColor(null)).toBe('5A5A5A');
   });
 
-  it('returns grey hex for unknown string', () => {
-    expect(ragColor('Unknown')).toBe('868e96');
+  it('returns body-muted hex for unknown string', () => {
+    expect(ragColor('Unknown')).toBe('5A5A5A');
   });
 
   it('returned colors do not include a leading #', () => {

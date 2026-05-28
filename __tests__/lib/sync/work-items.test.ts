@@ -126,7 +126,7 @@ describe('mapAdoWorkItem', () => {
     'Microsoft.VSTS.Scheduling.CompletedWork': 4,
     'Microsoft.VSTS.Scheduling.RemainingWork': 4,
     'System.AreaPath': 'Project\\App\\Team\\Streams',
-    'System.IterationPath': 'Project\\FY26\\Q4\\Sprint 26.21',
+    'System.IterationPath': 'Project\\FY27\\Q1\\Sprint 27.1',
     'System.Parent': 100,
     'System.AssignedTo': 'Jane Doe',
     'System.Tags': 'frontend; high-priority',
@@ -147,7 +147,7 @@ describe('mapAdoWorkItem', () => {
     expect(result!.completedWork).toBe(4);
     expect(result!.remainingWork).toBe(4);
     expect(result!.areaPath).toBe('Project\\App\\Team\\Streams');
-    expect(result!.iterationPath).toBe('Project\\FY26\\Q4\\Sprint 26.21');
+    expect(result!.iterationPath).toBe('Project\\FY27\\Q1\\Sprint 27.1');
     expect(result!.parentAdoId).toBe(100);
     expect(result!.assignedTo).toBe('Jane Doe');
     expect(result!.tags).toBe('frontend; high-priority');
@@ -310,16 +310,16 @@ describe('resolveWorkstreamId', () => {
 
 describe('resolveSprintId', () => {
   const sprintIdMap = new Map([
-    ['Project\\FY26\\Q4\\Sprint 26.21', 'sprint-1'],
-    ['Project\\FY26\\Q4\\Sprint 26.22', 'sprint-2'],
+    ['Project\\FY27\\Q1\\Sprint 27.1', 'sprint-1'],
+    ['Project\\FY27\\Q1\\Sprint 27.2', 'sprint-2'],
   ]);
 
   it('should resolve exact iteration path match', () => {
-    expect(resolveSprintId('Project\\FY26\\Q4\\Sprint 26.21', sprintIdMap)).toBe('sprint-1');
+    expect(resolveSprintId('Project\\FY27\\Q1\\Sprint 27.1', sprintIdMap)).toBe('sprint-1');
   });
 
   it('should return null for unmatched path', () => {
-    expect(resolveSprintId('Project\\FY26\\Q3\\Sprint 26.15', sprintIdMap)).toBeNull();
+    expect(resolveSprintId('Project\\FY26\\Q3\\Sprint 26.10', sprintIdMap)).toBeNull();
   });
 
   it('should return null for empty path', () => {
@@ -335,7 +335,7 @@ describe('upsertWorkItems', () => {
   let wsId: string;
   let sprintId: string;
   const areaPath = 'Project\\App\\LiveLink\\Streams';
-  const iterationPath = 'Project\\FY26\\Q4\\Sprint 26.21';
+  const iterationPath = 'Project\\FY27\\Q1\\Sprint 27.1';
 
   beforeAll(async () => {
     await cleanupTestData();
@@ -352,7 +352,7 @@ describe('upsertWorkItems', () => {
 
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
+        name: 'Sprint 27.1',
         adoIterationPath: iterationPath,
         startDate: new Date('2026-02-02'),
         endDate: new Date('2026-02-13'),
@@ -483,7 +483,7 @@ describe('upsertWorkItems', () => {
       include: { workstream: true, sprint: true },
     });
     expect(wi!.workstream!.name).toBe('Streams');
-    expect(wi!.sprint!.name).toBe('Sprint 26.21');
+    expect(wi!.sprint!.name).toBe('Sprint 27.1');
   });
 
   it('should set workstreamId to null when area path does not match any workstream', async () => {
@@ -495,7 +495,7 @@ describe('upsertWorkItems', () => {
   });
 
   it('should set sprintId to null when iteration path does not match any sprint', async () => {
-    const items = [makeMappedItem({ iterationPath: 'Project\\FY26\\Q3\\Sprint 26.15' })];
+    const items = [makeMappedItem({ iterationPath: 'Project\\FY26\\Q3\\Sprint 26.10' })];
     await upsertWorkItems(items, getWorkstreams(), getSprintIdMap(), prisma);
 
     const wi = await prisma.workItem.findUnique({ where: { adoId: 1001 } });
@@ -557,8 +557,8 @@ describe('upsertWorkItems', () => {
 
 describe('syncWorkItemsForWorkstream', () => {
   const areaPath = 'Project\\App\\LiveLink\\Streams';
-  const iterationPath1 = 'Project\\FY26\\Q4\\Sprint 26.20';
-  const iterationPath2 = 'Project\\FY26\\Q4\\Sprint 26.21';
+  const iterationPath1 = 'Project\\FY26\\Q4\\Sprint 26.26';
+  const iterationPath2 = 'Project\\FY27\\Q1\\Sprint 27.1';
 
   let wsId: string;
   let sprint1Id: string;
@@ -578,20 +578,20 @@ describe('syncWorkItemsForWorkstream', () => {
 
     const s1 = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.20',
+        name: 'Sprint 26.26',
         adoIterationPath: iterationPath1,
-        startDate: new Date('2026-01-19'),
-        endDate: new Date('2026-01-30'),
+        startDate: new Date('2026-04-13'),
+        endDate: new Date('2026-04-24'),
       },
     });
     sprint1Id = s1.id;
 
     const s2 = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
+        name: 'Sprint 27.1',
         adoIterationPath: iterationPath2,
-        startDate: new Date('2026-02-02'),
-        endDate: new Date('2026-02-13'),
+        startDate: new Date('2026-04-27'),
+        endDate: new Date('2026-05-08'),
       },
     });
     sprint2Id = s2.id;

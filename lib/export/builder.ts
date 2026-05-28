@@ -1,9 +1,9 @@
 import type PptxGenJS from 'pptxgenjs';
+import { buildBugBurndownSlide } from './slides/bug-burndown';
+import { buildMilestoneSlide } from './slides/milestone';
+import { buildOverheadSlide } from './slides/overhead';
 import { buildProgramSummarySlide } from './slides/program-summary';
 import { buildVelocitySlide } from './slides/velocity';
-import { buildBugBurndownSlide } from './slides/bug-burndown';
-import { buildOverheadSlide } from './slides/overhead';
-import { buildMilestoneSlide } from './slides/milestone';
 import type { ExportInput } from './types';
 
 /**
@@ -30,13 +30,21 @@ export async function buildPresentation(
   const prs = new Pptx();
   prs.layout = 'LAYOUT_WIDE';
 
-  await buildProgramSummarySlide(prs, input);
+  const totalSlides = 1 + input.workstreams.length * 4;
+  let slideIndex = 0;
+
+  slideIndex += 1;
+  await buildProgramSummarySlide(prs, input, { slideIndex, totalSlides });
 
   for (const ws of input.workstreams) {
-    await buildVelocitySlide(prs, ws);
-    await buildBugBurndownSlide(prs, ws);
-    await buildOverheadSlide(prs, ws);
-    await buildMilestoneSlide(prs, ws, input.milestones);
+    slideIndex += 1;
+    await buildVelocitySlide(prs, input, { slideIndex, totalSlides }, ws);
+    slideIndex += 1;
+    await buildBugBurndownSlide(prs, input, { slideIndex, totalSlides }, ws);
+    slideIndex += 1;
+    await buildOverheadSlide(prs, input, { slideIndex, totalSlides }, ws);
+    slideIndex += 1;
+    await buildMilestoneSlide(prs, input, { slideIndex, totalSlides }, ws, input.milestones);
   }
 
   console.log('[pptx-export] buildPresentation done');

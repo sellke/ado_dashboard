@@ -22,7 +22,7 @@ function makeWsMetrics(overrides: Partial<WorkstreamMetrics>): WorkstreamMetrics
     workstreamId: 'ws-1',
     workstreamName: 'Streams',
     sprintId: 'sprint-1',
-    sprintName: 'Sprint 26.21',
+    sprintName: 'Sprint 27.1',
     velocity: { value: 20, average: 18, rag: 'Green' },
     overheadPercent: { value: 15, average: 12, rag: 'Green' },
     predictability: { value: 85, average: 80, rag: 'Green' },

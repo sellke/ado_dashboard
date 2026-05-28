@@ -1,12 +1,14 @@
 /**
- * RAG status → hex color mapping for pptxgenjs.
- * pptxgenjs expects hex strings without the leading '#'.
+ * RAG status → hex for pptxgenjs native shapes. Values follow MDT semantic colors in
+ * `.cursor/skills/mdt_slides.md`. pptxgenjs expects hex **without** `#`.
  */
+import { MDT_COLORS } from './mdt-theme';
+
 export const RAG_COLORS = {
-  Green: '2f9e44',
-  Amber: 'e67700',
-  Red: 'c92a2a',
-  null: '868e96',
+  Green: '2E7D4F',
+  Amber: 'D19E00',
+  Red: 'B3261E',
+  null: MDT_COLORS.bodyMuted,
 } as const;
 
 type RagKey = keyof typeof RAG_COLORS;

@@ -166,7 +166,7 @@ describe('getWorkstreamTeamId', () => {
 
 describe('syncCapacityForWorkstream', () => {
   const areaPath = 'Project\\App\\LiveLink\\Streams';
-  const iterationPath = 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.21';
+  const iterationPath = 'Event Streaming Platform\\FY27\\Q1\\Sprint 27.1';
   const iterationId = 'def498ab-a9cf-41eb-a7c7-9eb67d1852ef';
 
   let wsId: string;
@@ -186,7 +186,7 @@ describe('syncCapacityForWorkstream', () => {
 
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
+        name: 'Sprint 27.1',
         adoIterationPath: iterationPath,
         startDate: new Date('2026-02-02'),
         endDate: new Date('2026-02-13'),
@@ -338,7 +338,7 @@ describe('syncCapacityForWorkstream', () => {
 // =============================================================================
 
 describe('syncCapacityForAllWorkstreams', () => {
-  const iterationPath = 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.21';
+  const iterationPath = 'Event Streaming Platform\\FY27\\Q1\\Sprint 27.1';
   const iterationId = 'def498ab-a9cf-41eb-a7c7-9eb67d1852ef';
 
   let ws1Id: string;
@@ -364,7 +364,7 @@ describe('syncCapacityForAllWorkstreams', () => {
 
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
+        name: 'Sprint 27.1',
         adoIterationPath: iterationPath,
         startDate: new Date('2026-02-02'),
         endDate: new Date('2026-02-13'),

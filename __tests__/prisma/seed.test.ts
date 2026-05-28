@@ -91,31 +91,31 @@ describe('Seed Script', () => {
       const sprints = await prisma.sprint.findMany({ orderBy: { startDate: 'asc' } });
       const names = sprints.map((s) => s.name);
       expect(names).toEqual([
-        'Sprint 1 Q3 FY26',
-        'Sprint 2 Q3 FY26',
-        'Sprint 3 Q3 FY26',
-        'Sprint 4 Q3 FY26',
-        'Sprint 5 Q3 FY26',
-        'Sprint 1 Q4 FY26',
+        'Sprint 4 Q4 FY26',
+        'Sprint 5 Q4 FY26',
+        'Sprint 6 Q4 FY26',
+        'Sprint 7 Q4 FY26',
+        'Sprint 8 Q4 FY26',
+        'Sprint 1 Q1 FY27',
       ]);
     });
 
     it('should have correct date range for first sprint', async () => {
       const sprint = await prisma.sprint.findFirst({
-        where: { name: 'Sprint 1 Q3 FY26' },
+        where: { name: 'Sprint 4 Q4 FY26' },
       });
       expect(sprint).not.toBeNull();
-      expect(sprint!.startDate).toEqual(new Date('2025-10-14'));
-      expect(sprint!.endDate).toEqual(new Date('2025-10-27'));
+      expect(sprint!.startDate).toEqual(new Date('2026-02-16'));
+      expect(sprint!.endDate).toEqual(new Date('2026-02-27'));
     });
 
     it('should have ADO iteration paths', async () => {
       const sprint = await prisma.sprint.findFirst({
-        where: { name: 'Sprint 1 Q4 FY26' },
+        where: { name: 'Sprint 1 Q1 FY27' },
       });
       expect(sprint).not.toBeNull();
       expect(sprint!.adoIterationPath).toBe(
-        'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Q4 FY26\\Sprint 1'
+        'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Q1 FY27\\Sprint 1'
       );
     });
   });

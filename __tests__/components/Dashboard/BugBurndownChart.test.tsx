@@ -19,7 +19,7 @@ jest.mock('@/lib/charts', () => ({
       data-with-legend={String(props.withLegend)}
       data-tick-formatter={String(
         (props.xAxisProps as { tickFormatter?: (v: string) => string } | undefined)
-          ?.tickFormatter?.('Sprint 26.19') ?? ''
+          ?.tickFormatter?.('Sprint 26.25') ?? ''
       )}
     />
   ),
@@ -40,7 +40,7 @@ const enrichedDefaults = {
 function makeTrendSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintViewModel {
   return {
     sprintId: 's1',
-    sprintName: 'Sprint 26.18',
+    sprintName: 'Sprint 26.24',
     isCurrent: false,
     velocity: '38',
     velocityRate: '0.8',
@@ -67,8 +67,8 @@ describe('BugBurndownChart', () => {
     render(
       <BugBurndownChart
         trendSprints={[
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.18', rawActiveBugs: 4, rawBugsClosed: 2 }),
-          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 26.19', isCurrent: true, rawActiveBugs: 3, rawBugsClosed: 5 }),
+          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.24', rawActiveBugs: 4, rawBugsClosed: 2 }),
+          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 26.25', isCurrent: true, rawActiveBugs: 3, rawBugsClosed: 5 }),
         ]}
       />
     );
@@ -135,27 +135,27 @@ describe('BugBurndownChart', () => {
     render(
       <BugBurndownChart
         trendSprints={[
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.18', isCurrent: false }),
-          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 26.19', isCurrent: true }),
+          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.24', isCurrent: false }),
+          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 26.25', isCurrent: true }),
         ]}
       />
     );
 
     const chart = screen.getByTestId('bug-burndown-chart');
-    // The mock invokes the tickFormatter against 'Sprint 26.19' and surfaces the result via data attribute.
-    expect(chart.getAttribute('data-tick-formatter')).toBe('26.19 (Cur)');
+    // The mock invokes the tickFormatter against 'Sprint 26.25' and surfaces the result via data attribute.
+    expect(chart.getAttribute('data-tick-formatter')).toBe('26.25 (Cur)');
   });
 
   it('strips the "Sprint " prefix for non-current sprints', () => {
     render(
       <BugBurndownChart
         trendSprints={[
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.19', isCurrent: false }),
+          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 26.25', isCurrent: false }),
         ]}
       />
     );
 
     const chart = screen.getByTestId('bug-burndown-chart');
-    expect(chart.getAttribute('data-tick-formatter')).toBe('26.19');
+    expect(chart.getAttribute('data-tick-formatter')).toBe('26.25');
   });
 });

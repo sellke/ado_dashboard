@@ -30,19 +30,19 @@ function makeBurnupPoint(overrides: Partial<ApiBurnupPoint> = {}): ApiBurnupPoin
 
 const burnupData: ApiBurnupPoint[] = [
   makeBurnupPoint({
-    sprintName: 'Sprint 26.17',
+    sprintName: 'Sprint 26.23',
     sprintId: 's1',
     cumulativeCompletedSP: 5,
     totalSP: 20,
   }),
   makeBurnupPoint({
-    sprintName: 'Sprint 26.18',
+    sprintName: 'Sprint 26.24',
     sprintId: 's2',
     cumulativeCompletedSP: 12,
     totalSP: 20,
   }),
   makeBurnupPoint({
-    sprintName: 'Sprint 26.19',
+    sprintName: 'Sprint 26.25',
     sprintId: 's3',
     cumulativeCompletedSP: 18,
     totalSP: 20,
@@ -72,17 +72,17 @@ describe('BurnupChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points).toHaveLength(3);
       expect(points[0]).toEqual({
-        sprint: 'Sprint 26.17',
+        sprint: 'Sprint 26.23',
         completedSP: 5,
         totalSP: 20,
       });
       expect(points[1]).toEqual({
-        sprint: 'Sprint 26.18',
+        sprint: 'Sprint 26.24',
         completedSP: 12,
         totalSP: 20,
       });
       expect(points[2]).toEqual({
-        sprint: 'Sprint 26.19',
+        sprint: 'Sprint 26.25',
         completedSP: 18,
         totalSP: 20,
       });

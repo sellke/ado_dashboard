@@ -264,22 +264,22 @@ describe('upsertSprintsFromIterations', () => {
   });
 
   it('should handle seed naming mismatch: match by path, update name from ADO', async () => {
-    const path = 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Q3 FY26\\Sprint 1';
+    const path = 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Q1 FY27\\Sprint 1';
     await prisma.sprint.create({
       data: {
-        name: 'Sprint 1 Q3 FY26',
+        name: 'Sprint 1 Q1 FY27',
         adoIterationPath: path,
-        startDate: new Date('2025-10-14'),
-        endDate: new Date('2025-10-27'),
+        startDate: new Date('2026-04-27'),
+        endDate: new Date('2026-05-08'),
       },
     });
 
     const iterations: AdoIteration[] = [
       {
         path,
-        name: 'Sprint 26.21',
-        startDate: new Date('2025-10-14'),
-        finishDate: new Date('2025-10-27'),
+        name: 'Sprint 27.1',
+        startDate: new Date('2026-04-27'),
+        finishDate: new Date('2026-05-08'),
       },
     ];
 
@@ -291,7 +291,7 @@ describe('upsertSprintsFromIterations', () => {
     const sprint = await prisma.sprint.findUnique({
       where: { adoIterationPath: path },
     });
-    expect(sprint!.name).toBe('Sprint 26.21');
+    expect(sprint!.name).toBe('Sprint 27.1');
   });
 
   it('should return currentSprintId and currentSprintPath for downstream exclusion', async () => {

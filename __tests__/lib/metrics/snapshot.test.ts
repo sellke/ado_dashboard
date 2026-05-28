@@ -22,9 +22,9 @@ describe('computeWorkstreamMetrics', () => {
 
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
-        startDate: new Date('2026-01-06'),
-        endDate: new Date('2026-01-19'),
+        name: 'Sprint 26.26',
+        startDate: new Date('2026-04-13'),
+        endDate: new Date('2026-04-24'),
       },
     });
     sprintId = sprint.id;

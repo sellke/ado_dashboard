@@ -1,20 +1,19 @@
 import type PptxGenJS from 'pptxgenjs';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
 import { BugBurndownChart } from '@/components/Dashboard/BugBurndownChart';
+import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
+import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
 import { ragColor } from '../rag-colors';
 import { renderChartToPng } from '../render/chart-image';
+import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
 import type { ExportInput } from '../types';
 
 const SLIDE_W = 13.33;
-const TILE_Y = 1.1;
 const TILE_H = 1.7;
 const TILE_W = 2.35;
 const TILE_GAP = 0.15;
 const TILE_START_X = (SLIDE_W - 5 * TILE_W - 4 * TILE_GAP) / 2;
 
-const CHART_Y = 3.0;
-const CHART_H = 3.7;
 const CHART_W = 6.2;
 const VELOCITY_CHART_X = 0.3;
 const BUG_CHART_X = 6.8;
@@ -55,8 +54,18 @@ function buildTiles(input: ExportInput): TileData[] {
       ? `${rollup.quarterlyMilestones.complete} / ${rollup.quarterlyMilestones.total}`
       : '–';
 
-  tiles.push({ label: 'Monthly Milestone', value: monthlyPct, avg: null, color: '868e96' });
-  tiles.push({ label: 'Quarterly Progress', value: quarterlyVal, avg: null, color: '868e96' });
+  tiles.push({
+    label: 'Monthly Milestone',
+    value: monthlyPct,
+    avg: null,
+    color: MDT_COLORS.navy,
+  });
+  tiles.push({
+    label: 'Quarterly Progress',
+    value: quarterlyVal,
+    avg: null,
+    color: MDT_COLORS.navy,
+  });
 
   return tiles;
 }
@@ -85,30 +94,29 @@ function adaptPrediction(
 
 export async function buildProgramSummarySlide(
   prs: InstanceType<typeof PptxGenJS>,
-  input: ExportInput
+  input: ExportInput,
+  ctx: MdtSlideContext
 ): Promise<void> {
   const slide = prs.addSlide();
+  const sub = input.sprintName?.trim() ?? '';
+  addMdtTitleBlock(slide, { title: 'Program Health Summary', subtitle: sub || null });
 
-  slide.addText(`Program Health Summary — ${input.sprintName}`, {
-    x: 0.3,
-    y: 0.15,
-    w: 12.7,
-    h: 0.6,
-    fontSize: 22,
-    bold: true,
-    color: '333333',
-  });
+  const contentTop = mdtContentTop(!!sub);
+  const TILE_Y = contentTop + 0.05;
+  const CHART_Y = TILE_Y + TILE_H + 0.2;
 
   if (!input.programMetrics) {
     slide.addText('No data available', {
       x: 1,
-      y: 3,
+      y: contentTop + 1.2,
       w: 11,
       h: 1,
-      fontSize: 18,
-      color: '868e96',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.bodyMuted,
       align: 'center',
     });
+    addMdtFooter(slide, ctx, input);
     return;
   }
 
@@ -131,8 +139,9 @@ export async function buildProgramSummarySlide(
       y: TILE_Y + 0.12,
       w: TILE_W,
       h: 0.4,
+      fontFace: MDT_FONT,
       fontSize: 10,
-      color: 'FFFFFF',
+      color: MDT_COLORS.white,
       align: 'center',
       bold: false,
     });
@@ -142,8 +151,9 @@ export async function buildProgramSummarySlide(
       y: TILE_Y + 0.55,
       w: TILE_W,
       h: 0.95,
+      fontFace: MDT_FONT,
       fontSize: 24,
-      color: 'FFFFFF',
+      color: MDT_COLORS.white,
       align: 'center',
       bold: true,
     });
@@ -154,8 +164,9 @@ export async function buildProgramSummarySlide(
         y: TILE_Y + 1.6,
         w: TILE_W,
         h: 0.4,
+        fontFace: MDT_FONT,
         fontSize: 10,
-        color: 'FFFFFF',
+        color: MDT_COLORS.white,
         align: 'center',
       });
     }
@@ -166,11 +177,12 @@ export async function buildProgramSummarySlide(
   if (trendSprints.length === 0) {
     slide.addText('No program trend data available', {
       x: 0.3,
-      y: 3.5,
+      y: CHART_Y + 0.5,
       w: 12.7,
       h: 1.0,
-      fontSize: 14,
-      color: '868e96',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.bodyMuted,
       align: 'center',
     });
   } else {
@@ -190,7 +202,7 @@ export async function buildProgramSummarySlide(
         x: VELOCITY_CHART_X,
         y: CHART_Y,
         w: CHART_W,
-        h: CHART_H,
+        h: 3.7,
       });
     } catch (err) {
       console.error('[pptx-export] program velocity chart capture failed:', err);
@@ -198,9 +210,10 @@ export async function buildProgramSummarySlide(
         x: VELOCITY_CHART_X,
         y: CHART_Y,
         w: CHART_W,
-        h: CHART_H,
-        fontSize: 14,
-        color: '868e96',
+        h: 3.7,
+        fontFace: MDT_FONT,
+        fontSize: MDT_TYPO.bodyPt,
+        color: MDT_COLORS.bodyMuted,
         align: 'center',
       });
     }
@@ -220,7 +233,7 @@ export async function buildProgramSummarySlide(
         x: BUG_CHART_X,
         y: CHART_Y,
         w: CHART_W,
-        h: CHART_H,
+        h: 3.7,
       });
     } catch (err) {
       console.error('[pptx-export] program bug burndown chart capture failed:', err);
@@ -228,26 +241,14 @@ export async function buildProgramSummarySlide(
         x: BUG_CHART_X,
         y: CHART_Y,
         w: CHART_W,
-        h: CHART_H,
-        fontSize: 14,
-        color: '868e96',
+        h: 3.7,
+        fontFace: MDT_FONT,
+        fontSize: MDT_TYPO.bodyPt,
+        color: MDT_COLORS.bodyMuted,
         align: 'center',
       });
     }
   }
 
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const computedLabel = input.computedAt
-    ? `Last computed: ${new Date(input.computedAt).toLocaleString()}`
-    : '';
-
-  slide.addText(`Generated ${dateStr}${computedLabel ? ` | ${computedLabel}` : ''}`, {
-    x: 0.3,
-    y: 6.9,
-    w: 12.7,
-    h: 0.35,
-    fontSize: 9,
-    color: '999999',
-    align: 'center',
-  });
+  addMdtFooter(slide, ctx, input);
 }

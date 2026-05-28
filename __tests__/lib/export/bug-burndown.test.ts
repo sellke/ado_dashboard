@@ -1,3 +1,13 @@
+import type {
+  MetricTileViewModel,
+  RagStatus,
+  TrendSprintViewModel,
+  WorkstreamCardViewModel,
+} from '@/lib/dashboard/types';
+import { renderChartToPng } from '@/lib/export/render/chart-image';
+import { buildBugBurndownSlide } from '@/lib/export/slides/bug-burndown';
+import type { ExportInput } from '@/lib/export/types';
+
 /**
  * Unit tests for buildBugBurndownSlide.
  * pptxgenjs is mocked — tests verify the builder calls the pptxgenjs API
@@ -13,9 +23,21 @@ jest.mock('@/components/Dashboard/BugBurndownChart', () => ({
   BugBurndownChart: () => null,
 }));
 
-import { renderChartToPng } from '@/lib/export/render/chart-image';
-import { buildBugBurndownSlide } from '@/lib/export/slides/bug-burndown';
-import type { WorkstreamCardViewModel, MetricTileViewModel, RagStatus, TrendSprintViewModel } from '@/lib/dashboard/types';
+const testSlideCtx = { slideIndex: 2, totalSlides: 21 };
+
+function makeMinimalExportInput(): ExportInput {
+  return {
+    sprintName: 'Sprint 24',
+    computedAt: null,
+    programMetrics: null,
+    programRollup: null,
+    programTrendSprints: [],
+    sprint5Prediction: null,
+    workstreams: [],
+    rawWorkstreams: [],
+    milestones: [],
+  };
+}
 
 const mockRenderChartToPng = renderChartToPng as jest.MockedFunction<typeof renderChartToPng>;
 
@@ -98,7 +120,9 @@ function makeTrendSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSp
   };
 }
 
-function makeWorkstreamCard(overrides: Partial<WorkstreamCardViewModel> = {}): WorkstreamCardViewModel {
+function makeWorkstreamCard(
+  overrides: Partial<WorkstreamCardViewModel> = {}
+): WorkstreamCardViewModel {
   return {
     workstreamId: 'ws-1',
     workstreamName: 'Streams',
@@ -149,15 +173,18 @@ function makeWorkstreamCard(overrides: Partial<WorkstreamCardViewModel> = {}): W
 
 beforeEach(() => {
   mockRenderChartToPng.mockClear();
-  mockRenderChartToPng.mockImplementation(() =>
-    Promise.resolve('data:image/png;base64,MOCK')
-  );
+  mockRenderChartToPng.mockImplementation(() => Promise.resolve('data:image/png;base64,MOCK'));
 });
 
 describe('buildBugBurndownSlide', () => {
   it('captures the bug burndown chart as an image', async () => {
     const prs = makeMockPrs();
-    await buildBugBurndownSlide(prs as never, makeWorkstreamCard());
+    await buildBugBurndownSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(1);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
     expect(prs._slide.addChart).not.toHaveBeenCalled();
@@ -165,18 +192,28 @@ describe('buildBugBurndownSlide', () => {
 
   it('passes the full chart area as the addImage coordinates', async () => {
     const prs = makeMockPrs();
-    await buildBugBurndownSlide(prs as never, makeWorkstreamCard());
+    await buildBugBurndownSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     const [opts] = prs._slide.addImage.mock.calls[0] as [
       { data: string; x: number; y: number; w: number; h: number },
     ];
-    expect(opts).toMatchObject({ x: 0.3, y: 0.85, w: 8.5, h: 5.5 });
+    expect(opts).toMatchObject({ x: 0.3, y: 1.55, w: 8.5, h: 5.5 });
     expect(opts.data).toMatch(/^data:image\/png/);
   });
 
   it('does not throw and shows placeholder when trendSprints is empty', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildBugBurndownSlide(prs as never, makeWorkstreamCard({ trendSprints: [] }))
+      buildBugBurndownSlide(
+        prs as never,
+        makeMinimalExportInput(),
+        testSlideCtx,
+        makeWorkstreamCard({ trendSprints: [] })
+      )
     ).resolves.not.toThrow();
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -187,7 +224,12 @@ describe('buildBugBurndownSlide', () => {
   it('falls back to "Chart unavailable" text when capture rejects', async () => {
     mockRenderChartToPng.mockImplementationOnce(() => Promise.reject(new Error('boom')));
     const prs = makeMockPrs();
-    await buildBugBurndownSlide(prs as never, makeWorkstreamCard());
+    await buildBugBurndownSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(textCalls).toContain('Chart unavailable');
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -197,10 +239,23 @@ describe('buildBugBurndownSlide', () => {
     const prs = makeMockPrs();
     await buildBugBurndownSlide(
       prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
       makeWorkstreamCard({
         trendSprints: [
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 22', rawActiveBugs: 0, rawBugsClosed: 0 }),
-          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 23', isCurrent: true, rawActiveBugs: 0, rawBugsClosed: 0 }),
+          makeTrendSprint({
+            sprintId: 's1',
+            sprintName: 'Sprint 22',
+            rawActiveBugs: 0,
+            rawBugsClosed: 0,
+          }),
+          makeTrendSprint({
+            sprintId: 's2',
+            sprintName: 'Sprint 23',
+            isCurrent: true,
+            rawActiveBugs: 0,
+            rawBugsClosed: 0,
+          }),
         ],
       })
     );
@@ -212,10 +267,24 @@ describe('buildBugBurndownSlide', () => {
     const prs = makeMockPrs();
     await buildBugBurndownSlide(
       prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
       makeWorkstreamCard({
         trendSprints: [
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 22', isCurrent: false, rawActiveBugs: 2, rawBugsClosed: 1 }),
-          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 23', isCurrent: false, rawActiveBugs: 3, rawBugsClosed: 0 }),
+          makeTrendSprint({
+            sprintId: 's1',
+            sprintName: 'Sprint 22',
+            isCurrent: false,
+            rawActiveBugs: 2,
+            rawBugsClosed: 1,
+          }),
+          makeTrendSprint({
+            sprintId: 's2',
+            sprintName: 'Sprint 23',
+            isCurrent: false,
+            rawActiveBugs: 3,
+            rawBugsClosed: 0,
+          }),
         ],
       })
     );
@@ -227,10 +296,24 @@ describe('buildBugBurndownSlide', () => {
     const prs = makeMockPrs();
     await buildBugBurndownSlide(
       prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
       makeWorkstreamCard({
         trendSprints: [
-          makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 22', isCurrent: false, rawActiveBugs: 1, rawBugsClosed: 2 }),
-          makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 23', isCurrent: true, rawActiveBugs: 5, rawBugsClosed: 3 }),
+          makeTrendSprint({
+            sprintId: 's1',
+            sprintName: 'Sprint 22',
+            isCurrent: false,
+            rawActiveBugs: 1,
+            rawBugsClosed: 2,
+          }),
+          makeTrendSprint({
+            sprintId: 's2',
+            sprintName: 'Sprint 23',
+            isCurrent: true,
+            rawActiveBugs: 5,
+            rawBugsClosed: 3,
+          }),
         ],
       })
     );

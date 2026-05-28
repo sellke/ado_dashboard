@@ -1,44 +1,46 @@
 import type PptxGenJS from 'pptxgenjs';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
+import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
 import { renderChartToPng } from '../render/chart-image';
+import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
+import type { ExportInput } from '../types';
 
-const CHART_X = 0.3;
-const CHART_Y = 0.85;
 const CHART_W = 8.5;
 const CHART_H = 5.5;
 const PANEL_X = 9.2;
-const PANEL_Y = 0.85;
 const PANEL_W = 3.9;
 
 export async function buildVelocitySlide(
   prs: InstanceType<typeof PptxGenJS>,
+  input: ExportInput,
+  ctx: MdtSlideContext,
   ws: WorkstreamCardViewModel
 ): Promise<void> {
   const slide = prs.addSlide();
-
-  slide.addText(`${ws.workstreamName} — Velocity`, {
-    x: 0.3,
-    y: 0.1,
-    w: 12.7,
-    h: 0.55,
-    fontSize: 18,
-    bold: true,
-    color: '333333',
+  addMdtTitleBlock(slide, {
+    title: `${ws.workstreamName} — Velocity`,
+    subtitle: null,
   });
+
+  const contentTop = mdtContentTop(false);
+  const CHART_Y = contentTop + 0.1;
+  const PANEL_Y = contentTop + 0.1;
 
   const sprints = ws.trendSprints;
 
   if (sprints.length === 0) {
     slide.addText('No trend data available', {
       x: 1,
-      y: 3,
+      y: contentTop + 1.5,
       w: 11,
       h: 1,
-      fontSize: 16,
-      color: '868e96',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.bodyMuted,
       align: 'center',
     });
+    addMdtFooter(slide, ctx, input);
     return;
   }
 
@@ -53,16 +55,17 @@ export async function buildVelocitySlide(
       />,
       { width: 850, height: 550 }
     );
-    slide.addImage({ data: dataUrl, x: CHART_X, y: CHART_Y, w: CHART_W, h: CHART_H });
+    slide.addImage({ data: dataUrl, x: 0.3, y: CHART_Y, w: CHART_W, h: CHART_H });
   } catch (err) {
     console.error(`[pptx-export] velocity chart capture failed for "${ws.workstreamName}":`, err);
     slide.addText('Chart unavailable', {
-      x: CHART_X,
+      x: 0.3,
       y: CHART_Y,
       w: CHART_W,
       h: CHART_H,
-      fontSize: 16,
-      color: '868e96',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.bodyMuted,
       align: 'center',
     });
   }
@@ -73,6 +76,17 @@ export async function buildVelocitySlide(
   const avgLabel = velocityMetric?.avgLabel ?? '–';
   const predicted = ws.prediction ? `${Math.round(ws.prediction.rawVelocity ?? 0)} SP` : '–';
 
+  slide.addText('Metrics', {
+    x: PANEL_X,
+    y: PANEL_Y,
+    w: PANEL_W,
+    h: 0.35,
+    fontFace: MDT_FONT,
+    fontSize: MDT_TYPO.sectionHeaderPt,
+    bold: false,
+    color: MDT_COLORS.blue,
+  });
+
   const metricLines = [
     ['Current Velocity', `${currentVal} SP`],
     ['Rolling Avg', `${avgLabel}`],
@@ -81,14 +95,15 @@ export async function buildVelocitySlide(
   ];
 
   metricLines.forEach(([label, val], i) => {
-    const y = PANEL_Y + i * 0.65;
+    const y = PANEL_Y + 0.45 + i * 0.65;
     slide.addText(label, {
       x: PANEL_X,
       y,
       w: PANEL_W,
       h: 0.3,
-      fontSize: 10,
-      color: '888888',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.statusLabelPt,
+      color: MDT_COLORS.bodyMuted,
       bold: false,
     });
     slide.addText(val, {
@@ -96,9 +111,12 @@ export async function buildVelocitySlide(
       y: y + 0.28,
       w: PANEL_W,
       h: 0.35,
-      fontSize: 14,
-      color: '333333',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.black,
       bold: true,
     });
   });
+
+  addMdtFooter(slide, ctx, input);
 }

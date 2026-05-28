@@ -1,47 +1,51 @@
 import type PptxGenJS from 'pptxgenjs';
-import type { ApiMilestoneWithProgress } from '@/lib/milestones/types';
-import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { BurnupChart } from '@/components/Dashboard/BurnupChart';
+import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type { ApiMilestoneWithProgress } from '@/lib/milestones/types';
+import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
 import { renderChartToPng } from '../render/chart-image';
+import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
+import type { ExportInput } from '../types';
 
 const MAX_CHARTS = 3;
 const CHART_H = 1.75;
 const CHART_X = 0.3;
 const CHART_W = 12.7;
 
-function chartY(index: number): number {
-  return 0.85 + index * (CHART_H + 0.25);
+function chartY(base: number, index: number): number {
+  return base + index * (CHART_H + 0.25);
 }
 
 export async function buildMilestoneSlide(
   prs: InstanceType<typeof PptxGenJS>,
+  input: ExportInput,
+  ctx: MdtSlideContext,
   ws: WorkstreamCardViewModel,
   milestones: ApiMilestoneWithProgress[]
 ): Promise<void> {
   const slide = prs.addSlide();
-
-  slide.addText(`${ws.workstreamName} — Milestones`, {
-    x: 0.3,
-    y: 0.1,
-    w: 12.7,
-    h: 0.55,
-    fontSize: 18,
-    bold: true,
-    color: '333333',
+  addMdtTitleBlock(slide, {
+    title: `${ws.workstreamName} — Milestones`,
+    subtitle: null,
   });
+
+  const contentTop = mdtContentTop(false);
+  const baseY = contentTop + 0.05;
 
   const wsMilestones = milestones.filter((m) => m.workstreamId === ws.workstreamId);
 
   if (wsMilestones.length === 0) {
     slide.addText('Milestone data unavailable for this workstream', {
       x: 1,
-      y: 3,
+      y: contentTop + 1.5,
       w: 11,
       h: 1,
-      fontSize: 16,
-      color: '868e96',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.bodyPt,
+      color: MDT_COLORS.bodyMuted,
       align: 'center',
     });
+    addMdtFooter(slide, ctx, input);
     return;
   }
 
@@ -50,7 +54,7 @@ export async function buildMilestoneSlide(
 
   for (let i = 0; i < charted.length; i++) {
     const milestone = charted[i];
-    const y = chartY(i);
+    const y = chartY(baseY, i);
     const pctLabel =
       milestone.percentComplete != null ? `${Math.round(milestone.percentComplete)}%` : '–';
 
@@ -59,8 +63,9 @@ export async function buildMilestoneSlide(
       y: y - 0.05,
       w: CHART_W,
       h: 0.25,
-      fontSize: 9,
-      color: '555555',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.statusLabelPt,
+      color: MDT_COLORS.blue,
       bold: false,
     });
 
@@ -70,8 +75,9 @@ export async function buildMilestoneSlide(
         y: y + 0.22,
         w: CHART_W,
         h: 0.5,
+        fontFace: MDT_FONT,
         fontSize: 12,
-        color: '868e96',
+        color: MDT_COLORS.bodyMuted,
         align: 'center',
       });
       continue;
@@ -104,15 +110,16 @@ export async function buildMilestoneSlide(
         y: y + 0.22,
         w: CHART_W,
         h: 0.5,
+        fontFace: MDT_FONT,
         fontSize: 12,
-        color: '868e96',
+        color: MDT_COLORS.bodyMuted,
         align: 'center',
       });
     }
   }
 
   if (textOnly.length > 0) {
-    const listY = chartY(MAX_CHARTS) + 0.1;
+    const listY = chartY(baseY, MAX_CHARTS) + 0.1;
     const lines = textOnly
       .map((m) => {
         const pct = m.percentComplete != null ? `${Math.round(m.percentComplete)}%` : '–';
@@ -125,8 +132,11 @@ export async function buildMilestoneSlide(
       y: listY,
       w: CHART_W,
       h: 0.8,
-      fontSize: 10,
-      color: '555555',
+      fontFace: MDT_FONT,
+      fontSize: MDT_TYPO.statusLabelPt,
+      color: MDT_COLORS.black,
     });
   }
+
+  addMdtFooter(slide, ctx, input);
 }

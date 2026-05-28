@@ -51,10 +51,10 @@ function makeSprint(overrides: Partial<TrendSprintViewModel> = {}): TrendSprintV
 }
 
 const fourSprints: TrendSprintViewModel[] = [
-  makeSprint({ sprintId: 's1', sprintName: 'Sprint 26.17', rawVelocity: 38 }),
-  makeSprint({ sprintId: 's2', sprintName: 'Sprint 26.18', rawVelocity: 42 }),
-  makeSprint({ sprintId: 's3', sprintName: 'Sprint 26.19', rawVelocity: 45 }),
-  makeSprint({ sprintId: 's4', sprintName: 'Sprint 26.20', rawVelocity: 40 }),
+  makeSprint({ sprintId: 's1', sprintName: 'Sprint 26.23', rawVelocity: 38 }),
+  makeSprint({ sprintId: 's2', sprintName: 'Sprint 26.24', rawVelocity: 42 }),
+  makeSprint({ sprintId: 's3', sprintName: 'Sprint 26.25', rawVelocity: 45 }),
+  makeSprint({ sprintId: 's4', sprintName: 'Sprint 26.26', rawVelocity: 40 }),
 ];
 
 const prediction: WorkstreamCardViewModel['prediction'] = {
@@ -62,7 +62,7 @@ const prediction: WorkstreamCardViewModel['prediction'] = {
   rawVelocity: 48,
   velocityRate: '0.85 pts/hr',
   rawVelocityRate: 0.85,
-  sprintLabel: 'Sprint 26.21',
+  sprintLabel: 'Sprint 27.1',
   isPredicted: true,
 };
 
@@ -99,9 +99,9 @@ describe('VelocityTrendChart', () => {
       const chart = screen.getByTestId('velocity-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points).toHaveLength(4);
-      expect(points[0].sprint).toBe('Sprint 26.17');
+      expect(points[0].sprint).toBe('Sprint 26.23');
       expect(points[0]['Completed Points']).toBe(38);
-      expect(points[3].sprint).toBe('Sprint 26.20');
+      expect(points[3].sprint).toBe('Sprint 26.26');
     });
 
     it('renders both "Completed Points" and "Forecasted" series', () => {
@@ -147,7 +147,7 @@ describe('VelocityTrendChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       // No new x-axis entry — same 4 sprints
       expect(points).toHaveLength(4);
-      expect(points[3].sprint).toBe('Sprint 26.20');
+      expect(points[3].sprint).toBe('Sprint 26.26');
       expect(points[3].Forecasted).toBe(48);
     });
 
@@ -231,14 +231,14 @@ describe('VelocityTrendChart', () => {
 
   describe('current sprint overlay (isCurrent)', () => {
     const fourActualSprints: TrendSprintViewModel[] = [
-      makeSprint({ sprintId: 's1', sprintName: 'Sprint 26.17', rawVelocity: 38 }),
-      makeSprint({ sprintId: 's2', sprintName: 'Sprint 26.18', rawVelocity: 42 }),
-      makeSprint({ sprintId: 's3', sprintName: 'Sprint 26.19', rawVelocity: 45 }),
-      makeSprint({ sprintId: 's4', sprintName: 'Sprint 26.20', rawVelocity: 40 }),
+      makeSprint({ sprintId: 's1', sprintName: 'Sprint 26.23', rawVelocity: 38 }),
+      makeSprint({ sprintId: 's2', sprintName: 'Sprint 26.24', rawVelocity: 42 }),
+      makeSprint({ sprintId: 's3', sprintName: 'Sprint 26.25', rawVelocity: 45 }),
+      makeSprint({ sprintId: 's4', sprintName: 'Sprint 26.26', rawVelocity: 40 }),
     ];
     const currentSprint = makeSprint({
       sprintId: 's5',
-      sprintName: 'Sprint 26.21',
+      sprintName: 'Sprint 27.1',
       rawVelocity: 12,
       isCurrent: true,
     });
@@ -258,7 +258,7 @@ describe('VelocityTrendChart', () => {
       // 5 sprints — no extra forecast entry appended
       expect(points).toHaveLength(5);
       const lastPoint = points[4];
-      expect(lastPoint.sprint).toBe('Sprint 26.21');
+      expect(lastPoint.sprint).toBe('Sprint 27.1');
       expect(lastPoint.Forecasted).toBe(48);
     });
 
@@ -306,7 +306,7 @@ describe('VelocityTrendChart', () => {
       const points = JSON.parse(chart.getAttribute('data-points')!);
       // Still 4 points — forecast merges onto the last sprint, no new entry
       expect(points).toHaveLength(4);
-      expect(points[3].sprint).toBe('Sprint 26.20');
+      expect(points[3].sprint).toBe('Sprint 26.26');
       expect(points[3].Forecasted).toBe(48);
     });
 
@@ -341,7 +341,7 @@ describe('VelocityTrendChart', () => {
       const referenceLines = parseReferenceLines(chart);
       const xRef = referenceLines.find((r) => r.x != null);
       expect(xRef).toBeDefined();
-      expect(xRef!.x).toBe('Sprint 26.18');
+      expect(xRef!.x).toBe('Sprint 26.24');
       expect(xRef!.color).toBe('gray.5');
     });
 
@@ -378,7 +378,7 @@ describe('VelocityTrendChart', () => {
       const referenceLines = parseReferenceLines(chart);
       expect(referenceLines).toHaveLength(2);
       expect(referenceLines.find((r) => r.y != null)).toBeDefined();
-      expect(referenceLines.find((r) => r.x != null)!.x).toBe('Sprint 26.19');
+      expect(referenceLines.find((r) => r.x != null)!.x).toBe('Sprint 26.25');
     });
 
     it('highlight moves when activeSprintId changes', () => {
@@ -388,7 +388,7 @@ describe('VelocityTrendChart', () => {
 
       let chart = screen.getByTestId('velocity-line-chart');
       let xRef = parseReferenceLines(chart).find((r) => r.x != null);
-      expect(xRef!.x).toBe('Sprint 26.17');
+      expect(xRef!.x).toBe('Sprint 26.23');
 
       rerender(
         <VelocityTrendChart trendSprints={fourSprints} prediction={null} activeSprintId="s4" />
@@ -396,7 +396,7 @@ describe('VelocityTrendChart', () => {
 
       chart = screen.getByTestId('velocity-line-chart');
       xRef = parseReferenceLines(chart).find((r) => r.x != null);
-      expect(xRef!.x).toBe('Sprint 26.20');
+      expect(xRef!.x).toBe('Sprint 26.26');
     });
   });
 });

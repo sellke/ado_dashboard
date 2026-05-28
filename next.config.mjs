@@ -13,30 +13,31 @@ export default withBundleAnalyzer({
     optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
   webpack: (config, { isServer, webpack }) => {
-    // pptxgenjs 4.x (`dist/pptxgen.es.js`): uses `import JSZip from 'jszip'` and guarded dynamic
-    // `import('node:fs')` / `import('node:https')` on Node-only paths. Do NOT alias to
-    // `pptxgen.bundle.js`: that UMD ends with `})(JSZip)` but never defines `JSZip` in module
-    // scope, so webpack emits `ReferenceError: JSZip is not defined` in the client bundle.
-    // Rewrite `node:*` → `*` so fallbacks apply; browser code never executes those branches.
+    // pptxgenjs ES build (`dist/pptxgen.es.js`) uses dynamic `import('node:fs')` /
+    // `import('node:https')` on Node-only paths. Webpack 5 does not handle the
+    // `node:` URI scheme → UnhandledSchemeError. Strip the prefix so requests
+    // resolve as `fs` / `https` and map to `false` via fallbacks (browser never
+    // executes those branches). Do NOT alias to `pptxgen.bundle.js` — UMD expects
+    // global JSZip and breaks with ReferenceError (see CHANGELOG / PowerPoint spec).
     if (!isServer) {
-      config.resolve = config.resolve || {};
-      config.plugins = [...(config.plugins || [])];
       config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
           resource.request = resource.request.replace(/^node:/, '');
-        })
+        }),
       );
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
+        path: false,
         https: false,
         http: false,
-        path: false,
+        os: false,
         crypto: false,
         stream: false,
         zlib: false,
         util: false,
         buffer: false,
+        assert: false,
       };
     }
     return config;

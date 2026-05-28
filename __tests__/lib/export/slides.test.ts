@@ -1,3 +1,17 @@
+import type {
+  MetricTileViewModel,
+  RagStatus,
+  TrendSprintViewModel,
+  WorkstreamCardViewModel,
+} from '@/lib/dashboard/types';
+import { renderChartToPng } from '@/lib/export/render/chart-image';
+import { buildMilestoneSlide } from '@/lib/export/slides/milestone';
+import { buildOverheadSlide } from '@/lib/export/slides/overhead';
+import { buildProgramSummarySlide } from '@/lib/export/slides/program-summary';
+import { buildVelocitySlide } from '@/lib/export/slides/velocity';
+import type { ExportInput } from '@/lib/export/types';
+import type { ApiMilestoneWithProgress } from '@/lib/milestones/types';
+
 /**
  * Unit tests for slide builder functions.
  * pptxgenjs is mocked — tests verify the builders don't throw and call the
@@ -25,20 +39,6 @@ jest.mock('@/components/Dashboard/OverheadCompositionChart', () => ({
 jest.mock('@/components/Dashboard/BurnupChart', () => ({
   BurnupChart: () => null,
 }));
-
-import { renderChartToPng } from '@/lib/export/render/chart-image';
-import { buildProgramSummarySlide } from '@/lib/export/slides/program-summary';
-import { buildVelocitySlide } from '@/lib/export/slides/velocity';
-import { buildOverheadSlide } from '@/lib/export/slides/overhead';
-import { buildMilestoneSlide } from '@/lib/export/slides/milestone';
-import type { ExportInput } from '@/lib/export/types';
-import type {
-  WorkstreamCardViewModel,
-  MetricTileViewModel,
-  RagStatus,
-  TrendSprintViewModel,
-} from '@/lib/dashboard/types';
-import type { ApiMilestoneWithProgress } from '@/lib/milestones/types';
 
 const mockRenderChartToPng = renderChartToPng as jest.MockedFunction<typeof renderChartToPng>;
 
@@ -139,8 +139,22 @@ function makeMinimalExportInput(overrides: Partial<ExportInput> = {}): ExportInp
       quarterlyMilestones: { total: 8, complete: 5, inProgress: 2, notStarted: 1 },
     },
     programTrendSprints: [
-      makeTrendSprint({ sprintId: 's1', sprintName: 'Sprint 22', isCurrent: false, rawVelocity: 30, rawActiveBugs: 4, rawBugsClosed: 2 }),
-      makeTrendSprint({ sprintId: 's2', sprintName: 'Sprint 23', isCurrent: true, rawVelocity: 20, rawActiveBugs: 3, rawBugsClosed: 1 }),
+      makeTrendSprint({
+        sprintId: 's1',
+        sprintName: 'Sprint 22',
+        isCurrent: false,
+        rawVelocity: 30,
+        rawActiveBugs: 4,
+        rawBugsClosed: 2,
+      }),
+      makeTrendSprint({
+        sprintId: 's2',
+        sprintName: 'Sprint 23',
+        isCurrent: true,
+        rawVelocity: 20,
+        rawActiveBugs: 3,
+        rawBugsClosed: 1,
+      }),
     ],
     sprint5Prediction: { rawVelocity: 35, sprintLabel: 'Sprint 24', isPredicted: true },
     workstreams: [],
@@ -150,7 +164,9 @@ function makeMinimalExportInput(overrides: Partial<ExportInput> = {}): ExportInp
   };
 }
 
-function makeWorkstreamCard(overrides: Partial<WorkstreamCardViewModel> = {}): WorkstreamCardViewModel {
+function makeWorkstreamCard(
+  overrides: Partial<WorkstreamCardViewModel> = {}
+): WorkstreamCardViewModel {
   return {
     workstreamId: 'ws-1',
     workstreamName: 'Streams',
@@ -164,34 +180,83 @@ function makeWorkstreamCard(overrides: Partial<WorkstreamCardViewModel> = {}): W
     detail: { plannedPoints: '20', completedPoints: '18', carryOverPoints: '2' },
     trendSprints: [
       {
-        sprintId: 's1', sprintName: 'Sprint 22', isCurrent: false,
-        velocity: '38', velocityRate: '0.8', activeBugs: '2', bugsClosed: '1',
-        rawVelocity: 38, rawVelocityRate: 0.8, rawActiveBugs: 2, rawBugsClosed: 1,
-        bugs: [], overheadBreakdown: [],
-        velocityAvg: 36, overheadPercentAvg: 22, carryOverRateAvg: 10,
-        plannedPoints: 40, completedPoints: 38, carryOverPoints: 2, grossHours: 200,
-        rawOverheadPercent: 22, rawCarryOverRate: 10,
+        sprintId: 's1',
+        sprintName: 'Sprint 22',
+        isCurrent: false,
+        velocity: '38',
+        velocityRate: '0.8',
+        activeBugs: '2',
+        bugsClosed: '1',
+        rawVelocity: 38,
+        rawVelocityRate: 0.8,
+        rawActiveBugs: 2,
+        rawBugsClosed: 1,
+        bugs: [],
+        overheadBreakdown: [],
+        velocityAvg: 36,
+        overheadPercentAvg: 22,
+        carryOverRateAvg: 10,
+        plannedPoints: 40,
+        completedPoints: 38,
+        carryOverPoints: 2,
+        grossHours: 200,
+        rawOverheadPercent: 22,
+        rawCarryOverRate: 10,
       },
       {
-        sprintId: 's2', sprintName: 'Sprint 23', isCurrent: true,
-        velocity: '15', velocityRate: '0.4', activeBugs: '3', bugsClosed: '0',
-        rawVelocity: 15, rawVelocityRate: 0.4, rawActiveBugs: 3, rawBugsClosed: 0,
-        bugs: [], overheadBreakdown: [],
-        velocityAvg: 36, overheadPercentAvg: 22, carryOverRateAvg: 10,
-        plannedPoints: 40, completedPoints: 15, carryOverPoints: null, grossHours: 200,
-        rawOverheadPercent: null, rawCarryOverRate: null,
+        sprintId: 's2',
+        sprintName: 'Sprint 23',
+        isCurrent: true,
+        velocity: '15',
+        velocityRate: '0.4',
+        activeBugs: '3',
+        bugsClosed: '0',
+        rawVelocity: 15,
+        rawVelocityRate: 0.4,
+        rawActiveBugs: 3,
+        rawBugsClosed: 0,
+        bugs: [],
+        overheadBreakdown: [],
+        velocityAvg: 36,
+        overheadPercentAvg: 22,
+        carryOverRateAvg: 10,
+        plannedPoints: 40,
+        completedPoints: 15,
+        carryOverPoints: null,
+        grossHours: 200,
+        rawOverheadPercent: null,
+        rawCarryOverRate: null,
       },
     ],
-    prediction: { velocity: '40', rawVelocity: 40, velocityRate: '0.8', rawVelocityRate: 0.8, sprintLabel: 'Sprint 24', isPredicted: true },
+    prediction: {
+      velocity: '40',
+      rawVelocity: 40,
+      velocityRate: '0.8',
+      rawVelocityRate: 0.8,
+      sprintLabel: 'Sprint 24',
+      isPredicted: true,
+    },
     overheadComposition: [
-      { sprintName: 'Sprint 22', ceremonyHours: 82, bugHours: 10, spikeHours: 5, supportHours: 3, overheadPercent: '22%' },
+      {
+        sprintName: 'Sprint 22',
+        ceremonyHours: 82,
+        bugHours: 10,
+        spikeHours: 5,
+        supportHours: 3,
+        overheadPercent: '22%',
+      },
     ],
     overheadItemsBySprint: [],
     ...overrides,
   };
 }
 
-function makeMilestone(overrides: Partial<ApiMilestoneWithProgress> = {}): ApiMilestoneWithProgress {
+/** Minimal slide context for unit tests */
+const testSlideCtx = { slideIndex: 1, totalSlides: 21 };
+
+function makeMilestone(
+  overrides: Partial<ApiMilestoneWithProgress> = {}
+): ApiMilestoneWithProgress {
   return {
     id: 'ms-1',
     title: 'Feature Alpha',
@@ -217,9 +282,7 @@ function makeMilestone(overrides: Partial<ApiMilestoneWithProgress> = {}): ApiMi
 
 beforeEach(() => {
   mockRenderChartToPng.mockClear();
-  mockRenderChartToPng.mockImplementation(() =>
-    Promise.resolve('data:image/png;base64,MOCK')
-  );
+  mockRenderChartToPng.mockImplementation(() => Promise.resolve('data:image/png;base64,MOCK'));
 });
 
 // ---------------------------------------------------------------------------
@@ -229,7 +292,7 @@ beforeEach(() => {
 describe('buildProgramSummarySlide', () => {
   it('adds a slide and renders metric tiles with full data', async () => {
     const prs = makeMockPrs();
-    await buildProgramSummarySlide(prs as never, makeMinimalExportInput());
+    await buildProgramSummarySlide(prs as never, makeMinimalExportInput(), testSlideCtx);
     expect(prs.addSlide).toHaveBeenCalledTimes(1);
     expect(prs._slide.addShape).toHaveBeenCalledTimes(5);
   });
@@ -237,54 +300,76 @@ describe('buildProgramSummarySlide', () => {
   it('does not throw when programMetrics is null', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildProgramSummarySlide(prs as never, makeMinimalExportInput({ programMetrics: null }))
+      buildProgramSummarySlide(
+        prs as never,
+        makeMinimalExportInput({ programMetrics: null }),
+        testSlideCtx
+      )
     ).resolves.not.toThrow();
   });
 
   it('does not throw when programRollup is null', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildProgramSummarySlide(prs as never, makeMinimalExportInput({ programRollup: null }))
+      buildProgramSummarySlide(
+        prs as never,
+        makeMinimalExportInput({ programRollup: null }),
+        testSlideCtx
+      )
     ).resolves.not.toThrow();
   });
 
   it('shows "–" for milestone tiles when rollup is null', async () => {
     const prs = makeMockPrs();
-    await buildProgramSummarySlide(prs as never, makeMinimalExportInput({ programRollup: null }));
+    await buildProgramSummarySlide(
+      prs as never,
+      makeMinimalExportInput({ programRollup: null }),
+      testSlideCtx
+    );
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(textCalls.filter((t) => t === '–').length).toBeGreaterThanOrEqual(2);
   });
 
   it('captures program velocity + bug burndown charts as images when programTrendSprints is populated', async () => {
     const prs = makeMockPrs();
-    await buildProgramSummarySlide(prs as never, makeMinimalExportInput());
+    await buildProgramSummarySlide(prs as never, makeMinimalExportInput(), testSlideCtx);
 
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(2);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(2);
     expect(prs._slide.addChart).not.toHaveBeenCalled();
 
     const firstImage = prs._slide.addImage.mock.calls[0][0] as {
-      data: string; x: number; y: number; w: number; h: number;
+      data: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
     };
-    expect(firstImage).toMatchObject({
-      data: expect.stringMatching(/^data:image\/png/) as unknown as string,
-      x: 0.3,
-      y: 3.0,
-      w: 6.2,
-      h: 3.7,
-    });
+    expect(firstImage.data).toMatch(/^data:image\/png/);
+    expect(firstImage.x).toBe(0.3);
+    expect(firstImage.y).toBeCloseTo(3.55, 10);
+    expect(firstImage.w).toBe(6.2);
+    expect(firstImage.h).toBe(3.7);
 
     const secondImage = prs._slide.addImage.mock.calls[1][0] as {
-      data: string; x: number; y: number; w: number; h: number;
+      data: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
     };
-    expect(secondImage).toMatchObject({ x: 6.8, y: 3.0, w: 6.2, h: 3.7 });
+    expect(secondImage.x).toBe(6.8);
+    expect(secondImage.y).toBeCloseTo(3.55, 10);
+    expect(secondImage.w).toBe(6.2);
+    expect(secondImage.h).toBe(3.7);
   });
 
   it('does not render charts when programTrendSprints is empty', async () => {
     const prs = makeMockPrs();
     await buildProgramSummarySlide(
       prs as never,
-      makeMinimalExportInput({ programTrendSprints: [] })
+      makeMinimalExportInput({ programTrendSprints: [] }),
+      testSlideCtx
     );
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -298,7 +383,7 @@ describe('buildProgramSummarySlide', () => {
       .mockImplementationOnce(() => Promise.resolve('data:image/png;base64,MOCK'));
 
     const prs = makeMockPrs();
-    await buildProgramSummarySlide(prs as never, makeMinimalExportInput());
+    await buildProgramSummarySlide(prs as never, makeMinimalExportInput(), testSlideCtx);
 
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
@@ -313,7 +398,12 @@ describe('buildProgramSummarySlide', () => {
 describe('buildVelocitySlide', () => {
   it('adds a slide and captures the velocity chart as an image', async () => {
     const prs = makeMockPrs();
-    await buildVelocitySlide(prs as never, makeWorkstreamCard());
+    await buildVelocitySlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     expect(prs.addSlide).toHaveBeenCalledTimes(1);
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(1);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
@@ -322,17 +412,27 @@ describe('buildVelocitySlide', () => {
 
   it('addImage is called with the expected slide coordinates', async () => {
     const prs = makeMockPrs();
-    await buildVelocitySlide(prs as never, makeWorkstreamCard());
+    await buildVelocitySlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     const [imageOpts] = prs._slide.addImage.mock.calls[0] as [
       { data: string; x: number; y: number; w: number; h: number },
     ];
-    expect(imageOpts).toMatchObject({ x: 0.3, y: 0.85, w: 8.5, h: 5.5 });
+    expect(imageOpts).toMatchObject({ x: 0.3, y: 1.55, w: 8.5, h: 5.5 });
   });
 
   it('does not capture a chart when trendSprints is empty', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildVelocitySlide(prs as never, makeWorkstreamCard({ trendSprints: [] }))
+      buildVelocitySlide(
+        prs as never,
+        makeMinimalExportInput(),
+        testSlideCtx,
+        makeWorkstreamCard({ trendSprints: [] })
+      )
     ).resolves.not.toThrow();
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -341,7 +441,12 @@ describe('buildVelocitySlide', () => {
   it('falls back to "Chart unavailable" when capture rejects', async () => {
     mockRenderChartToPng.mockImplementationOnce(() => Promise.reject(new Error('boom')));
     const prs = makeMockPrs();
-    await buildVelocitySlide(prs as never, makeWorkstreamCard());
+    await buildVelocitySlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(textCalls).toContain('Chart unavailable');
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -355,7 +460,12 @@ describe('buildVelocitySlide', () => {
 describe('buildOverheadSlide', () => {
   it('captures an overhead composition chart as an image', async () => {
     const prs = makeMockPrs();
-    await buildOverheadSlide(prs as never, makeWorkstreamCard());
+    await buildOverheadSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(1);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
     expect(prs._slide.addChart).not.toHaveBeenCalled();
@@ -364,7 +474,12 @@ describe('buildOverheadSlide', () => {
   it('does not throw with empty overheadComposition', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildOverheadSlide(prs as never, makeWorkstreamCard({ overheadComposition: [] }))
+      buildOverheadSlide(
+        prs as never,
+        makeMinimalExportInput(),
+        testSlideCtx,
+        makeWorkstreamCard({ overheadComposition: [] })
+      )
     ).resolves.not.toThrow();
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -373,7 +488,12 @@ describe('buildOverheadSlide', () => {
   it('falls back to "Chart unavailable" when capture rejects', async () => {
     mockRenderChartToPng.mockImplementationOnce(() => Promise.reject(new Error('boom')));
     const prs = makeMockPrs();
-    await buildOverheadSlide(prs as never, makeWorkstreamCard());
+    await buildOverheadSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard()
+    );
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(textCalls).toContain('Chart unavailable');
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -387,7 +507,13 @@ describe('buildOverheadSlide', () => {
 describe('buildMilestoneSlide', () => {
   it('captures a burnup chart as an image for a milestone with burnup data', async () => {
     const prs = makeMockPrs();
-    await buildMilestoneSlide(prs as never, makeWorkstreamCard(), [makeMilestone()]);
+    await buildMilestoneSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard(),
+      [makeMilestone()]
+    );
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(1);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
     expect(prs._slide.addChart).not.toHaveBeenCalled();
@@ -395,7 +521,15 @@ describe('buildMilestoneSlide', () => {
 
   it('does not throw when no milestones for workstream', async () => {
     const prs = makeMockPrs();
-    await expect(buildMilestoneSlide(prs as never, makeWorkstreamCard(), [])).resolves.not.toThrow();
+    await expect(
+      buildMilestoneSlide(
+        prs as never,
+        makeMinimalExportInput(),
+        testSlideCtx,
+        makeWorkstreamCard(),
+        []
+      )
+    ).resolves.not.toThrow();
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
   });
@@ -403,7 +537,13 @@ describe('buildMilestoneSlide', () => {
   it('does not throw when burnupData is empty', async () => {
     const prs = makeMockPrs();
     await expect(
-      buildMilestoneSlide(prs as never, makeWorkstreamCard(), [makeMilestone({ burnupData: [] })])
+      buildMilestoneSlide(
+        prs as never,
+        makeMinimalExportInput(),
+        testSlideCtx,
+        makeWorkstreamCard(),
+        [makeMilestone({ burnupData: [] })]
+      )
     ).resolves.not.toThrow();
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
@@ -414,7 +554,13 @@ describe('buildMilestoneSlide', () => {
     const milestones = Array.from({ length: 5 }, (_, i) =>
       makeMilestone({ id: `ms-${i}`, title: `Milestone ${i}` })
     );
-    await buildMilestoneSlide(prs as never, makeWorkstreamCard(), milestones);
+    await buildMilestoneSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard(),
+      milestones
+    );
     expect(mockRenderChartToPng).toHaveBeenCalledTimes(3);
     expect(prs._slide.addImage).toHaveBeenCalledTimes(3);
   });
@@ -429,7 +575,13 @@ describe('buildMilestoneSlide', () => {
       makeMilestone({ id: 'ms-0', title: 'Broken' }),
       makeMilestone({ id: 'ms-1', title: 'OK' }),
     ];
-    await buildMilestoneSlide(prs as never, makeWorkstreamCard(), milestones);
+    await buildMilestoneSlide(
+      prs as never,
+      makeMinimalExportInput(),
+      testSlideCtx,
+      makeWorkstreamCard(),
+      milestones
+    );
 
     expect(prs._slide.addImage).toHaveBeenCalledTimes(1);
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));

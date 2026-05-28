@@ -9,11 +9,11 @@ export default {
 };
 
 const velocityData = [
-  { sprint: 'Sprint 26.18', velocity: 118, overhead: 28 },
-  { sprint: 'Sprint 26.19', velocity: 122, overhead: 31 },
-  { sprint: 'Sprint 26.20', velocity: 127, overhead: 29 },
-  { sprint: 'Sprint 26.21', velocity: 131, overhead: 32 },
-  { sprint: 'Sprint 26.22', velocity: 128, overhead: 30 },
+  { sprint: 'Sprint 26.24', velocity: 118, overhead: 28 },
+  { sprint: 'Sprint 26.25', velocity: 122, overhead: 31 },
+  { sprint: 'Sprint 26.26', velocity: 127, overhead: 29 },
+  { sprint: 'Sprint 27.1', velocity: 131, overhead: 32 },
+  { sprint: 'Sprint 27.2', velocity: 128, overhead: 30 },
 ];
 
 /**

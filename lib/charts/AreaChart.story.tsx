@@ -6,11 +6,11 @@ export default {
 };
 
 const velocityWithTarget = [
-  { sprint: 'Sprint 26.18', velocity: 118, target: 120 },
-  { sprint: 'Sprint 26.19', velocity: 122, target: 120 },
-  { sprint: 'Sprint 26.20', velocity: 127, target: 125 },
-  { sprint: 'Sprint 26.21', velocity: 131, target: 125 },
-  { sprint: 'Sprint 26.22', velocity: 128, target: 130 },
+  { sprint: 'Sprint 26.24', velocity: 118, target: 120 },
+  { sprint: 'Sprint 26.25', velocity: 122, target: 120 },
+  { sprint: 'Sprint 26.26', velocity: 127, target: 125 },
+  { sprint: 'Sprint 27.1', velocity: 131, target: 125 },
+  { sprint: 'Sprint 27.2', velocity: 128, target: 130 },
 ];
 
 export const Basic = () => (

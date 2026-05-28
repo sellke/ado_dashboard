@@ -31,35 +31,35 @@ function makeSprint(
 
 const fiveSprints: OverheadCompositionViewModel[] = [
   makeSprint({
-    sprintName: 'Sprint 26.16',
+    sprintName: 'Sprint 26.22',
     ceremonyHours: 8,
     bugHours: 4,
     spikeHours: 2,
     supportHours: 1,
   }),
   makeSprint({
-    sprintName: 'Sprint 26.17',
+    sprintName: 'Sprint 26.23',
     ceremonyHours: 9,
     bugHours: 3,
     spikeHours: 0,
     supportHours: 2,
   }),
   makeSprint({
-    sprintName: 'Sprint 26.18',
+    sprintName: 'Sprint 26.24',
     ceremonyHours: 10,
     bugHours: 5,
     spikeHours: 1,
     supportHours: 3,
   }),
   makeSprint({
-    sprintName: 'Sprint 26.19',
+    sprintName: 'Sprint 26.25',
     ceremonyHours: 7,
     bugHours: 2,
     spikeHours: 4,
     supportHours: 0,
   }),
   makeSprint({
-    sprintName: 'Sprint 26.20',
+    sprintName: 'Sprint 26.26',
     ceremonyHours: 11,
     bugHours: 6,
     spikeHours: 2,
@@ -96,14 +96,14 @@ describe('OverheadCompositionChart', () => {
       const data = JSON.parse(chart.getAttribute('data-points')!);
 
       expect(data[0]).toMatchObject({
-        sprint: 'Sprint 26.16',
+        sprint: 'Sprint 26.22',
         Meetings: 8,
         Bugs: 4,
         Spikes: 2,
         Support: 1,
       });
       expect(data[4]).toMatchObject({
-        sprint: 'Sprint 26.20',
+        sprint: 'Sprint 26.26',
         Meetings: 11,
         Bugs: 6,
         Spikes: 2,

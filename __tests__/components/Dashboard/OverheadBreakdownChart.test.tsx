@@ -57,8 +57,8 @@ function makeSprint(
 }
 
 const twoSprints: TrendSprintViewModel[] = [
-  makeSprint('Sprint 26.17', { Meetings: 10.25, Spikes: 4, Bugs: 5, Support: 3 }),
-  makeSprint('Sprint 26.18', { Meetings: 10.25, Spikes: 2, Bugs: 6, Support: 2 }),
+  makeSprint('Sprint 26.23', { Meetings: 10.25, Spikes: 4, Bugs: 5, Support: 3 }),
+  makeSprint('Sprint 26.24', { Meetings: 10.25, Spikes: 2, Bugs: 6, Support: 2 }),
 ];
 
 describe('OverheadBreakdownChart', () => {
@@ -157,8 +157,8 @@ describe('OverheadBreakdownChart', () => {
       const chart = screen.getByTestId('overhead-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points).toHaveLength(2);
-      expect(points[0].sprint).toBe('Sprint 26.17');
-      expect(points[1].sprint).toBe('Sprint 26.18');
+      expect(points[0].sprint).toBe('Sprint 26.23');
+      expect(points[1].sprint).toBe('Sprint 26.24');
     });
 
     it('maps all 4 overhead categories onto each data point', () => {
@@ -167,14 +167,14 @@ describe('OverheadBreakdownChart', () => {
       const chart = screen.getByTestId('overhead-line-chart');
       const points = JSON.parse(chart.getAttribute('data-points')!);
       expect(points[0]).toMatchObject({
-        sprint: 'Sprint 26.17',
+        sprint: 'Sprint 26.23',
         Meetings: 10.25,
         Spikes: 4,
         Bugs: 5,
         Support: 3,
       });
       expect(points[1]).toMatchObject({
-        sprint: 'Sprint 26.18',
+        sprint: 'Sprint 26.24',
         Meetings: 10.25,
         Spikes: 2,
         Bugs: 6,

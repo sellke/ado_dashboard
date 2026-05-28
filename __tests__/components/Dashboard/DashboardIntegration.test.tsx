@@ -156,13 +156,17 @@ describe('DashboardContainer integration', () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
         return mockMilestonesEmpty();
-      metricsCallCount += 1;
-      if (metricsCallCount === 1)
-        return Promise.resolve({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({ error: 'Server error' }),
-        });
+      if (url.includes('/api/workstreams'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ workstreams: [] }) });
+      if (url.includes('/api/metrics')) {
+        metricsCallCount += 1;
+        if (metricsCallCount === 1)
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: () => Promise.resolve({ error: 'Server error' }),
+          });
+      }
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(fullResponse),

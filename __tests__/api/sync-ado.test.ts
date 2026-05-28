@@ -154,16 +154,16 @@ describe('POST /api/sync/ado', () => {
 
   it('should include currentSprintId, currentSprintPath, sprintsSynced when iteration sync runs', async () => {
     const { runSync } = await import('@/lib/sync/orchestrator');
-    const path = 'Project\\FY26\\Q4\\Sprint 26.21';
+    const path = 'Project\\FY27\\Q1\\Sprint 27.1';
 
     const result = await runSync({
       iterationsFetcher: async () => [
         {
           path,
-          name: 'Sprint 26.21',
+          name: 'Sprint 27.1',
           id: 'def498ab-a9cf-41eb-a7c7-9eb67d1852ef',
-          startDate: new Date('2026-01-06'),
-          finishDate: new Date('2026-01-19'),
+          startDate: new Date('2026-04-27'),
+          finishDate: new Date('2026-05-08'),
           isCurrent: true,
         },
       ],
@@ -176,17 +176,17 @@ describe('POST /api/sync/ado', () => {
 
   it('should run capacity sync for Full sync and include capacitySummary in workstreams', async () => {
     const { runSync } = await import('@/lib/sync/orchestrator');
-    const path = 'Project\\FY26\\Q4\\Sprint 26.21';
+    const path = 'Project\\FY27\\Q1\\Sprint 27.1';
 
     const result = await runSync({
       syncType: 'Full',
       iterationsFetcher: async () => [
         {
           path,
-          name: 'Sprint 26.21',
+          name: 'Sprint 27.1',
           id: 'def498ab-a9cf-41eb-a7c7-9eb67d1852ef',
-          startDate: new Date('2026-01-06'),
-          finishDate: new Date('2026-01-19'),
+          startDate: new Date('2026-04-27'),
+          finishDate: new Date('2026-05-08'),
           isCurrent: true,
         },
       ],

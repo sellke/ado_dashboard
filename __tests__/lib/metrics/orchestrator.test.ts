@@ -24,9 +24,9 @@ describe('computeAllMetrics', () => {
 
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
-        startDate: new Date('2026-01-06'),
-        endDate: new Date('2026-01-19'),
+        name: 'Sprint 26.26',
+        startDate: new Date('2026-04-13'),
+        endDate: new Date('2026-04-24'),
       },
     });
     sprintId = sprint.id;
@@ -97,7 +97,7 @@ describe('computeAllMetrics', () => {
     const result = await computeAllMetrics(sprintId, prisma);
 
     expect(result.sprintId).toBe(sprintId);
-    expect(result.sprintName).toBe('Sprint 26.21');
+    expect(result.sprintName).toBe('Sprint 26.26');
     expect(result.workstreams).toHaveLength(2);
     expect(result.errors).toHaveLength(0);
     expect(result.program).not.toBeNull();
@@ -220,9 +220,9 @@ describe('computeAllMetrics', () => {
   it('should default to most recent sprint when sprintId not provided', async () => {
     const olderSprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.20',
-        startDate: new Date('2025-12-23'),
-        endDate: new Date('2026-01-05'),
+        name: 'Sprint 26.25',
+        startDate: new Date('2026-03-30'),
+        endDate: new Date('2026-04-10'),
       },
     });
 

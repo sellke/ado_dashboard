@@ -672,13 +672,13 @@ describe('syncMilestoneFeatures', () => {
   });
 
   it('resolves sprintId on child stories when sprintIdMap is provided', async () => {
-    const today = new Date('2026-02-20T00:00:00.000Z');
-    const sprintPath = 'TestProject\\Sprint 26.21';
+    const today = new Date('2026-04-28T00:00:00.000Z');
+    const sprintPath = 'TestProject\\Sprint 27.1';
     const sprint = await prisma.sprint.create({
       data: {
-        name: 'Sprint 26.21',
-        startDate: new Date('2026-01-06'),
-        endDate: new Date('2026-01-19'),
+        name: 'Sprint 27.1',
+        startDate: new Date('2026-04-27'),
+        endDate: new Date('2026-05-08'),
         adoIterationPath: sprintPath,
       },
     });
