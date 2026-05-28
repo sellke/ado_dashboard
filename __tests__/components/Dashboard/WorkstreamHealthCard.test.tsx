@@ -1,6 +1,6 @@
 import { WorkstreamHealthCard } from '@/components/Dashboard/WorkstreamHealthCard';
 import type { MetricTileViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
-import { render, screen } from '@/test-utils';
+import { render, screen, userEvent } from '@/test-utils';
 import { createWorkstreamCard } from './__fixtures__/dashboard-fixtures';
 
 /**
@@ -30,9 +30,11 @@ jest.mock('@/lib/charts', () => ({
       data-data={JSON.stringify(props.data)}
     />
   ),
-  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
-    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
-  ),
+  ChartLegend: ({
+    items,
+  }: {
+    items: Array<{ label: string; color: string; dashed?: boolean }>;
+  }) => <div data-testid="chart-legend" data-items={JSON.stringify(items)} />,
 }));
 
 const createMetricTile = (overrides: Partial<MetricTileViewModel> = {}): MetricTileViewModel => ({
@@ -79,7 +81,15 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawVelocityRate: 0.17,
       rawActiveBugs: 2,
       rawBugsClosed: 4,
-      bugs: [{ adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345' }],
+      bugs: [
+        {
+          adoId: '12345',
+          title: 'Login crash',
+          isClosed: true,
+          adoUrl:
+            'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
+        },
+      ],
       overheadBreakdown: [
         { category: 'Meetings' as const, hours: 10.25 },
         { category: 'Spikes' as const, hours: 4 },
@@ -99,7 +109,15 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
       rawVelocityRate: 0.2,
       rawActiveBugs: 1,
       rawBugsClosed: 5,
-      bugs: [{ adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890' }],
+      bugs: [
+        {
+          adoId: '67890',
+          title: 'Slow query',
+          isClosed: false,
+          adoUrl:
+            'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890',
+        },
+      ],
       overheadBreakdown: [
         { category: 'Meetings' as const, hours: 10.25 },
         { category: 'Spikes' as const, hours: 2 },
@@ -114,7 +132,7 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
     rawVelocity: 48,
     velocityRate: '0.85 pts/hr',
     rawVelocityRate: 0.85,
-    sprintLabel: 'Sprint 26.21',
+    sprintLabel: 'Sprint 27.1',
     isPredicted: true,
   },
 });
@@ -123,6 +141,31 @@ describe('WorkstreamHealthCard', () => {
   it('renders workstream name', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
     expect(screen.getByText('Platform')).toBeInTheDocument();
+  });
+
+  it('collapses and expands card body while keeping the workstream summary visible', async () => {
+    const user = userEvent.setup();
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    const collapseButton = screen.getByRole('button', { name: 'Collapse details for Platform' });
+    expect(collapseButton).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(collapseButton);
+
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('45 pts')).toBeInTheDocument();
+    expect(screen.queryByText(/Planned: 50/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Velocity (Points)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bug Burndown')).not.toBeInTheDocument();
+
+    const expandButton = screen.getByRole('button', { name: 'Expand details for Platform' });
+    expect(expandButton).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(expandButton);
+
+    expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
+    expect(screen.getByText('Velocity (Points)')).toBeInTheDocument();
+    expect(screen.getByText('Bug Burndown')).toBeInTheDocument();
   });
 
   it('renders all 4 metrics with values and RAG badges when full data', () => {
@@ -318,7 +361,12 @@ describe('WorkstreamHealthCard', () => {
       ...fullDataCard,
       metrics: [
         createMetricTile({ label: 'Avg Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
-        createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+        createMetricTile({
+          label: 'Velocity Rate',
+          value: '0.85 pts/hr',
+          rawValue: 0.85,
+          rag: null,
+        }),
         createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
         createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
       ],
@@ -326,7 +374,7 @@ describe('WorkstreamHealthCard', () => {
         {
           ...fullDataCard.trendSprints[0],
           sprintId: 'completed-sprint',
-          sprintName: 'Sprint 26.18',
+          sprintName: 'Sprint 26.24',
           velocityAvg: 42,
           overheadPercentAvg: 22.5,
           carryOverRateAvg: 8.75,
@@ -341,7 +389,7 @@ describe('WorkstreamHealthCard', () => {
         {
           ...fullDataCard.trendSprints[1],
           sprintId: 'current-sprint',
-          sprintName: 'Sprint 26.19',
+          sprintName: 'Sprint 26.25',
           velocityAvg: 45,
           overheadPercentAvg: 25,
           carryOverRateAvg: 10,
@@ -424,7 +472,12 @@ describe('WorkstreamHealthCard', () => {
         ...fullDataCard,
         metrics: [
           createMetricTile({ label: 'Avg Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
-          createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+          createMetricTile({
+            label: 'Velocity Rate',
+            value: '0.85 pts/hr',
+            rawValue: 0.85,
+            rag: null,
+          }),
           createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
           createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
         ],
@@ -472,7 +525,7 @@ describe('WorkstreamHealthCard', () => {
         {
           ...fullDataCard.trendSprints[0],
           sprintId: 'completed-sprint',
-          sprintName: 'Sprint 26.18',
+          sprintName: 'Sprint 26.24',
           plannedPoints: 55,
           completedPoints: 48,
           carryOverPoints: 7,
@@ -486,7 +539,7 @@ describe('WorkstreamHealthCard', () => {
         {
           ...fullDataCard.trendSprints[1],
           sprintId: 'current-sprint',
-          sprintName: 'Sprint 26.19',
+          sprintName: 'Sprint 26.25',
           plannedPoints: 50,
           completedPoints: 40,
           carryOverPoints: 10,
@@ -498,7 +551,7 @@ describe('WorkstreamHealthCard', () => {
           rawCarryOverRate: (10 / 50) * 100,
         },
       ],
-      detailSprintLabel: 'Sprint 26.17',
+      detailSprintLabel: 'Sprint 26.23',
       detail: {
         plannedPoints: '50',
         completedPoints: '45',
@@ -527,9 +580,9 @@ describe('WorkstreamHealthCard', () => {
           currentSprintId="current-sprint"
         />
       );
-      // Sprint 26.18 appears in both the detail label and the SprintBugList header — both are correct
-      expect(screen.getAllByText('Sprint 26.18').length).toBeGreaterThan(0);
-      expect(screen.queryByText('Sprint 26.17')).not.toBeInTheDocument();
+      // Sprint 26.24 appears in both the detail label and the SprintBugList header — both are correct
+      expect(screen.getAllByText('Sprint 26.24').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Sprint 26.23')).not.toBeInTheDocument();
     });
 
     it('preserves default detail when current sprint is selected', () => {
@@ -543,7 +596,7 @@ describe('WorkstreamHealthCard', () => {
       expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
       expect(screen.getByText(/Completed: 45/)).toBeInTheDocument();
       expect(screen.getByText(/Carry-over: 6 pts/)).toBeInTheDocument();
-      expect(screen.getByText('Sprint 26.17')).toBeInTheDocument();
+      expect(screen.getByText('Sprint 26.23')).toBeInTheDocument();
     });
 
     it('shows N/A when enriched detail fields are null', () => {
@@ -583,6 +636,68 @@ describe('WorkstreamHealthCard', () => {
       );
       expect(screen.getByText(/Planned: 50/)).toBeInTheDocument();
       expect(screen.getByText(/Completed: 45/)).toBeInTheDocument();
+    });
+  });
+
+  describe('metric definition tooltips (Story 3)', () => {
+    it('renders info icons beside each metric row label', () => {
+      render(<WorkstreamHealthCard card={createWorkstreamCard()} />);
+
+      expect(
+        screen.getByRole('button', { name: 'Definition for Avg Velocity' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Definition for Velocity Rate' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Definition for Overhead %' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Definition for Carry-Over %' })
+      ).toBeInTheDocument();
+    });
+
+    it('renders info icons beside expanded chart headers', () => {
+      render(<WorkstreamHealthCard card={createWorkstreamCard()} />);
+
+      expect(
+        screen.getByRole('button', { name: 'Definition for Velocity (Points)' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Definition for Bug Burndown' })
+      ).toBeInTheDocument();
+    });
+
+    it('exposes definition copy on hover', async () => {
+      const user = userEvent.setup();
+      render(<WorkstreamHealthCard card={createWorkstreamCard()} />);
+
+      await user.hover(screen.getByRole('button', { name: 'Definition for Overhead %' }));
+
+      const tooltip = await screen.findByRole('tooltip');
+      expect(tooltip.textContent).toContain('non-delivery work');
+    });
+
+    it('passes RAG threshold copy to row badges with a known metricId', () => {
+      render(<WorkstreamHealthCard card={createWorkstreamCard()} />);
+
+      const velocityBadge = screen
+        .getAllByLabelText(/Green status/)
+        .find((el) => /rolling average/i.test(el.getAttribute('aria-label') ?? ''));
+      expect(velocityBadge).toBeDefined();
+    });
+
+    it('does not render hints when metric rows lack metricId', () => {
+      const card = createWorkstreamCard({
+        metrics: [
+          createMetricTile({ label: 'Avg Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
+        ],
+      });
+      render(<WorkstreamHealthCard card={card} />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Definition for Avg Velocity' })
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -28,18 +28,31 @@ const createMetric = (overrides: Partial<MetricTileViewModel> = {}): MetricTileV
 
 export const AllMetricsPopulated = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
-        label: 'Velocity',
+        label: 'Avg Total Velocity',
         value: '128 pts',
         rawValue: 128,
         avgLabel: '120.5 pts',
         rag: 'Green',
+        metricId: 'velocity',
       }),
-      createMetric({ label: 'Overhead %', value: '31.2%', rawValue: 31.2, rag: 'Amber' }),
-      createMetric({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Amber' }),
+      createMetric({
+        label: 'Avg Total Overhead %',
+        value: '31.2%',
+        rawValue: 31.2,
+        rag: 'Amber',
+        metricId: 'overheadPercent',
+      }),
+      createMetric({
+        label: 'Avg Total Carry-Over %',
+        value: '12%',
+        rawValue: 12,
+        rag: 'Amber',
+        metricId: 'carryOverRate',
+      }),
       createMetric({
         label: 'Monthly Milestone %',
         value: '\u2014',
@@ -64,8 +77,8 @@ export const AllMetricsPopulated = () => {
 
 export const MixedRag = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({ label: 'Velocity', value: '128 pts', rag: 'Green' }),
       createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
@@ -94,7 +107,7 @@ export const MixedRag = () => {
 
 export const NullValues = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
+    sprintLabel: 'Sprint 27.1',
     computedAtLabel: null,
     programMetrics: [
       createMetric({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null, avgLabel: null }),
@@ -120,8 +133,8 @@ export const NullValues = () => {
 
 export const NoMetrics = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: null,
     workstreamCards: [],
   });
@@ -130,8 +143,8 @@ export const NoMetrics = () => {
 
 export const TrendRich = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programTrendSprints: [
       {
         sprintId: 's1',
@@ -193,7 +206,7 @@ export const TrendRich = () => {
     sprint5Prediction: {
       velocity: '136 pts',
       rawVelocity: 136,
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       isPredicted: true,
     },
   });
@@ -202,8 +215,8 @@ export const TrendRich = () => {
 
 export const MilestoneEmptyState = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
         label: 'Velocity',
@@ -238,8 +251,8 @@ export const MilestoneEmptyState = () => {
 
 export const MilestonePopulatedGreen = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
         label: 'Velocity',
@@ -274,8 +287,8 @@ export const MilestonePopulatedGreen = () => {
 
 export const MilestonePopulatedAmber = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
         label: 'Velocity',
@@ -310,8 +323,8 @@ export const MilestonePopulatedAmber = () => {
 
 export const MilestonePopulatedRed = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
         label: 'Velocity',
@@ -346,8 +359,8 @@ export const MilestonePopulatedRed = () => {
 
 export const TrendPartialData = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programTrendSprints: [
       {
         sprintId: 's1',
@@ -381,7 +394,7 @@ export const TrendPartialData = () => {
     sprint5Prediction: {
       velocity: 'N/A',
       rawVelocity: null,
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       isPredicted: true,
     },
   });

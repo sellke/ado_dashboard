@@ -3,6 +3,7 @@
  * API response shapes and UI view model types for the dashboard shell.
  */
 
+import type { MetricId } from '../metrics/definitions';
 import type { ApiBurnupPoint } from '../milestones/types';
 import type { StatusGroup } from '../sprints/status-mapping';
 
@@ -211,6 +212,8 @@ export interface MetricTileViewModel {
   rag: RagStatus;
   avgLabel: string | null;
   mode?: 'actual' | 'projected';
+  /** Stable metric identifier for definition/RAG tooltips. Optional for backward compat. */
+  metricId?: MetricId;
 }
 
 export interface OverheadCompositionViewModel {

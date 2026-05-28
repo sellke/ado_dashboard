@@ -5,6 +5,7 @@
  */
 
 import { buildAdoWorkItemUrl } from '../ado/urls';
+import type { MetricId } from '../metrics/definitions';
 import { BUG_RESOLVED_STATES, DONE_STATES } from '../metrics/types';
 import type {
   ApiMilestoneWithProgress,
@@ -250,7 +251,8 @@ function mapApiMetricToTile(
   apiMetric: ApiMetric,
   label: string,
   unit: string,
-  isPercent: boolean
+  isPercent: boolean,
+  metricId?: MetricId
 ): MetricTileViewModel {
   const value = apiMetric?.value ?? null;
   const avg = apiMetric?.avg ?? null;
@@ -268,6 +270,7 @@ function mapApiMetricToTile(
           ? formatPercent(avg)
           : formatMetricValue(avg, unit)
         : null,
+    metricId,
   };
 }
 
@@ -425,10 +428,23 @@ const METRIC_LABELS: Array<{
   label: string;
   unit: string;
   isPercent: boolean;
+  metricId: MetricId;
 }> = [
-  { key: 'velocity', label: 'Velocity', unit: 'pts', isPercent: false },
-  { key: 'overheadPercent', label: 'Overhead %', unit: '%', isPercent: true },
-  { key: 'carryOverRate', label: 'Carry-Over %', unit: '%', isPercent: true },
+  { key: 'velocity', label: 'Velocity', unit: 'pts', isPercent: false, metricId: 'velocity' },
+  {
+    key: 'overheadPercent',
+    label: 'Overhead %',
+    unit: '%',
+    isPercent: true,
+    metricId: 'overheadPercent',
+  },
+  {
+    key: 'carryOverRate',
+    label: 'Carry-Over %',
+    unit: '%',
+    isPercent: true,
+    metricId: 'carryOverRate',
+  },
 ];
 
 /** Format nullable number for detail display */
@@ -490,6 +506,7 @@ export function mapApiResponseToDashboardViewModel(
         unit: 'pts',
         rag: toRagStatus(m.velocity?.rag ?? null),
         avgLabel: null,
+        metricId: 'velocity',
       },
       {
         label: 'Avg Total Velocity Rate',
@@ -498,6 +515,7 @@ export function mapApiResponseToDashboardViewModel(
         unit: 'pts/hr',
         rag: null,
         avgLabel: null,
+        metricId: 'velocityRate',
       },
       {
         label: 'Avg Total Overhead %',
@@ -506,6 +524,7 @@ export function mapApiResponseToDashboardViewModel(
         unit: '%',
         rag: toRagStatus(m.overheadPercent?.rag ?? null),
         avgLabel: null,
+        metricId: 'overheadPercent',
       },
       {
         label: 'Avg Total Carry-Over %',
@@ -514,6 +533,7 @@ export function mapApiResponseToDashboardViewModel(
         unit: '%',
         rag: toRagStatus(m.carryOverRate?.rag ?? null),
         avgLabel: null,
+        metricId: 'carryOverRate',
       },
     ];
   }
@@ -522,8 +542,8 @@ export function mapApiResponseToDashboardViewModel(
   const detailSprintLabel = response.detailSprint ? formatSprintLabel(response.detailSprint) : null;
 
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
-    const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent }) =>
-      mapApiMetricToTile(ws.metrics[key], label, unit, isPercent)
+    const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent, metricId }) =>
+      mapApiMetricToTile(ws.metrics[key], label, unit, isPercent, metricId)
     );
 
     // Override velocity tile to display the rolling average instead of the current/projected value.
@@ -548,6 +568,7 @@ export function mapApiResponseToDashboardViewModel(
       unit: 'pts/hr',
       rag: null,
       avgLabel: null,
+      metricId: 'velocityRate',
     });
 
     // Apply 2-decimal-place formatting to overhead % tile.

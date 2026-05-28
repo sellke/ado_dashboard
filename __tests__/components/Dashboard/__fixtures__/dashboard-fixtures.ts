@@ -84,11 +84,12 @@ export function createWorkstreamCard(
     workstreamName: 'Platform',
     metrics: [
       createMetricTile({
-        label: 'Velocity',
+        label: 'Avg Velocity',
         value: '45 pts',
         rawValue: 45,
         unit: 'pts',
         rag: 'Green',
+        metricId: 'velocity',
       }),
       createMetricTile({
         label: 'Velocity Rate',
@@ -96,6 +97,7 @@ export function createWorkstreamCard(
         rawValue: 0.85,
         unit: 'pts/hr',
         rag: null,
+        metricId: 'velocityRate',
       }),
       createMetricTile({
         label: 'Overhead %',
@@ -103,6 +105,7 @@ export function createWorkstreamCard(
         rawValue: 28,
         unit: '%',
         rag: 'Green',
+        metricId: 'overheadPercent',
       }),
       createMetricTile({
         label: 'Carry-Over %',
@@ -110,6 +113,7 @@ export function createWorkstreamCard(
         rawValue: 12,
         unit: '%',
         rag: 'Green',
+        metricId: 'carryOverRate',
       }),
     ],
     detail: {
@@ -185,7 +189,7 @@ export function createWorkstreamCard(
       rawVelocity: 48,
       velocityRate: '0.85 pts/hr',
       rawVelocityRate: 0.85,
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       isPredicted: true,
     },
     overheadComposition: [
@@ -250,15 +254,16 @@ export function createDashboardViewModel(
     },
     success: {
       state: 'success',
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
-      computedAtLabel: '2/11/2026, 6:30:00 PM',
+      computedAtLabel: '4/28/2026, 6:30:00 PM',
       programMetrics: [
         createMetricTile({
           label: 'Avg Total Velocity',
           value: '120.5 pts',
           rawValue: 120.5,
           rag: 'Green',
+          metricId: 'velocity',
         }),
         createMetricTile({
           label: 'Avg Total Velocity Rate',
@@ -266,6 +271,7 @@ export function createDashboardViewModel(
           rawValue: 0.85,
           unit: 'pts/hr',
           rag: null,
+          metricId: 'velocityRate',
         }),
         createMetricTile({
           label: 'Avg Total Overhead %',
@@ -273,6 +279,7 @@ export function createDashboardViewModel(
           rawValue: 29,
           unit: '%',
           rag: 'Amber',
+          metricId: 'overheadPercent',
         }),
         createMetricTile({
           label: 'Avg Total Carry-Over %',
@@ -280,6 +287,7 @@ export function createDashboardViewModel(
           rawValue: 13.5,
           unit: '%',
           rag: 'Amber',
+          metricId: 'carryOverRate',
         }),
       ],
       programTrendSprints: [
@@ -333,7 +341,7 @@ export function createDashboardViewModel(
       sprint5Prediction: {
         velocity: '124 pts',
         rawVelocity: 124,
-        sprintLabel: 'Sprint 26.21',
+        sprintLabel: 'Sprint 27.1',
         isPredicted: true,
       },
       workstreamCards: [
@@ -416,9 +424,9 @@ export function createApiResponse(overrides: Partial<ApiResponse> = {}): ApiResp
   return {
     sprint: {
       id: 's1',
-      name: 'Sprint 26.21',
-      startDate: '2026-01-06',
-      endDate: '2026-01-19',
+      name: 'Sprint 27.1',
+      startDate: '2026-04-27',
+      endDate: '2026-05-08',
     },
     workstreams: [
       createApiWorkstream({ workstreamId: 'ws-1', workstreamName: 'Platform' }),
@@ -434,16 +442,16 @@ export function createApiResponse(overrides: Partial<ApiResponse> = {}): ApiResp
         milestoneQuarterly: { value: null, rag: null },
       },
     },
-    computedAt: '2026-02-11T18:30:00.000Z',
+    computedAt: '2026-04-28T18:30:00.000Z',
     rollingWindow: {
       count: 5,
       currentSprintId: 's1',
       sprints: [
-        { id: 's1', name: 'Sprint 26.21', startDate: '2026-01-06', endDate: '2026-01-19' },
-        { id: 's2', name: 'Sprint 26.20', startDate: '2025-12-23', endDate: '2026-01-05' },
-        { id: 's3', name: 'Sprint 26.19', startDate: '2025-12-09', endDate: '2025-12-22' },
-        { id: 's4', name: 'Sprint 26.18', startDate: '2025-11-25', endDate: '2025-12-08' },
-        { id: 's5', name: 'Sprint 26.17', startDate: '2025-11-11', endDate: '2025-11-24' },
+        { id: 's1', name: 'Sprint 27.1', startDate: '2026-04-27', endDate: '2026-05-08' },
+        { id: 's2', name: 'Sprint 26.26', startDate: '2026-04-13', endDate: '2026-04-24' },
+        { id: 's3', name: 'Sprint 26.25', startDate: '2026-03-30', endDate: '2026-04-10' },
+        { id: 's4', name: 'Sprint 26.24', startDate: '2026-03-16', endDate: '2026-03-27' },
+        { id: 's5', name: 'Sprint 26.23', startDate: '2026-03-02', endDate: '2026-03-13' },
       ],
     },
     ...overrides,

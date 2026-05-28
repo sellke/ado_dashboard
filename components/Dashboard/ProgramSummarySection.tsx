@@ -8,7 +8,9 @@ import type {
   TrendSprintViewModel,
 } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import { getRagTooltip } from '@/lib/metrics/definitions';
 import { BugBurndownChart } from './BugBurndownChart';
+import { MetricDefinitionHint } from './MetricDefinitionHint';
 import { MilestoneQuarterlyPanel } from './MilestoneQuarterlyPanel';
 import { RagBadge } from './RagBadge';
 
@@ -104,10 +106,18 @@ export function ProgramSummarySection({
             <Card key={m.label} withBorder padding="md">
               <Stack gap="xs">
                 <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-                    {m.label}
-                  </Text>
-                  {m.rag !== null && <RagBadge rag={m.rag} />}
+                  <Group gap={4} align="center" wrap="nowrap">
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                      {m.label}
+                    </Text>
+                    {m.metricId && <MetricDefinitionHint metricId={m.metricId} label={m.label} />}
+                  </Group>
+                  {m.rag !== null && (
+                    <RagBadge
+                      rag={m.rag}
+                      ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null}
+                    />
+                  )}
                 </Group>
                 <Text fw={600} size="lg">
                   {m.value}
@@ -142,9 +152,12 @@ export function ProgramSummarySection({
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
             <Card withBorder padding="md" style={{ overflow: 'visible' }}>
               <Stack gap="xs">
-                <Text size="sm" fw={500} c="dimmed">
-                  Velocity (Points)
-                </Text>
+                <Group gap={4} align="center" wrap="nowrap">
+                  <Text size="sm" fw={500} c="dimmed">
+                    Velocity (Points)
+                  </Text>
+                  <MetricDefinitionHint metricId="chartVelocity" label="Velocity (Points)" />
+                </Group>
                 <div style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
                 <AppLineChart
                   height={220}
@@ -187,9 +200,12 @@ export function ProgramSummarySection({
             </Card>
             <Card withBorder padding="md" style={{ overflow: 'visible' }}>
               <Stack gap="xs">
-                <Text size="sm" fw={500} c="dimmed">
-                  Bug Burndown
-                </Text>
+                <Group gap={4} align="center" wrap="nowrap">
+                  <Text size="sm" fw={500} c="dimmed">
+                    Bug Burndown
+                  </Text>
+                  <MetricDefinitionHint metricId="chartBugBurndown" label="Bug Burndown" />
+                </Group>
                 <BugBurndownChart trendSprints={programTrendSprints} height={220} />
               </Stack>
             </Card>
