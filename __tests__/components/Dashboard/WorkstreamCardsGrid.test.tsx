@@ -3,7 +3,12 @@
  * Verifies card rendering, empty state, deterministic ordering, and shared sprint selector.
  */
 import { WorkstreamCardsGrid } from '@/components/Dashboard/WorkstreamCardsGrid';
-import type { SprintStoryViewModel, StatusGroupViewModel, StoryRowViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type {
+  SprintStoryViewModel,
+  StatusGroupViewModel,
+  StoryRowViewModel,
+  WorkstreamCardViewModel,
+} from '@/lib/dashboard/types';
 import { render, screen, userEvent } from '@/test-utils';
 
 jest.mock('@/lib/charts', () => ({
@@ -118,6 +123,19 @@ describe('WorkstreamCardsGrid', () => {
     expect(betaIndex).toBeLessThan(zebraIndex);
   });
 
+  it('aligns cards to the top so collapsed cards do not stretch to row height', () => {
+    const cards: WorkstreamCardViewModel[] = [
+      createCard({ workstreamId: 'ws-1', workstreamName: 'Alpha' }),
+      createCard({ workstreamId: 'ws-2', workstreamName: 'Beta' }),
+    ];
+
+    render(<WorkstreamCardsGrid cards={cards} />);
+
+    expect(document.querySelector('[class*="mantine-SimpleGrid"]')).toHaveStyle({
+      alignItems: 'start',
+    });
+  });
+
   describe('shared sprint selector', () => {
     it('renders SprintTabSelector when sprint data exists', () => {
       const cards = [createCard({ workstreamId: 'ws-1' })];
@@ -158,11 +176,7 @@ describe('WorkstreamCardsGrid', () => {
       };
 
       render(
-        <WorkstreamCardsGrid
-          cards={cards}
-          sprintStoriesMap={sprintStoriesMap}
-          storiesLoading={true}
-        />
+        <WorkstreamCardsGrid cards={cards} sprintStoriesMap={sprintStoriesMap} storiesLoading />
       );
 
       expect(screen.queryByTestId('sprint-tab-selector')).not.toBeInTheDocument();
@@ -211,12 +225,36 @@ describe('WorkstreamCardsGrid', () => {
       ];
       const sprintStoriesMap = {
         'ws-1': [
-          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: true, statusGroups: sprint1Stories, totalStories: 1 }),
-          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: false, statusGroups: sprint2Stories, totalStories: 1 }),
+          createSprint({
+            id: 's1',
+            name: 'Sprint 05',
+            isCurrent: true,
+            statusGroups: sprint1Stories,
+            totalStories: 1,
+          }),
+          createSprint({
+            id: 's2',
+            name: 'Sprint 04',
+            isCurrent: false,
+            statusGroups: sprint2Stories,
+            totalStories: 1,
+          }),
         ],
         'ws-2': [
-          createSprint({ id: 's1', name: 'Sprint 05', isCurrent: true, statusGroups: betaSprint1Stories, totalStories: 1 }),
-          createSprint({ id: 's2', name: 'Sprint 04', isCurrent: false, statusGroups: betaSprint2Stories, totalStories: 1 }),
+          createSprint({
+            id: 's1',
+            name: 'Sprint 05',
+            isCurrent: true,
+            statusGroups: betaSprint1Stories,
+            totalStories: 1,
+          }),
+          createSprint({
+            id: 's2',
+            name: 'Sprint 04',
+            isCurrent: false,
+            statusGroups: betaSprint2Stories,
+            totalStories: 1,
+          }),
         ],
       };
 

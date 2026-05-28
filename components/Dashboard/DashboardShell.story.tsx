@@ -36,8 +36,8 @@ export const Loading = () => {
 
 export const SuccessFullData = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({
         label: 'Velocity',
@@ -59,8 +59,8 @@ export const SuccessFullData = () => {
 
 export const SuccessMixedRag = () => {
   const viewModel = createDashboardViewModel('success', {
-    sprintLabel: 'Sprint 26.21',
-    computedAtLabel: '2/11/2026, 6:30:00 PM',
+    sprintLabel: 'Sprint 27.1',
+    computedAtLabel: '4/28/2026, 6:30:00 PM',
     programMetrics: [
       createMetric({ label: 'Velocity', value: '128 pts', rag: 'Green' }),
       createMetric({ label: 'Overhead %', value: '35%', rag: 'Amber' }),
@@ -165,7 +165,7 @@ export const SuccessTrendRich = () => {
     sprint5Prediction: {
       velocity: '136 pts',
       rawVelocity: 136,
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       isPredicted: true,
     },
     workstreamCards: [
@@ -211,7 +211,7 @@ export const SuccessTrendPartialData = () => {
     sprint5Prediction: {
       velocity: 'N/A',
       rawVelocity: null,
-      sprintLabel: 'Sprint 26.21',
+      sprintLabel: 'Sprint 27.1',
       isPredicted: true,
     },
     workstreamCards: [

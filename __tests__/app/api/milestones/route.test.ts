@@ -67,6 +67,7 @@ jest.mock('@/lib/prisma', () => ({
     },
     workstream: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }));
@@ -302,6 +303,49 @@ describe('GET /api/milestones', () => {
       const data = await res.json();
 
       expect(data.milestones).toHaveLength(0);
+    });
+
+    it('supports scoped workstreamIds and excludes unselected workstreams from rollups', async () => {
+      prisma.workstream.findMany.mockResolvedValue([{ id: 'ws-1' }]);
+      stubWorkItemQueries(
+        [
+          { ...mockChildStory, parentAdoId: 12345, workstreamId: 'ws-1', storyPoints: 8 },
+          {
+            ...mockChildStory,
+            parentAdoId: 67890,
+            workstreamId: 'ws-2',
+            workstream: { id: 'ws-2', name: 'Other' },
+            storyPoints: 13,
+          },
+        ],
+        [
+          createMockFeature({ adoId: 12345, workstreamId: 'ws-1', workstream: mockWorkstream }),
+          createMockFeature({
+            adoId: 67890,
+            title: 'Excluded Feature',
+            workstreamId: 'ws-2',
+            workstream: { id: 'ws-2', name: 'Other' },
+          }),
+        ]
+      );
+
+      const req = new Request('http://localhost/api/milestones?workstreamIds=ws-1,stale');
+      const res = await GET(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.milestones).toHaveLength(1);
+      expect(data.milestones[0].workstreamId).toBe('ws-1');
+      expect(data.programRollup.currentMonthTotalSP).toBe(8);
+    });
+
+    it('rejects an empty scoped workstreamIds query', async () => {
+      const req = new Request('http://localhost/api/milestones?workstreamIds=');
+      const res = await GET(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.error).toMatch(/workstreamIds/i);
     });
   });
 

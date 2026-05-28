@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Group, Stack, Title } from '@mantine/core';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Group, Stack, Title } from '@mantine/core';
+import { IconSettings } from '@tabler/icons-react';
 import {
   createErrorViewModel,
   createLoadingViewModel,
@@ -9,8 +10,15 @@ import {
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
 import { mapSprintStoriesResponse } from '@/lib/dashboard/sprint-stories-adapter';
-import type { DashboardId } from '@/lib/dashboard/config';
+import { DASHBOARDS, type DashboardId } from '@/lib/dashboard/config';
 import type { ApiResponse, SprintStoriesApiResponse, SprintStoryViewModel } from '@/lib/dashboard/types';
+import {
+  appendWorkstreamIdsParam,
+  loadDashboardWorkstreamScope,
+  resolveDashboardWorkstreamScope,
+  saveDashboardWorkstreamScope,
+  type WorkstreamScopeOption,
+} from '@/lib/dashboard/workstream-scope';
 import type {
   ApiMilestonesResponse,
   ApiMilestoneWithProgress,
@@ -21,6 +29,7 @@ import type { ExportInput } from '@/lib/export';
 import { DashboardShell } from './DashboardShell';
 import { ExportControl } from './ExportControl';
 import { SyncControl } from './SyncControl';
+import { WorkstreamScopeModal } from './WorkstreamScopeModal';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
 
@@ -30,6 +39,7 @@ export interface DashboardContainerProps {
 }
 
 export function DashboardContainer({ dashboard, title = 'Dashboard' }: DashboardContainerProps) {
+  const dashboardId = dashboard ?? 'main';
   const [rawMetrics, setRawMetrics] = useState<ApiResponse | null>(null);
   const [metricsViewState, setMetricsViewState] = useState<'loading' | 'error' | 'success'>(
     'loading'
@@ -47,8 +57,83 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [syncPartialSuccess, setSyncPartialSuccess] = useState(false);
   const [exportInProgress, setExportInProgress] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [scopeModalOpened, setScopeModalOpened] = useState(false);
+  const [allWorkstreams, setAllWorkstreams] = useState<WorkstreamScopeOption[]>([]);
+  const [workstreamsLoading, setWorkstreamsLoading] = useState(true);
+  const [workstreamsError, setWorkstreamsError] = useState<string | null>(null);
+  const [storedScopeIds, setStoredScopeIds] = useState<string[] | null>(null);
+  const [activeScopedIds, setActiveScopedIds] = useState<string[] | null>(null);
+  const [scopeRefreshToken, setScopeRefreshToken] = useState(0);
+  const metricsRequestIdRef = useRef(0);
+  const milestonesRequestIdRef = useRef(0);
+  const storiesRequestIdRef = useRef(0);
 
-  const metricsUrl = dashboard ? `/api/metrics?dashboard=${dashboard}` : '/api/metrics';
+  const metricsUrl = useMemo(() => {
+    const base = `/api/metrics?dashboard=${dashboardId}`;
+    return activeScopedIds ? appendWorkstreamIdsParam(base, activeScopedIds) : base;
+  }, [dashboardId, activeScopedIds]);
+
+  const milestonesUrl = useMemo(
+    () => (activeScopedIds ? appendWorkstreamIdsParam('/api/milestones', activeScopedIds) : '/api/milestones'),
+    [activeScopedIds]
+  );
+
+  const selectedScopeIds = useMemo(() => {
+    if (activeScopedIds) {
+      return activeScopedIds;
+    }
+    const defaultNames = new Set(DASHBOARDS[dashboardId].workstreamNames);
+    return allWorkstreams
+      .filter((workstream) => defaultNames.has(workstream.name))
+      .map((workstream) => workstream.id);
+  }, [activeScopedIds, allWorkstreams, dashboardId]);
+
+  const fetchAllWorkstreams = useCallback(async () => {
+    setWorkstreamsLoading(true);
+    setWorkstreamsError(null);
+
+    try {
+      const res = await fetch('/api/workstreams');
+      const data: { workstreams?: WorkstreamScopeOption[]; error?: string } = await res.json();
+
+      if (!res.ok) {
+        setWorkstreamsError(data.error ?? `Request failed: ${res.status}`);
+        setAllWorkstreams([]);
+        return;
+      }
+
+      setAllWorkstreams(data.workstreams ?? []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load workstreams';
+      setWorkstreamsError(message);
+      setAllWorkstreams([]);
+    } finally {
+      setWorkstreamsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const savedIds = loadDashboardWorkstreamScope(window.localStorage, dashboardId);
+    setStoredScopeIds(savedIds);
+    setActiveScopedIds(savedIds);
+  }, [dashboardId]);
+
+  useEffect(() => {
+    fetchAllWorkstreams();
+  }, [fetchAllWorkstreams]);
+
+  useEffect(() => {
+    if (allWorkstreams.length === 0) {
+      return;
+    }
+
+    const resolved = resolveDashboardWorkstreamScope({
+      storedIds: storedScopeIds,
+      workstreams: allWorkstreams,
+      defaultWorkstreamNames: DASHBOARDS[dashboardId].workstreamNames,
+    });
+    setActiveScopedIds(resolved.source === 'saved' ? resolved.includedWorkstreamIds : null);
+  }, [allWorkstreams, dashboardId, storedScopeIds]);
 
   const viewModel = useMemo(() => {
     if (metricsViewState === 'loading') {
@@ -70,6 +155,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   const fetchMetrics = useCallback(
     async (options?: { skipLoadingState?: boolean }) => {
+      const requestId = ++metricsRequestIdRef.current;
       if (!options?.skipLoadingState) {
         setMetricsViewState('loading');
         setMetricsError(null);
@@ -78,6 +164,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       try {
         const res = await fetch(metricsUrl);
         const data: ApiResponse | { error?: string } = await res.json();
+        if (requestId !== metricsRequestIdRef.current) {
+          return;
+        }
 
         if (!res.ok) {
           const msg =
@@ -97,6 +186,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         setRawMetrics(data as ApiResponse);
         setMetricsViewState('success');
       } catch (err) {
+        if (requestId !== metricsRequestIdRef.current) {
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Failed to load metrics';
         if (options?.skipLoadingState) {
           setSyncPartialSuccess(true);
@@ -110,12 +202,16 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   );
 
   const fetchMilestones = useCallback(async () => {
+    const requestId = ++milestonesRequestIdRef.current;
     setMilestonesLoading(true);
     setMilestonesError(null);
 
     try {
-      const res = await fetch('/api/milestones');
+      const res = await fetch(milestonesUrl);
       const data: ApiMilestonesResponse | { error?: string } = await res.json();
+      if (requestId !== milestonesRequestIdRef.current) {
+        return;
+      }
 
       if (!res.ok) {
         const msg =
@@ -132,14 +228,19 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       setMilestones(response.milestones ?? []);
       setProgramRollup(response.programRollup ?? null);
     } catch (err) {
+      if (requestId !== milestonesRequestIdRef.current) {
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Failed to load milestones';
       setMilestonesError(message);
       setMilestones([]);
       setProgramRollup(null);
     } finally {
-      setMilestonesLoading(false);
+      if (requestId === milestonesRequestIdRef.current) {
+        setMilestonesLoading(false);
+      }
     }
-  }, []);
+  }, [milestonesUrl]);
 
   /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics and milestones. */
   const handleSync = useCallback(async () => {
@@ -183,6 +284,18 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
   }, [fetchMetrics, fetchMilestones]);
 
+  const handleSaveScope = useCallback(
+    (includedWorkstreamIds: string[]) => {
+      saveDashboardWorkstreamScope(window.localStorage, dashboardId, includedWorkstreamIds);
+      setStoredScopeIds(includedWorkstreamIds);
+      setActiveScopedIds(includedWorkstreamIds);
+      setScopeModalOpened(false);
+      setSprintStoriesMap({});
+      setScopeRefreshToken((token) => token + 1);
+    },
+    [dashboardId]
+  );
+
   const handleExport = useCallback(async () => {
     setExportError(null);
     setExportInProgress(true);
@@ -212,7 +325,11 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   const fetchSprintStories = useCallback(
     async (workstreamIds: string[]) => {
-      if (workstreamIds.length === 0) {return;}
+      const requestId = ++storiesRequestIdRef.current;
+      if (workstreamIds.length === 0) {
+        setSprintStoriesMap({});
+        return;
+      }
       setStoriesLoading(true);
       setStoriesError(null);
 
@@ -226,12 +343,20 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
             results[wsId] = mapSprintStoriesResponse(data);
           })
         );
+        if (requestId !== storiesRequestIdRef.current) {
+          return;
+        }
         setSprintStoriesMap(results);
       } catch (err) {
+        if (requestId !== storiesRequestIdRef.current) {
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Failed to load sprint stories';
         setStoriesError(message);
       } finally {
-        setStoriesLoading(false);
+        if (requestId === storiesRequestIdRef.current) {
+          setStoriesLoading(false);
+        }
       }
     },
     []
@@ -239,11 +364,11 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   useEffect(() => {
     fetchMetrics();
-  }, [fetchMetrics]);
+  }, [fetchMetrics, scopeRefreshToken]);
 
   useEffect(() => {
     fetchMilestones();
-  }, [fetchMilestones]);
+  }, [fetchMilestones, scopeRefreshToken]);
 
   useEffect(() => {
     if (metricsViewState === 'success' && rawMetrics?.workstreams) {
@@ -257,6 +382,13 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
         <Title order={1}>{title}</Title>
         <Group gap="sm" align="flex-start">
+          <Button
+            variant="light"
+            leftSection={<IconSettings size={16} />}
+            onClick={() => setScopeModalOpened(true)}
+          >
+            Workstream scope
+          </Button>
           <ExportControl
             onExport={handleExport}
             isExporting={exportInProgress}
@@ -272,6 +404,16 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
           />
         </Group>
       </Group>
+      <WorkstreamScopeModal
+        opened={scopeModalOpened}
+        workstreams={allWorkstreams}
+        selectedIds={selectedScopeIds}
+        loading={workstreamsLoading}
+        error={workstreamsError}
+        onSave={handleSaveScope}
+        onCancel={() => setScopeModalOpened(false)}
+        onRetry={fetchAllWorkstreams}
+      />
       <DashboardShell
         viewModel={viewModel}
         onRetry={() => { fetchMetrics(); fetchMilestones(); }}

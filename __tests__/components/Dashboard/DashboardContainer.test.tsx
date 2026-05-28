@@ -3,7 +3,7 @@
  */
 
 import { DashboardContainer } from '@/components/Dashboard/DashboardContainer';
-import { render, screen, userEvent } from '@/test-utils';
+import { render, screen, userEvent, waitFor } from '@/test-utils';
 
 const mockMilestonesWithBreakdown = {
   milestones: [
@@ -54,7 +54,7 @@ const mockEmptyResponse = {
 };
 
 const mockSuccessResponse = {
-  sprint: { id: 's1', name: 'Sprint 26.21', startDate: '2026-01-06', endDate: '2026-01-19' },
+  sprint: { id: 's1', name: 'Sprint 27.1', startDate: '2026-04-27', endDate: '2026-05-08' },
   workstreams: [
     {
       workstreamId: 'ws-1',
@@ -90,6 +90,7 @@ describe('DashboardContainer', () => {
 
   beforeEach(() => {
     global.fetch = jest.fn();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -114,7 +115,7 @@ describe('DashboardContainer', () => {
 
     render(<DashboardContainer />);
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     expect(screen.getByText('Action Tracker')).toBeInTheDocument();
   });
 
@@ -166,7 +167,7 @@ describe('DashboardContainer', () => {
 
     await userEvent.click(retryButton);
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
   });
 
   it('shows quarterly milestone panel when milestones have workstreamBreakdown', async () => {
@@ -254,5 +255,72 @@ describe('DashboardContainer', () => {
 
     expect(await screen.findByText('Test')).toBeInTheDocument();
     expect(screen.getByText(/Planned: N\/A/)).toBeInTheDocument();
+  });
+
+  it('restores saved workstream scope and sends it to metrics and milestones fetches', async () => {
+    window.localStorage.setItem(
+      'dashboardWorkstreamScope:v1:main',
+      JSON.stringify({ includedWorkstreamIds: ['ws-2'], updatedAt: '2026-05-27T00:00:00.000Z' })
+    );
+
+    const scopedMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Pitch Tracker',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(scopedMetrics) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText('Pitch Tracker')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/metrics?dashboard=main&workstreamIds=ws-2')
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/milestones?workstreamIds=ws-2')
+      );
+      expect(global.fetch).toHaveBeenCalledWith('/api/sprints/stories?workstreamId=ws-2');
+    });
   });
 });

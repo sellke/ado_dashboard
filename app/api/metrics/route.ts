@@ -13,6 +13,7 @@
 
 import { NextResponse } from 'next/server';
 import { resolveDashboard } from '@/lib/dashboard/config';
+import { parseScopedWorkstreamIds, validateScopedWorkstreamIds } from '@/lib/dashboard/workstream-scope';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
 import { buildTrendSeries, computeBugBurndown } from '@/lib/metrics/trend-service';
 import { DONE_STATES, type MetricWithRag, type ThresholdConfigInput, type WorkstreamMetrics } from '@/lib/metrics/types';
@@ -167,6 +168,14 @@ export async function GET(request: Request) {
     const includeRolling = searchParams.get('includeRolling') !== 'false';
     const includeProgram = searchParams.get('includeProgram') !== 'false';
     const dashboardConfig = resolveDashboard(searchParams.get('dashboard'));
+    const scopedQuery = parseScopedWorkstreamIds(searchParams);
+
+    if (scopedQuery.kind === 'invalid') {
+      return NextResponse.json(
+        { error: 'workstreamIds must include at least one workstream ID' },
+        { status: 400 }
+      );
+    }
 
     let sprintId = sprintIdParam;
     const now = new Date();
@@ -211,7 +220,18 @@ export async function GET(request: Request) {
       where: { name: { in: dashboardConfig.workstreamNames } },
       select: { id: true },
     });
-    const allowedWsIds = allowedWorkstreams.map((w) => w.id);
+    let allowedWsIds = allowedWorkstreams.map((w) => w.id);
+
+    if (scopedQuery.kind === 'scoped') {
+      const scopedWorkstreams = await prisma.workstream.findMany({
+        where: { id: { in: scopedQuery.ids } },
+        select: { id: true },
+      });
+      allowedWsIds = validateScopedWorkstreamIds(
+        scopedQuery.ids,
+        scopedWorkstreams.map((w) => w.id)
+      );
+    }
 
     const where: { sprintId: string; workstreamId?: string | { in: string[] } } = { sprintId };
     if (workstreamIdParam) {

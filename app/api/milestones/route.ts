@@ -10,6 +10,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { parseScopedWorkstreamIds, validateScopedWorkstreamIds } from '@/lib/dashboard/workstream-scope';
 import {
   computeMilestoneProgress,
   computeProgramMilestoneRollup,
@@ -88,7 +89,46 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const workstreamFilter = searchParams.get('workstreamId');
+    const scopedQuery = parseScopedWorkstreamIds(searchParams);
     const today = new Date();
+
+    if (scopedQuery.kind === 'invalid') {
+      return NextResponse.json(
+        { error: 'workstreamIds must include at least one workstream ID' },
+        { status: 400 }
+      );
+    }
+
+    let scopedWorkstreamIds: string[] | null = null;
+    if (scopedQuery.kind === 'scoped') {
+      const workstreams = await prisma.workstream.findMany({
+        where: { id: { in: scopedQuery.ids } },
+        select: { id: true },
+      });
+      scopedWorkstreamIds = validateScopedWorkstreamIds(
+        scopedQuery.ids,
+        workstreams.map((workstream) => workstream.id)
+      );
+    }
+    const activeWorkstreamIds = workstreamFilter
+      ? [workstreamFilter]
+      : scopedWorkstreamIds;
+
+    const storyMatchesActiveScope = (story: { workstreamId: string | null }) =>
+      activeWorkstreamIds === null || (story.workstreamId !== null && activeWorkstreamIds.includes(story.workstreamId));
+
+    const featureMatchesActiveScope = (
+      featureWorkstreamId: string | null,
+      effectiveRows: ChildStoryRow[]
+    ) => {
+      if (activeWorkstreamIds === null) {
+        return true;
+      }
+      if (featureWorkstreamId !== null) {
+        return activeWorkstreamIds.includes(featureWorkstreamId);
+      }
+      return effectiveRows.some(storyMatchesActiveScope);
+    };
 
     const [featureWorkItems, allChildStories] = await Promise.all([
       prisma.workItem.findMany({
@@ -145,12 +185,16 @@ export async function GET(request: Request) {
         continue;
       }
       const effectiveRows = effectiveChildStoriesForFeature(raw);
-      if (!featureMatchesWorkstreamFilter(f.workstreamId, effectiveRows, workstreamFilter)) {
+      if (workstreamFilter && !featureMatchesWorkstreamFilter(f.workstreamId, effectiveRows, workstreamFilter)) {
         continue;
       }
+      if (!featureMatchesActiveScope(f.workstreamId, effectiveRows)) {
+        continue;
+      }
+      const scopedEffectiveRows = effectiveRows.filter(storyMatchesActiveScope);
       const { targetMonth, quarter } = deriveTargetMonthAndQuarter(
         f.tags ?? null,
-        effectiveRows,
+        scopedEffectiveRows,
         today
       );
       qualified.push({
@@ -171,7 +215,7 @@ export async function GET(request: Request) {
     const storiesByFeature = new Map<number, ChildStoryInput[]>();
     for (const q of qualified) {
       const raw = childrenByFeature.get(q.adoId) ?? [];
-      const effective = effectiveChildStoriesForFeature(raw);
+      const effective = effectiveChildStoriesForFeature(raw).filter(storyMatchesActiveScope);
       storiesByFeature.set(
         q.adoId,
         effective.map((story) => ({
@@ -186,7 +230,7 @@ export async function GET(request: Request) {
 
     const buildWorkstreamBreakdown = (featureAdoId: number): MilestoneWorkstreamBreakdown[] => {
       const raw = childrenByFeature.get(featureAdoId) ?? [];
-      const effective = effectiveChildStoriesForFeature(raw);
+      const effective = effectiveChildStoriesForFeature(raw).filter(storyMatchesActiveScope);
 
       const byWorkstream = new Map<string, { name: string; stories: ChildStoryRow[] }>();
 
@@ -250,7 +294,7 @@ export async function GET(request: Request) {
       const children = storiesByFeature.get(q.adoId) ?? [];
       const progress = computeMilestoneProgress(q.adoId, children);
       const rawStories = childrenByFeature.get(q.adoId) ?? [];
-      const effectiveRows = effectiveChildStoriesForFeature(rawStories);
+      const effectiveRows = effectiveChildStoriesForFeature(rawStories).filter(storyMatchesActiveScope);
       const quarter = q.quarter;
 
       return {

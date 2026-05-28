@@ -43,7 +43,7 @@ describe('DashboardShell', () => {
 
   const successViewModel: DashboardViewModel = {
     state: 'success',
-    sprintLabel: 'Sprint 26.21',
+    sprintLabel: 'Sprint 27.1',
     rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
     computedAtLabel: '2/11/2026, 6:30:00 PM',
     programMetrics: [
@@ -116,7 +116,7 @@ describe('DashboardShell', () => {
   it('renders program summary and workstream sections on success', () => {
     render(<DashboardShell viewModel={successViewModel} onRetry={onRetry} />);
 
-    expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(screen.getByText(/Sprint 27\.1/)).toBeInTheDocument();
     expect(screen.getByText('Action Tracker')).toBeInTheDocument();
     expect(screen.getByText(/Planned: 40/)).toBeInTheDocument();
     expect(screen.getByText(/Completed: 34/)).toBeInTheDocument();

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { SimpleGrid, Stack, Title } from '@mantine/core';
-import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { deriveSprintList } from '@/lib/dashboard/sprint-utils';
+import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { SprintTabSelector } from './SprintTabSelector';
 import { WorkstreamHealthCard } from './WorkstreamHealthCard';
 
@@ -26,7 +26,9 @@ export function WorkstreamCardsGrid({
   const currentSprintId = sprints.find((s) => s.isCurrent)?.id ?? undefined;
 
   useEffect(() => {
-    if (sprints.length === 0) return;
+    if (sprints.length === 0) {
+      return;
+    }
     setActiveSprintId((prev) => {
       if (!prev) {
         const current = sprints.find((s) => s.isCurrent);
@@ -55,7 +57,7 @@ export function WorkstreamCardsGrid({
           onSprintChange={setActiveSprintId}
         />
       )}
-      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: 'start' }}>
         {sortedCards.map((card) => (
           <WorkstreamHealthCard
             key={card.workstreamId}

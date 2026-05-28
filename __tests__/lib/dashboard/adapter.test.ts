@@ -34,9 +34,9 @@ describe('dashboard adapter', () => {
   const fullApiResponse: ApiResponse = {
     sprint: {
       id: 'sprint-1',
-      name: 'Sprint 26.21',
-      startDate: '2026-01-06T00:00:00Z',
-      endDate: '2026-01-19T00:00:00Z',
+      name: 'Sprint 27.1',
+      startDate: '2026-04-27T00:00:00Z',
+      endDate: '2026-05-08T00:00:00Z',
     },
     workstreams: [
       {
@@ -100,16 +100,16 @@ describe('dashboard adapter', () => {
         },
       },
     },
-    computedAt: '2026-02-11T18:30:00.000Z',
+    computedAt: '2026-04-28T18:30:00.000Z',
     rollingWindow: {
       count: 5,
       currentSprintId: 'sprint-1',
       sprints: [
         {
           id: 'sprint-1',
-          name: 'Sprint 26.21',
-          startDate: '2026-01-06T00:00:00Z',
-          endDate: '2026-01-19T00:00:00Z',
+          name: 'Sprint 27.1',
+          startDate: '2026-04-27T00:00:00Z',
+          endDate: '2026-05-08T00:00:00Z',
         },
       ],
     },
@@ -120,7 +120,7 @@ describe('dashboard adapter', () => {
       const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
 
       expect(vm.state).toBe('success');
-      expect(vm.sprintLabel).toBe('Sprint 26.21');
+      expect(vm.sprintLabel).toBe('Sprint 27.1');
       expect(vm.rollingWindowLabel).toBe('Rolling 5 sprints (current + 4 prior)');
       expect(vm.computedAtLabel).toBeTruthy();
       expect(vm.programMetrics).toHaveLength(4);
@@ -179,7 +179,7 @@ describe('dashboard adapter', () => {
       expect(vm.sprint5Prediction).toMatchObject({
         velocity: '130 pts',
         rawVelocity: 130,
-        sprintLabel: 'Sprint 26.21',
+        sprintLabel: 'Sprint 27.1',
         isPredicted: true,
       });
     });
@@ -454,7 +454,7 @@ describe('dashboard adapter', () => {
           rawVelocity: 36,
           velocityRate: '0.75 pts/hr',
           rawVelocityRate: 0.75,
-          sprintLabel: 'Sprint 26.21',
+          sprintLabel: 'Sprint 27.1',
           isPredicted: true,
         });
       });
@@ -490,7 +490,7 @@ describe('dashboard adapter', () => {
           rawVelocity: null,
           velocityRate: 'N/A',
           rawVelocityRate: null,
-          sprintLabel: 'Sprint 26.21',
+          sprintLabel: 'Sprint 27.1',
           isPredicted: true,
         });
       });

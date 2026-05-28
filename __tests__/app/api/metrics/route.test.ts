@@ -10,9 +10,9 @@ import { GET } from '@/app/api/metrics/route';
 
 const mockSprint = {
   id: 'sprint-1',
-  name: 'Sprint 26.21',
-  startDate: new Date('2026-01-06'),
-  endDate: new Date('2026-01-19'),
+  name: 'Sprint 26.26',
+  startDate: new Date('2026-04-13'),
+  endDate: new Date('2026-04-24'),
 };
 
 const mockSnapshot = {
@@ -36,7 +36,7 @@ const mockSnapshot = {
   completedPoints: 34,
   overheadHours: 22.8,
   grossHours: 80,
-  computedAt: new Date('2026-02-11T18:30:00Z'),
+  computedAt: new Date('2026-04-28T18:30:00Z'),
 };
 
 jest.mock('@/lib/prisma', () => ({
@@ -126,7 +126,7 @@ describe('GET /api/metrics', () => {
     expect(Array.isArray(data.workstreams[0].trends.sprints)).toBe(true);
     expect(data.program).toHaveProperty('trends.sprints');
     expect(data.program).toHaveProperty('prediction.sprint5');
-    expect(data.computedAt).toBe('2026-02-11T18:30:00.000Z');
+    expect(data.computedAt).toBe('2026-04-28T18:30:00.000Z');
     expect(data.rollingWindow).toBeDefined();
     expect(data.rollingWindow.count).toBe(1);
   });
@@ -134,7 +134,7 @@ describe('GET /api/metrics', () => {
   it('burndown counts unassigned bugs closed during the sprint window', async () => {
     const rolling = [
       mockSprint,
-      { ...mockSprint, id: 'sprint-0', name: 'Sprint 26.20', startDate: new Date('2025-12-23') },
+      { ...mockSprint, id: 'sprint-0', name: 'Sprint 26.25', startDate: new Date('2026-03-30') },
     ];
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
@@ -153,7 +153,7 @@ describe('GET /api/metrics', () => {
         sprintId: 'sprint-0',
         workstreamId: 'ws-1',
         state: 'Resolved',
-        adoChangedDate: new Date('2026-01-10'),
+        adoChangedDate: new Date('2026-04-15'),
         adoId: 1001,
         title: 'Bug 1',
       },
@@ -161,7 +161,7 @@ describe('GET /api/metrics', () => {
         sprintId: 'sprint-0',
         workstreamId: 'ws-1',
         state: 'New',
-        adoChangedDate: new Date('2026-01-11'),
+        adoChangedDate: new Date('2026-04-16'),
         adoId: 1002,
         title: 'Bug 2',
       },
@@ -169,7 +169,7 @@ describe('GET /api/metrics', () => {
         sprintId: null,
         workstreamId: 'ws-1',
         state: 'Resolved',
-        adoChangedDate: new Date('2026-01-12'),
+        adoChangedDate: new Date('2026-04-17'),
         adoId: 1003,
         title: 'Bug 3',
       },
@@ -244,6 +244,48 @@ describe('GET /api/metrics', () => {
         where: { sprintId: mockSprint.id, workstreamId: 'ws-1' },
       })
     );
+  });
+
+  it('filters by scoped workstreamIds before aggregation', async () => {
+    const scopedSnapshot = {
+      ...mockSnapshot,
+      workstreamId: 'ws-2',
+      workstream: { name: 'Pitch Tracker' },
+      velocity: 13,
+      completedPoints: 13,
+    };
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.workstream.findMany
+      .mockResolvedValueOnce([{ id: 'ws-1' }])
+      .mockResolvedValueOnce([{ id: 'ws-2' }]);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([scopedSnapshot])
+      .mockResolvedValueOnce([scopedSnapshot]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics?workstreamIds=ws-2,stale');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.workstreams).toHaveLength(1);
+    expect(data.workstreams[0].workstreamId).toBe('ws-2');
+    expect(prisma.metricSnapshot.findMany.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        where: { sprintId: mockSprint.id, workstreamId: { in: ['ws-2'] } },
+      })
+    );
+  });
+
+  it('rejects an empty scoped workstreamIds query', async () => {
+    const req = new Request('http://localhost/api/metrics?workstreamIds=');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error).toMatch(/workstreamIds/i);
   });
 
   it('should omit program when includeProgram=false', async () => {
@@ -1041,7 +1083,7 @@ describe('POST /api/metrics/compute', () => {
   it('should trigger computation and return success', async () => {
     (computeAllMetrics as jest.Mock).mockResolvedValue({
       sprintId: 'sprint-1',
-      sprintName: 'Sprint 26.21',
+      sprintName: 'Sprint 27.1',
       workstreams: [{}, {}, {}, {}],
       errors: [],
       computedAt: new Date(),
@@ -1059,7 +1101,7 @@ describe('POST /api/metrics/compute', () => {
     expect(data.success).toBe(true);
     expect(data.snapshotsCreated).toBe(4);
     expect(data.sprintId).toBe('sprint-1');
-    expect(data.sprintName).toBe('Sprint 26.21');
+    expect(data.sprintName).toBe('Sprint 27.1');
     expect(computeAllMetrics).toHaveBeenCalledWith('sprint-1');
   });
 

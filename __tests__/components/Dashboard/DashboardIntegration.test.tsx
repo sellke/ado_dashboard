@@ -81,7 +81,7 @@ describe('DashboardContainer integration', () => {
 
     expect(screen.getByLabelText(/loading dashboard/i)).toBeInTheDocument();
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Apps')).toBeInTheDocument();
     expect(screen.getByText(/Program Summary/)).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('DashboardContainer integration', () => {
 
     render(<DashboardContainer />);
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     expect(await screen.findByTestId('milestone-quarterly-panel')).toBeInTheDocument();
     expect((await screen.findAllByText('Platform Phase 1')).length).toBeGreaterThan(0);
     expect(screen.getByText('Q1')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('DashboardContainer integration', () => {
 
     render(<DashboardContainer />);
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Apps')).toBeInTheDocument();
     // RAG badges: G, A, R
@@ -177,7 +177,7 @@ describe('DashboardContainer integration', () => {
 
     await userEvent.click(retryButton);
 
-    expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
   });
 
   it('handles network error when fetch throws', async () => {
@@ -261,7 +261,7 @@ describe('DashboardContainer integration', () => {
 
       render(<DashboardContainer />);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       expect(syncButton).toBeInTheDocument();
@@ -277,7 +277,7 @@ describe('DashboardContainer integration', () => {
         })
       );
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     });
 
     it('refetches milestones after successful sync so new milestones appear in program summary', async () => {
@@ -309,7 +309,7 @@ describe('DashboardContainer integration', () => {
 
       render(<DashboardContainer />);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
       expect(screen.queryByTestId('milestone-quarterly-panel')).not.toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
@@ -341,7 +341,7 @@ describe('DashboardContainer integration', () => {
 
       render(<DashboardContainer />);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
@@ -394,18 +394,18 @@ describe('DashboardContainer integration', () => {
 
       render(<DashboardContainer />);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
 
       expect(await screen.findByText(/ADO connection failed/i)).toBeInTheDocument();
-      expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(screen.getByText(/Sprint 27\.1/)).toBeInTheDocument();
 
       const retrySyncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(retrySyncButton);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
     });
 
     it('shows partial-success message when sync succeeds but metrics refetch fails', async () => {
@@ -445,7 +445,7 @@ describe('DashboardContainer integration', () => {
 
       render(<DashboardContainer />);
 
-      expect(await screen.findByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
 
       const syncButton = screen.getByRole('button', { name: /sync now/i });
       await userEvent.click(syncButton);
@@ -453,7 +453,7 @@ describe('DashboardContainer integration', () => {
       expect(
         await screen.findByText(/sync completed.*metrics refresh failed/i)
       ).toBeInTheDocument();
-      expect(screen.getByText(/Sprint 26\.21/)).toBeInTheDocument();
+      expect(screen.getByText(/Sprint 27\.1/)).toBeInTheDocument();
     });
   });
 });

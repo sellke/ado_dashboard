@@ -27,7 +27,7 @@ describe('Dashboard accessibility', () => {
         Promise.resolve({
           sprint: {
             id: 's1',
-            name: 'Sprint 26.21',
+            name: 'Sprint 27.1',
             startDate: '2026-01-06',
             endDate: '2026-01-19',
           },
@@ -64,7 +64,7 @@ describe('Dashboard accessibility', () => {
 
     render(<DashboardContainer />);
 
-    await screen.findByText(/Sprint 26\.21/);
+    await screen.findByText(/Sprint 27\.1/);
 
     const h1 = screen.getByRole('heading', { level: 1 });
     expect(h1).toHaveTextContent(/dashboard/i);
