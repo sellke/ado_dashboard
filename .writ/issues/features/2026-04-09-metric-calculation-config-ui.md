@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Large
 > **Created:** 2026-04-09
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-05-28-metric-calculation-config-ui/spec.md
 
 ## TL;DR
 
