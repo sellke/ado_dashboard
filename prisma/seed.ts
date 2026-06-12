@@ -1,4 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import {
+  DEFAULT_ENGINE_CONFIG,
+  DEFAULT_METRIC_ENGINE_CONFIG_KEY,
+  DEFAULT_METRIC_RULE_CONFIGS,
+} from '../lib/metrics/types';
+import { SYNC_CONFIG } from '../lib/sync/config';
+import {
+  buildDefaultAdoAreaPath,
+  DEFAULT_ADO_ORG,
+  DEFAULT_SYNC_PROGRAM_CONFIG_KEY,
+  DEFAULT_SYNC_WORKSTREAMS,
+} from '../lib/sync/defaults';
 
 const prisma = new PrismaClient();
 
@@ -6,29 +18,32 @@ const prisma = new PrismaClient();
 // Seed Data
 // ---------------------------------------------------------------------------
 
-export const workstreams = [
-  {
-    name: 'Streams',
-    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Streams',
-  },
-  {
-    name: 'Pitch Tracker',
-    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Pitch Tracker',
-  },
-  {
-    name: 'Action Tracker',
-    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Action Tracker',
-  },
-  {
-    name: 'KPI Services',
-    adoAreaPath: 'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Tier Boards',
-  },
-  {
-    name: 'UCM',
-    adoAreaPath:
-      'Event Streaming Platform\\App\\LiveLink - Yellow Box\\Unified Configuration Manager',
-  },
-];
+export function getSeedAdoOrg() {
+  return process.env.ADO_ORG || DEFAULT_ADO_ORG;
+}
+
+export function buildSeedAdoAreaPath(adoAreaPathSuffix: string) {
+  return buildDefaultAdoAreaPath(adoAreaPathSuffix);
+}
+
+export function getDefaultSyncProgramConfig(adoOrg = getSeedAdoOrg()) {
+  return {
+    key: DEFAULT_SYNC_PROGRAM_CONFIG_KEY,
+    adoOrg,
+    adoProject: SYNC_CONFIG.projectNameOrId,
+    iterationTeamId: SYNC_CONFIG.iterationTeamId,
+    lookbackSprintCount: SYNC_CONFIG.lookbackSprintCount,
+  };
+}
+
+export const workstreams = DEFAULT_SYNC_WORKSTREAMS.map((workstream) => ({
+  name: workstream.name,
+  adoAreaPath: buildSeedAdoAreaPath(workstream.adoAreaPathSuffix),
+  adoOrg: getSeedAdoOrg(),
+  adoProject: SYNC_CONFIG.projectNameOrId,
+  adoTeamId: workstream.teamId,
+  syncEnabled: true,
+}));
 
 export const thresholdConfigs = [
   {
@@ -57,6 +72,15 @@ export const thresholdConfigs = [
     amberMax: 45,
     redMin: 45.01,
     redMax: 100,
+  },
+  {
+    metricName: 'deliveryToBugRatio',
+    greenMin: 0,
+    greenMax: 0.25,
+    amberMin: 0.26,
+    amberMax: 0.5,
+    redMin: 0.51,
+    redMax: 999999,
   },
   {
     metricName: 'agingWipDays',
@@ -96,42 +120,61 @@ export const thresholdConfigs = [
   },
 ];
 
+export const metricEngineConfigs = [
+  {
+    key: DEFAULT_METRIC_ENGINE_CONFIG_KEY,
+    velocityGreenFloor: DEFAULT_ENGINE_CONFIG.velocityGreenFloor,
+    velocityAmberFloor: DEFAULT_ENGINE_CONFIG.velocityAmberFloor,
+    rollingWindow: DEFAULT_ENGINE_CONFIG.rollingWindow,
+  },
+];
+
+export const metricRuleConfigs = DEFAULT_METRIC_RULE_CONFIGS;
+
 const ADO_ITER_BASE = 'Event Streaming Platform\\App\\LiveLink - Yellow Box';
+const LEGACY_SEEDED_SPRINT_PATHS = [
+  `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 4`,
+  `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 5`,
+  `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 6`,
+  `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 7`,
+  `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 8`,
+  `${ADO_ITER_BASE}\\Q1 FY27\\Sprint 1`,
+];
 
 export const sprints = [
   {
-    name: 'Sprint 4 Q4 FY26',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 4`,
+    name: 'Sprint 26.22',
+    adoIterationPath: 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.22',
     startDate: new Date('2026-02-16'),
     endDate: new Date('2026-02-27'),
   },
   {
-    name: 'Sprint 5 Q4 FY26',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 5`,
+    name: 'Sprint 26.23',
+    adoIterationPath: 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.23',
     startDate: new Date('2026-03-02'),
     endDate: new Date('2026-03-13'),
   },
   {
-    name: 'Sprint 6 Q4 FY26',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 6`,
+    name: 'Sprint 26.24',
+    adoIterationPath: 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.24',
     startDate: new Date('2026-03-16'),
     endDate: new Date('2026-03-27'),
   },
   {
-    name: 'Sprint 7 Q4 FY26',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 7`,
+    name: 'Sprint 26.25',
+    adoIterationPath: 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.25',
     startDate: new Date('2026-03-30'),
     endDate: new Date('2026-04-10'),
   },
   {
-    name: 'Sprint 8 Q4 FY26',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q4 FY26\\Sprint 8`,
+    name: 'Sprint 26.26',
+    adoIterationPath: 'Event Streaming Platform\\FY26\\Q4\\Sprint 26.26',
     startDate: new Date('2026-04-13'),
     endDate: new Date('2026-04-24'),
   },
   {
-    name: 'Sprint 1 Q1 FY27',
-    adoIterationPath: `${ADO_ITER_BASE}\\Q1 FY27\\Sprint 1`,
+    name: 'Sprint 27.1',
+    adoIterationPath: 'Event Streaming Platform\\FY27\\Q1\\Sprint 27.1',
     startDate: new Date('2026-04-27'),
     endDate: new Date('2026-05-08'),
   },
@@ -142,6 +185,21 @@ export const sprints = [
 // ---------------------------------------------------------------------------
 
 export async function seedDatabase(client: PrismaClient = prisma) {
+  const programConfig = getDefaultSyncProgramConfig();
+
+  // --- Program sync config (singleton key → upsert) ---
+  await client.syncProgramConfig.upsert({
+    where: { key: programConfig.key },
+    update: {
+      adoOrg: programConfig.adoOrg,
+      adoProject: programConfig.adoProject,
+      iterationTeamId: programConfig.iterationTeamId,
+      lookbackSprintCount: programConfig.lookbackSprintCount,
+    },
+    create: programConfig,
+  });
+  console.log('Created sync program config');
+
   // --- Workstreams (no unique constraint on name → findFirst pattern) ---
   for (const ws of workstreams) {
     const existing = await client.workstream.findFirst({ where: { name: ws.name } });
@@ -170,7 +228,44 @@ export async function seedDatabase(client: PrismaClient = prisma) {
   }
   console.log(`Created ${thresholdConfigs.length} threshold configs`);
 
+  // --- Metric engine config (singleton key → upsert) ---
+  for (const config of metricEngineConfigs) {
+    await client.metricEngineConfig.upsert({
+      where: { key: config.key },
+      update: {
+        velocityGreenFloor: config.velocityGreenFloor,
+        velocityAmberFloor: config.velocityAmberFloor,
+        rollingWindow: config.rollingWindow,
+      },
+      create: config,
+    });
+  }
+  console.log(`Created ${metricEngineConfigs.length} metric engine configs`);
+
+  // --- Metric rule configs (category + workItemType unique → upsert) ---
+  for (const config of metricRuleConfigs) {
+    await client.metricRuleConfig.upsert({
+      where: {
+        category_workItemType: {
+          category: config.category,
+          workItemType: config.workItemType,
+        },
+      },
+      update: { included: config.included },
+      create: config,
+    });
+  }
+  console.log(`Created ${metricRuleConfigs.length} metric rule configs`);
+
   // --- Sprints (canonical key: adoIterationPath; match by path to avoid naming collision with ADO) ---
+  await client.sprint.deleteMany({
+    where: {
+      adoIterationPath: {
+        in: LEGACY_SEEDED_SPRINT_PATHS,
+      },
+    },
+  });
+
   for (const sp of sprints) {
     const existing = sp.adoIterationPath
       ? await client.sprint.findUnique({ where: { adoIterationPath: sp.adoIterationPath } })

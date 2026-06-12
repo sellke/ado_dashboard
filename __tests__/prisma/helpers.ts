@@ -23,6 +23,9 @@ export async function cleanupTestData() {
   await prisma.sprintWorkstream.deleteMany({});
   await prisma.sprint.deleteMany({});
   await prisma.workstream.deleteMany({});
+  await prisma.metricRuleConfig.deleteMany({});
+  await prisma.metricEngineConfig.deleteMany({});
+  await prisma.syncProgramConfig.deleteMany({});
   await prisma.thresholdConfig.deleteMany({});
   await prisma.syncLog.deleteMany({});
 }

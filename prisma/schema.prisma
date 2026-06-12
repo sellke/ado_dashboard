@@ -24,6 +24,11 @@ enum WorkItemType {
   Support
 }
 
+enum MetricCategory {
+  deliveryPoints
+  overheadHours
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -32,6 +37,10 @@ model Workstream {
   id          String   @id @default(cuid())
   name        String
   adoAreaPath String
+  adoOrg      String   @default("Operations-Innovation")
+  adoProject  String   @default("Event Streaming Platform")
+  adoTeamId   String   @default("")
+  syncEnabled Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -242,6 +251,43 @@ model ThresholdConfig {
   updatedAt  DateTime @updatedAt
 
   @@map("threshold_configs")
+}
+
+model MetricEngineConfig {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("default")
+  velocityGreenFloor Float    @default(1.0)
+  velocityAmberFloor Float    @default(0.7)
+  rollingWindow      Int      @default(4)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("metric_engine_config")
+}
+
+model SyncProgramConfig {
+  id                  String   @id @default(cuid())
+  key                 String   @unique @default("default")
+  adoOrg              String
+  adoProject          String
+  iterationTeamId     String
+  lookbackSprintCount Int      @default(5)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("sync_program_config")
+}
+
+model MetricRuleConfig {
+  id           String         @id @default(cuid())
+  category     MetricCategory
+  workItemType String
+  included     Boolean
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([category, workItemType])
+  @@map("metric_rule_config")
 }
 
 model SyncLog {
