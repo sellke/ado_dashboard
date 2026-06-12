@@ -8,13 +8,14 @@
  */
 
 import {
-  selectRollingFiveSprints,
+  selectRollingSprints,
   upsertSprintsFromIterations,
   type AdoIteration,
 } from '@/lib/sync/iterations';
+import { INGEST_SPRINT_DEPTH, ROLLING_WINDOW_DEPTH, VISIBLE_SPRINT_TABS } from '@/lib/sync/window';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
 
-describe('selectRollingFiveSprints', () => {
+describe('selectRollingSprints with visible tab depth', () => {
   const base = 'Project\\Team\\Iteration';
 
   it('should return exactly 5 sprints including current when enough iterations exist', () => {
@@ -58,7 +59,7 @@ describe('selectRollingFiveSprints', () => {
       },
     ];
 
-    const result = selectRollingFiveSprints(iterations);
+    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result).toHaveLength(5);
     // Spec: sorted by startDate descending (most recent first)
     expect(result.map((r) => r.path)).toEqual([
@@ -96,7 +97,7 @@ describe('selectRollingFiveSprints', () => {
       },
     ];
 
-    const result = selectRollingFiveSprints(iterations);
+    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result).toHaveLength(3);
     expect(result.some((r) => r.isCurrent)).toBe(true);
     // Descending: S3, S2, S1 — current S2 at index 1
@@ -108,7 +109,7 @@ describe('selectRollingFiveSprints', () => {
       { path: 'P\\S1', name: 'S1' },
       { path: 'P\\S2', name: 'S2' },
     ];
-    expect(selectRollingFiveSprints(iterations)).toHaveLength(0);
+    expect(selectRollingSprints(iterations, VISIBLE_SPRINT_TABS).sprints).toHaveLength(0);
   });
 
   it('should sort deterministically by startDate descending (most recent first)', () => {
@@ -134,7 +135,7 @@ describe('selectRollingFiveSprints', () => {
       },
     ];
 
-    const result = selectRollingFiveSprints(iterations);
+    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result[0].path).toBe('P\\S3');
     expect(result[1].path).toBe('P\\S2');
     expect(result[2].path).toBe('P\\S1');
@@ -156,7 +157,7 @@ describe('selectRollingFiveSprints', () => {
       },
     ];
 
-    const result = selectRollingFiveSprints(iterations);
+    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result).toHaveLength(2);
     // Most recent first: S2 (Jan 15) then S1 (Jan 1)
     expect(result[0].path).toBe('P\\S2');
@@ -176,9 +177,86 @@ describe('selectRollingFiveSprints', () => {
       },
     ];
 
-    const result = selectRollingFiveSprints(iterations);
+    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result).toHaveLength(1);
     expect(result[0].path).toBe('P\\Past');
+  });
+});
+
+describe('selectRollingSprints with ingestion depth', () => {
+  const base = 'Project\\Team\\Iteration';
+
+  function makeIterations(count: number, currentNumber: number = count): AdoIteration[] {
+    return Array.from({ length: count }, (_, index) => {
+      const sprintNumber = index + 1;
+      const startDay = 1 + index * 14;
+      return {
+        path: `${base}\\Sprint ${sprintNumber}`,
+        name: `Sprint ${sprintNumber}`,
+        startDate: new Date(Date.UTC(2026, 0, startDay)),
+        finishDate: new Date(Date.UTC(2026, 0, startDay + 13)),
+        isCurrent: sprintNumber === currentNumber,
+      };
+    });
+  }
+
+  it('keeps the ingestion depth tied to visible tabs plus the rolling window', () => {
+    expect(INGEST_SPRINT_DEPTH).toBe(VISIBLE_SPRINT_TABS + ROLLING_WINDOW_DEPTH - 1);
+    expect(INGEST_SPRINT_DEPTH).toBe(9);
+  });
+
+  it('returns current plus eight prior sprints when nine are available', () => {
+    const { sprints, currentSprint } = selectRollingSprints(
+      makeIterations(9),
+      INGEST_SPRINT_DEPTH
+    );
+
+    expect(sprints).toHaveLength(INGEST_SPRINT_DEPTH);
+    expect(currentSprint?.path).toBe(`${base}\\Sprint 9`);
+    expect(sprints.map((sprint) => sprint.path)).toEqual([
+      `${base}\\Sprint 9`,
+      `${base}\\Sprint 8`,
+      `${base}\\Sprint 7`,
+      `${base}\\Sprint 6`,
+      `${base}\\Sprint 5`,
+      `${base}\\Sprint 4`,
+      `${base}\\Sprint 3`,
+      `${base}\\Sprint 2`,
+      `${base}\\Sprint 1`,
+    ]);
+  });
+
+  it.each([5, 7])('truncates to all %i available sprints without padding', (count) => {
+    const { sprints } = selectRollingSprints(makeIterations(count), INGEST_SPRINT_DEPTH);
+
+    expect(sprints).toHaveLength(count);
+    expect(sprints.map((sprint) => sprint.path)).toEqual(
+      Array.from({ length: count }, (_, index) => `${base}\\Sprint ${count - index}`)
+    );
+  });
+
+  it('returns an empty selection for empty input', () => {
+    expect(selectRollingSprints([], INGEST_SPRINT_DEPTH)).toEqual({
+      sprints: [],
+      currentSprint: null,
+    });
+  });
+
+  it('excludes future sprints from the ingestion selection', () => {
+    const iterations = [
+      ...makeIterations(9),
+      {
+        path: `${base}\\Sprint Future`,
+        name: 'Sprint Future',
+        startDate: new Date('2030-01-01T00:00:00Z'),
+        finishDate: new Date('2030-01-14T00:00:00Z'),
+      },
+    ];
+
+    const { sprints } = selectRollingSprints(iterations, INGEST_SPRINT_DEPTH);
+
+    expect(sprints).toHaveLength(INGEST_SPRINT_DEPTH);
+    expect(sprints.some((sprint) => sprint.path?.endsWith('Future'))).toBe(false);
   });
 });
 

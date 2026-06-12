@@ -6,7 +6,6 @@
  * Unit tests:
  * - aggregateCapacity (pure math: grossHours, ptoHours, fteCount)
  * - capacityLocked guard (skip overwrite when locked)
- * - getWorkstreamTeamId (config lookup)
  *
  * Integration tests (against test DB):
  * - syncCapacityForWorkstream with mocked fetcher
@@ -18,7 +17,6 @@
 import {
   aggregateCapacity,
   countMeetingOverheadMembers,
-  getWorkstreamTeamId,
   syncCapacityForAllWorkstreams,
   syncCapacityForWorkstream,
   type CapacitySyncContext,
@@ -143,24 +141,6 @@ describe('countMeetingOverheadMembers', () => {
 });
 
 // =============================================================================
-// UNIT TESTS: getWorkstreamTeamId
-// =============================================================================
-
-describe('getWorkstreamTeamId', () => {
-  it('should return team ID for Streams workstream', () => {
-    expect(getWorkstreamTeamId('Streams')).toBe('ae8bcdaa-d61b-475c-ba34-13c88b1adf8e');
-  });
-
-  it('should return team ID for Action Tracker', () => {
-    expect(getWorkstreamTeamId('Action Tracker')).toBe('69fee166-1ccb-43b5-afcd-5d3f08fa2198');
-  });
-
-  it('should return undefined for unknown workstream name', () => {
-    expect(getWorkstreamTeamId('Unknown Team')).toBeUndefined();
-  });
-});
-
-// =============================================================================
 // INTEGRATION TESTS: syncCapacityForWorkstream
 // =============================================================================
 
@@ -180,7 +160,13 @@ describe('syncCapacityForWorkstream', () => {
     await cleanupTestData();
 
     const ws = await prisma.workstream.create({
-      data: { name: 'Streams', adoAreaPath: areaPath },
+      data: {
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoOrg: 'Operations-Innovation',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
     });
     wsId = ws.id;
 
@@ -224,7 +210,13 @@ describe('syncCapacityForWorkstream', () => {
     const mockFetcher = jest.fn().mockResolvedValue({ members: mockMembers, retries: 0 });
 
     const result = await syncCapacityForWorkstream(
-      { id: wsId, name: 'Streams', adoAreaPath: areaPath },
+      {
+        id: wsId,
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
       makeContext(mockFetcher)
     );
 
@@ -261,7 +253,13 @@ describe('syncCapacityForWorkstream', () => {
     const mockFetcher = jest.fn().mockResolvedValue({ members: mockMembers, retries: 0 });
 
     const result = await syncCapacityForWorkstream(
-      { id: wsId, name: 'Streams', adoAreaPath: areaPath },
+      {
+        id: wsId,
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
       makeContext(mockFetcher)
     );
 
@@ -284,7 +282,13 @@ describe('syncCapacityForWorkstream', () => {
     });
 
     const result = await syncCapacityForWorkstream(
-      { id: wsId, name: 'Streams', adoAreaPath: areaPath },
+      {
+        id: wsId,
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
       makeContext(mockFetcher)
     );
 
@@ -299,7 +303,13 @@ describe('syncCapacityForWorkstream', () => {
 
   it('should return zero when no sprint paths provided', async () => {
     const result = await syncCapacityForWorkstream(
-      { id: wsId, name: 'Streams', adoAreaPath: areaPath },
+      {
+        id: wsId,
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
       {
         sprintPaths: [],
         sprintIdMap: new Map(),
@@ -324,7 +334,13 @@ describe('syncCapacityForWorkstream', () => {
     };
 
     const result = await syncCapacityForWorkstream(
-      { id: wsId, name: 'Streams', adoAreaPath: areaPath },
+      {
+        id: wsId,
+        name: 'Streams',
+        adoAreaPath: areaPath,
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+      },
       ctx
     );
 
@@ -353,12 +369,24 @@ describe('syncCapacityForAllWorkstreams', () => {
     await cleanupTestData();
 
     const ws1 = await prisma.workstream.create({
-      data: { name: 'Streams', adoAreaPath: 'Project\\Streams' },
+      data: {
+        name: 'Streams',
+        adoAreaPath: 'Project\\Streams',
+        adoOrg: 'Operations-Innovation',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'team-1',
+      },
     });
     ws1Id = ws1.id;
 
     const ws2 = await prisma.workstream.create({
-      data: { name: 'Action Tracker', adoAreaPath: 'Project\\Action Tracker' },
+      data: {
+        name: 'Action Tracker',
+        adoAreaPath: 'Project\\Action Tracker',
+        adoOrg: 'Operations-Innovation',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'team-2',
+      },
     });
     ws2Id = ws2.id;
 
@@ -383,8 +411,20 @@ describe('syncCapacityForAllWorkstreams', () => {
     const iterationIdMap = new Map([[iterationPath, iterationId]]);
 
     const workstreams = [
-      { id: ws1Id, name: 'Streams', adoAreaPath: 'Project\\Streams' },
-      { id: ws2Id, name: 'Action Tracker', adoAreaPath: 'Project\\Action Tracker' },
+      {
+        id: ws1Id,
+        name: 'Streams',
+        adoAreaPath: 'Project\\Streams',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'team-1',
+      },
+      {
+        id: ws2Id,
+        name: 'Action Tracker',
+        adoAreaPath: 'Project\\Action Tracker',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'team-2',
+      },
     ];
 
     let callCount = 0;
@@ -426,7 +466,15 @@ describe('syncCapacityForAllWorkstreams', () => {
     const sprintIdMap = new Map([[iterationPath, sprintId]]);
     const iterationIdMap = new Map([[iterationPath, iterationId]]);
 
-    const workstreams = [{ id: ws1Id, name: 'Streams', adoAreaPath: 'Project\\Streams' }];
+    const workstreams = [
+      {
+        id: ws1Id,
+        name: 'Streams',
+        adoAreaPath: 'Project\\Streams',
+        adoProject: 'Event Streaming Platform',
+        adoTeamId: 'team-1',
+      },
+    ];
 
     const capacityFetcher = jest.fn().mockResolvedValue({
       members: [{ activities: [{ name: 'Development', capacityPerDay: 8 }], daysOff: [] }],

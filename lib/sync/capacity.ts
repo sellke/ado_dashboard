@@ -11,7 +11,6 @@
 import type { PrismaClient, Workstream } from '@prisma/client';
 import { prisma as defaultPrisma } from '@/lib/prisma';
 import { fetchTeamCapacity } from './ado-client';
-import { SYNC_CONFIG } from './config';
 import type { AdoCapacityMember, AggregatedCapacity } from './types';
 
 // ---------------------------------------------------------------------------
@@ -157,23 +156,6 @@ export function aggregateCapacity(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Config lookup
-// ---------------------------------------------------------------------------
-
-/**
- * Resolve ADO team ID for a workstream by name.
- * Matches SYNC_CONFIG.workstreams by name.
- */
-export function getWorkstreamTeamId(workstreamName: string): string | undefined {
-  const ws = SYNC_CONFIG.workstreams.find((w) => w.name === workstreamName);
-  return ws?.teamId;
-}
-
-// ---------------------------------------------------------------------------
-// Context / DI
-// ---------------------------------------------------------------------------
-
 export interface CapacitySyncContext {
   sprintPaths: string[];
   sprintIdMap: Map<string, string>;
@@ -185,6 +167,8 @@ export interface CapacitySyncContext {
     team: string,
     iterationId: string
   ) => Promise<{ members: AdoCapacityMember[]; retries: number }>;
+  /** ADO project override for tests; production reads from the workstream row. */
+  adoProject?: string;
   db?: PrismaClient;
 }
 
@@ -210,7 +194,8 @@ export interface CapacityWorkstreamResult {
  * @param context - Sprint paths, ID maps, optional fetcher
  */
 export async function syncCapacityForWorkstream(
-  workstream: Pick<Workstream, 'id' | 'name' | 'adoAreaPath'>,
+  workstream: Pick<Workstream, 'id' | 'name' | 'adoAreaPath'> &
+    Partial<Pick<Workstream, 'adoProject' | 'adoTeamId'>>,
   context: CapacitySyncContext
 ): Promise<{
   sprintsUpserted: number;
@@ -221,8 +206,9 @@ export async function syncCapacityForWorkstream(
   const db = context.db ?? defaultPrisma;
   const { sprintPaths, sprintIdMap, iterationIdMap } = context;
 
-  const teamId = getWorkstreamTeamId(workstream.name);
-  if (!teamId) {
+  const teamId = workstream.adoTeamId;
+  const adoProject = workstream.adoProject ?? context.adoProject;
+  if (!teamId || !adoProject) {
     return { sprintsUpserted: 0, sprintsSkippedLocked: 0, retries: 0 };
   }
 
@@ -260,7 +246,7 @@ export async function syncCapacityForWorkstream(
       continue;
     }
 
-    const { members, retries } = await fetcher(SYNC_CONFIG.projectNameOrId, teamId, iterationId);
+    const { members, retries } = await fetcher(adoProject, teamId, iterationId);
     totalRetries += retries;
 
     const agg = aggregateCapacity(members, sprint.startDate, sprint.endDate);
@@ -315,7 +301,10 @@ export async function syncCapacityForWorkstream(
  * @param options - Optional fetcher and db
  */
 export async function syncCapacityForAllWorkstreams(
-  workstreams: Pick<Workstream, 'id' | 'name' | 'adoAreaPath'>[],
+  workstreams: Array<
+    Pick<Workstream, 'id' | 'name' | 'adoAreaPath'> &
+      Partial<Pick<Workstream, 'adoProject' | 'adoTeamId'>>
+  >,
   sprintIdMap: Map<string, string>,
   iterationIdMap: Map<string, string>,
   options?: { capacityFetcher?: CapacitySyncContext['capacityFetcher']; db?: PrismaClient }

@@ -3,6 +3,25 @@
  */
 
 import type { SyncType } from '@prisma/client';
+import type { syncCapacityForAllWorkstreams } from './capacity';
+import type { syncMilestoneFeatures } from './milestone-features';
+import type { WorkItemSyncContext } from './work-items';
+
+export interface SyncProgramConfigInput {
+  adoOrg: string;
+  adoProject: string;
+  iterationTeamId: string;
+  lookbackSprintCount: number;
+}
+
+export interface WorkstreamSyncTarget {
+  id: string;
+  name: string;
+  adoAreaPath: string;
+  adoOrg: string;
+  adoProject: string;
+  adoTeamId: string;
+}
 
 /** Per-workstream execution summary (persisted to SyncLog and returned in API). */
 export interface PerWorkstreamSummary {
@@ -100,6 +119,17 @@ export interface SyncOrchestratorInput {
   ) => Promise<WorkstreamSyncResult>;
   /** Optional iterations fetcher for Iterations/Full sync. When omitted, iteration sync is skipped. */
   iterationsFetcher?: () => Promise<AdoIterationInput[]>;
+  /** Optional real work-item sync override that receives the selected sprint context. */
+  syncWorkItemsForWorkstreamFn?: (
+    workstream: WorkstreamSyncTarget,
+    context: WorkItemSyncContext
+  ) => Promise<WorkstreamSyncResult>;
+  /** Optional capacity sync override for verifying selected sprint coverage. */
+  syncCapacityForAllWorkstreamsFn?: typeof syncCapacityForAllWorkstreams;
+  /** Optional milestone feature sync override for isolating Full sync tests. */
+  syncMilestoneFeaturesFn?: typeof syncMilestoneFeatures;
+  /** Optional metric recompute override for verifying selected sprint coverage and order. */
+  computeMetricsFn?: (sprintId: string) => Promise<unknown>;
 }
 
 /** Sync orchestration result returned to API. */

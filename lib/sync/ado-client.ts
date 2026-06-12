@@ -1,7 +1,7 @@
 /**
  * ADO REST API client for server-side sync.
- * Thin wrapper around fetch for team iterations, WIQL queries, and work item batch fetch.
- * Uses ADO_PAT and ADO_ORG from environment.
+ * Wraps node:https (see {@link adoFetch}) for team iterations, WIQL queries, and
+ * work item batch fetch. Uses ADO_PAT and ADO_ORG from environment.
  */
 
 import type { AdoWorkItemRaw } from './mappers';
@@ -26,13 +26,219 @@ function getAdoEnv(): { org: string; pat: string } {
   return { org, pat };
 }
 
-async function buildAdoError(res: Response, context: string): Promise<Error> {
+/**
+ * Minimal fetch-shaped response returned by {@link adoFetch}.
+ */
+interface AdoHttpResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  json: () => Promise<unknown>;
+  text: () => Promise<string>;
+}
+
+interface AdoFetchOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+export class AdoRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'AdoRequestError';
+  }
+}
+
+/**
+ * Corporate TLS-intercepting proxies re-sign HTTPS with a root CA that lives in
+ * the OS trust store but not in Node's bundled CA list. Node's global fetch
+ * (undici) cannot be reconfigured to trust it on this runtime
+ * (tls.setDefaultCACertificates is unavailable on some Node builds), so ADO
+ * requests go through node:https with an Agent that trusts the system CA store.
+ * This avoids "unable to get local issuer certificate" errors behind such proxies.
+ */
+let cachedCaAgent: unknown;
+
+function getSystemCaAgent(): unknown {
+  if (cachedCaAgent !== undefined) {
+    return cachedCaAgent;
+  }
+  const getBuiltinModule = (
+    process as unknown as {
+      getBuiltinModule?: (id: string) => unknown;
+    }
+  ).getBuiltinModule;
+  if (typeof getBuiltinModule !== 'function') {
+    cachedCaAgent = null;
+    return cachedCaAgent;
+  }
+  try {
+    const tls = getBuiltinModule('node:tls') as {
+      getCACertificates?: (type: string) => string[];
+    };
+    const https = getBuiltinModule('node:https') as {
+      Agent: new (opts: { ca: string[]; keepAlive: boolean }) => unknown;
+    };
+    const getCa = typeof tls.getCACertificates === 'function' ? tls.getCACertificates : null;
+    const ca = getCa ? Array.from(new Set([...getCa('default'), ...getCa('system')])) : [];
+    cachedCaAgent = new https.Agent({ ca, keepAlive: true });
+  } catch {
+    cachedCaAgent = null;
+  }
+  return cachedCaAgent;
+}
+
+/**
+ * fetch-shaped HTTPS request that trusts the OS/system CA store.
+ * Falls back to global fetch when the node:https path is unavailable.
+ */
+async function adoFetch(url: string, options: AdoFetchOptions = {}): Promise<AdoHttpResponse> {
+  const agent = getSystemCaAgent();
+  const getBuiltinModule = (
+    process as unknown as {
+      getBuiltinModule?: (id: string) => unknown;
+    }
+  ).getBuiltinModule;
+
+  if (!agent || typeof getBuiltinModule !== 'function') {
+    const res = await fetch(url, {
+      method: options.method,
+      headers: options.headers,
+      body: options.body,
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      json: () => res.json(),
+      text: () => res.text(),
+    };
+  }
+
+  const https = getBuiltinModule('node:https') as {
+    request: (
+      url: string,
+      opts: { method?: string; headers?: Record<string, string>; agent: unknown },
+      cb: (res: {
+        statusCode?: number;
+        statusMessage?: string;
+        on: (ev: string, cb: (chunk?: unknown) => void) => void;
+      }) => void
+    ) => {
+      on: (ev: string, cb: (err: Error) => void) => void;
+      write: (data: string) => void;
+      end: () => void;
+    };
+  };
+
+  return new Promise<AdoHttpResponse>((resolve, reject) => {
+    const req = https.request(
+      url,
+      { method: options.method ?? 'GET', headers: options.headers, agent },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk?: unknown) => {
+          chunks.push(chunk as Buffer);
+        });
+        res.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          const status = res.statusCode ?? 0;
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: res.statusMessage ?? '',
+            json: async () => JSON.parse(text),
+            text: async () => text,
+          });
+        });
+      }
+    );
+    req.on('error', (err: Error) => reject(err));
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
+
+async function buildAdoError(res: AdoHttpResponse, context: string): Promise<Error> {
   const body = await res
     .text()
     .then((t) => t.slice(0, 300))
     .catch(() => '');
   const bodySuffix = body ? ` Body: ${body}` : '';
-  return new Error(`${context} failed (${res.status} ${res.statusText}).${bodySuffix}`);
+  return new AdoRequestError(
+    `${context} failed (${res.status} ${res.statusText}).${bodySuffix}`,
+    res.status
+  );
+}
+
+function buildAdoHeaders(contentType?: string): Record<string, string> {
+  const { pat } = getAdoEnv();
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (contentType) {
+    headers['Content-Type'] = contentType;
+  }
+  headers.Authorization = `Basic ${Buffer.from(`:${pat}`).toString('base64')}`;
+  return headers;
+}
+
+export interface AdoProject {
+  id: string;
+  name: string;
+}
+
+export interface AdoTeam {
+  id: string;
+  name: string;
+  projectName?: string;
+}
+
+interface AdoProjectResponse {
+  value?: Array<{ id?: string; name?: string }>;
+}
+
+interface AdoTeamResponse {
+  value?: Array<{ id?: string; name?: string; projectName?: string }>;
+}
+
+export async function fetchAdoProjects(): Promise<AdoProject[]> {
+  const { org } = getAdoEnv();
+  const url = `https://dev.azure.com/${org}/_apis/projects?api-version=7.0`;
+  const res = await adoFetch(url, { headers: buildAdoHeaders() });
+
+  if (!res.ok) {
+    throw await buildAdoError(res, 'ADO projects request');
+  }
+
+  const data = (await res.json()) as AdoProjectResponse;
+  return (data.value ?? [])
+    .filter((project): project is { id: string; name: string } =>
+      Boolean(project.id && project.name)
+    )
+    .map((project) => ({ id: project.id, name: project.name }));
+}
+
+export async function fetchAdoTeams(project: string): Promise<AdoTeam[]> {
+  const { org } = getAdoEnv();
+  const encodedProject = encodeURIComponent(project);
+  const url = `https://dev.azure.com/${org}/_apis/projects/${encodedProject}/teams?api-version=7.0`;
+  const res = await adoFetch(url, { headers: buildAdoHeaders() });
+
+  if (!res.ok) {
+    throw await buildAdoError(res, 'ADO teams request');
+  }
+
+  const data = (await res.json()) as AdoTeamResponse;
+  return (data.value ?? [])
+    .filter((team): team is { id: string; name: string; projectName?: string } =>
+      Boolean(team.id && team.name)
+    )
+    .map((team) => ({ id: team.id, name: team.name, projectName: team.projectName }));
 }
 
 interface AdoIterationResponse {
@@ -59,16 +265,12 @@ export async function fetchTeamIterations(
   project: string,
   team: string
 ): Promise<AdoIterationInput[]> {
-  const { org, pat } = getAdoEnv();
+  const { org } = getAdoEnv();
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations?api-version=7.0&$top=100`;
 
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  };
-  const auth = Buffer.from(`:${pat}`).toString('base64');
-  headers.Authorization = `Basic ${auth}`;
+  const headers = buildAdoHeaders();
 
-  const res = await fetch(url, { headers });
+  const res = await adoFetch(url, { headers });
   if (!res.ok) {
     throw await buildAdoError(res, 'ADO team iterations request');
   }
@@ -108,17 +310,12 @@ interface WiqlResponse {
  * @returns Array of work item IDs; empty on error or when org not configured
  */
 export async function fetchWorkItemIdsByWiql(project: string, query: string): Promise<number[]> {
-  const { org, pat } = getAdoEnv();
+  const { org } = getAdoEnv();
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/wiql?api-version=7.0`;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  const auth = Buffer.from(`:${pat}`).toString('base64');
-  headers.Authorization = `Basic ${auth}`;
+  const headers = buildAdoHeaders('application/json');
 
-  const res = await fetch(url, {
+  const res = await adoFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ query }),
@@ -164,22 +361,17 @@ export async function fetchWorkItemsBatch(
   if (ids.length === 0) {
     return [];
   }
-  const { org, pat } = getAdoEnv();
+  const { org } = getAdoEnv();
 
   const baseUrl = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/workitemsbatch?api-version=7.0`;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  const auth = Buffer.from(`:${pat}`).toString('base64');
-  headers.Authorization = `Basic ${auth}`;
+  const headers = buildAdoHeaders('application/json');
 
   const results: AdoWorkItemRaw[] = [];
 
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     const batch = ids.slice(i, i + BATCH_SIZE);
-    const res = await fetch(baseUrl, {
+    const res = await adoFetch(baseUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify({ ids: batch, fields }),
@@ -247,18 +439,16 @@ export async function fetchTeamCapacity(
   if (!iterationId) {
     return { members: [], retries: 0 };
   }
-  const { org, pat } = getAdoEnv();
+  const { org } = getAdoEnv();
 
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations/${iterationId}/capacities?api-version=7.0`;
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  const auth = Buffer.from(`:${pat}`).toString('base64');
-  headers.Authorization = `Basic ${auth}`;
+  const headers = buildAdoHeaders();
 
   let lastError: Error | undefined;
   for (let attempt = 0; attempt < RETRY_MAX_ATTEMPTS; attempt++) {
     try {
-      const res = await fetch(url, { headers });
+      const res = await adoFetch(url, { headers });
       if (res.ok) {
         const data = (await res.json()) as CapacityApiResponse;
         return { members: data.teamMembers ?? [], retries: attempt };

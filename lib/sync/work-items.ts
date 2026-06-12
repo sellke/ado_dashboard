@@ -12,7 +12,6 @@
 import type { PrismaClient, Workstream } from '@prisma/client';
 import { prisma as defaultPrisma } from '@/lib/prisma';
 import { fetchWorkItemIdsByWiql, fetchWorkItemsBatch } from './ado-client';
-import { SYNC_CONFIG } from './config';
 import {
   isApprovedType,
   mapAdoWorkItem,
@@ -55,6 +54,8 @@ export interface WorkItemSyncContext {
   sprintPaths: string[];
   /** Map from ADO iteration path → local Sprint.id. */
   sprintIdMap: Map<string, string>;
+  /** ADO project override for tests; production reads from the workstream row. */
+  adoProject?: string;
   /** Prisma client (defaults to app singleton). */
   db?: PrismaClient;
   /** Optional WIQL fetcher override (for tests). */
@@ -247,28 +248,33 @@ export type WorkItemSyncResultExt = WorkstreamSyncResult &
  * @returns Sync counters: fetched, created, updated, skipped
  */
 export async function syncWorkItemsForWorkstream(
-  workstream: Pick<Workstream, 'id' | 'adoAreaPath' | 'name'>,
+  workstream: Pick<Workstream, 'id' | 'adoAreaPath' | 'name'> &
+    Partial<Pick<Workstream, 'adoProject'>>,
   context: WorkItemSyncContext
 ): Promise<WorkItemSyncResultExt> {
   const db = context.db ?? defaultPrisma;
   const wiqlFetch = context.wiqlFetcher ?? fetchWorkItemIdsByWiql;
   const batchFetch = context.batchFetcher ?? fetchWorkItemsBatch;
   const { sprintPaths, sprintIdMap } = context;
+  const adoProject = workstream.adoProject ?? context.adoProject;
 
   if (sprintPaths.length === 0) {
     return { itemsFetched: 0, itemsCreated: 0, itemsUpdated: 0, itemsSkipped: 0 };
   }
+  if (!adoProject) {
+    throw new Error(`Missing ADO project for workstream ${workstream.name}`);
+  }
 
   // 1. Build WIQL query and fetch work item IDs
   const wiql = buildWorkItemWiql(workstream.adoAreaPath, sprintPaths);
-  const ids = await wiqlFetch(SYNC_CONFIG.projectNameOrId, wiql);
+  const ids = await wiqlFetch(adoProject, wiql);
 
   if (ids.length === 0) {
     return { itemsFetched: 0, itemsCreated: 0, itemsUpdated: 0, itemsSkipped: 0 };
   }
 
   // 2. Batch-fetch work item details
-  const rawItems = await batchFetch(SYNC_CONFIG.projectNameOrId, ids, WORK_ITEM_FIELDS);
+  const rawItems = await batchFetch(adoProject, ids, WORK_ITEM_FIELDS);
 
   const itemsFetched = rawItems.length;
 

@@ -10,6 +10,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type { AdoIterationInput } from './types';
+import { VISIBLE_SPRINT_TABS } from './window';
 
 /** ADO iteration shape (alias for AdoIterationInput). */
 export type AdoIteration = AdoIterationInput;
@@ -36,12 +37,12 @@ export interface RollingSprintSelection {
  * Deterministic across runs.
  *
  * @param iterations - All team iterations (with dates; isCurrent preferred when available)
- * @param count - Number of sprints to select (default 5)
+ * @param count - Number of sprints to select (defaults to visible tab depth)
  * @returns Selected sprints and current sprint reference
  */
 export function selectRollingSprints(
   iterations: AdoIterationInput[],
-  count: number = 5
+  count: number = VISIBLE_SPRINT_TABS
 ): RollingSprintSelection {
   const now = new Date();
   const withDates = iterations.filter((i) => i.startDate != null && i.finishDate != null) as Array<
@@ -74,18 +75,6 @@ export function selectRollingSprints(
   const currentSprint = selected.find((s) => s.isCurrent) ?? selected[selected.length - 1] ?? null;
 
   return { sprints, currentSprint };
-}
-
-/**
- * Select exactly 5 sprints for the rolling window: current + 4 prior.
- * Compatible with existing callers.
- *
- * @param iterations - All team iterations (with dates; isCurrent preferred when available)
- * @returns Selected 5 sprints (current + 4 prior), sorted by startDate descending
- */
-export function selectRollingFiveSprints(iterations: AdoIterationInput[]): AdoIterationInput[] {
-  const { sprints } = selectRollingSprints(iterations, 5);
-  return sprints;
 }
 
 /**
@@ -187,7 +176,7 @@ export async function syncIterations(
 
   const cfg = config ?? SYNC_CONFIG;
   const fetchFn = fetcher ?? fetchTeamIterations;
-  const count = cfg.lookbackSprintCount ?? 5;
+  const count = cfg.lookbackSprintCount ?? SYNC_CONFIG.lookbackSprintCount;
 
   const allIterations = await fetchFn(cfg.projectNameOrId, cfg.iterationTeamId);
   const { sprints, currentSprint } = selectRollingSprints(allIterations, count);

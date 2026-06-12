@@ -429,6 +429,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [1001],
       batchFetcher: async () => [rawFeature],
@@ -463,6 +464,7 @@ describe('syncMilestoneFeatures', () => {
     const rawV1 = makeRawFeature(2001, 'Original Title', 'ADP-MAR', workstreamAreaPath);
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [2001],
       batchFetcher: async () => [rawV1],
@@ -479,6 +481,7 @@ describe('syncMilestoneFeatures', () => {
     };
     const context2: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [2001],
       batchFetcher: async () => [rawV2],
@@ -506,6 +509,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [3001],
       batchFetcher: async () => [rawFeature],
@@ -526,15 +530,11 @@ describe('syncMilestoneFeatures', () => {
 
   it('does NOT create a Milestone for a Feature with legacy -Goal tag', async () => {
     const today = new Date('2026-02-20T00:00:00.000Z');
-    const rawFeature = makeRawFeature(
-      3501,
-      'Legacy Goal Feature',
-      'Feb-Goal',
-      workstreamAreaPath
-    );
+    const rawFeature = makeRawFeature(3501, 'Legacy Goal Feature', 'Feb-Goal', workstreamAreaPath);
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [3501],
       batchFetcher: async () => [rawFeature],
@@ -553,6 +553,7 @@ describe('syncMilestoneFeatures', () => {
   it('returns zero counts when ADO returns no IDs', async () => {
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: async () => [],
       batchFetcher: async () => [],
     };
@@ -574,12 +575,7 @@ describe('syncMilestoneFeatures', () => {
 
   it('handles multiple Features — only ADP-tagged ones become Milestones', async () => {
     const today = new Date('2026-02-20T00:00:00.000Z');
-    const adpFeature = makeRawFeature(
-      4001,
-      'ADP Feature',
-      'ADP-FEB; Planning',
-      workstreamAreaPath
-    );
+    const adpFeature = makeRawFeature(4001, 'ADP Feature', 'ADP-FEB; Planning', workstreamAreaPath);
     const nonAdpFeature = makeRawFeature(
       4002,
       'Plain Feature',
@@ -589,6 +585,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [4001, 4002],
       batchFetcher: async () => [adpFeature, nonAdpFeature],
@@ -613,6 +610,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [5001],
       batchFetcher: async () => [rawFeature],
@@ -641,6 +639,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async (_proj: string, query: string) => {
         if (query.includes('[System.Parent]')) return [6101, 6102];
@@ -692,6 +691,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       sprintIdMap: new Map([[sprintPath, sprint.id]]),
       wiqlFetcher: async (_proj: string, query: string) => {
@@ -724,6 +724,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [9001],
       batchFetcher: async () => [rawFeature],
@@ -754,6 +755,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async () => [9101],
       batchFetcher: async () => [rawFeature],
@@ -776,6 +778,7 @@ describe('syncMilestoneFeatures', () => {
 
     const context: MilestoneFeatureSyncContext = {
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       today,
       wiqlFetcher: async (_proj: string, query: string) => {
         if (query.includes('[System.Parent]')) return [];

@@ -10,9 +10,9 @@
 import { prisma } from '@/lib/prisma';
 import { fetchTeamIterations } from './ado-client';
 import { syncCapacityForAllWorkstreams } from './capacity';
-import { SYNC_CONFIG } from './config';
-import { selectRollingFiveSprints, upsertSprintsFromIterations } from './iterations';
+import { selectRollingSprints, upsertSprintsFromIterations } from './iterations';
 import { syncMilestoneFeatures } from './milestone-features';
+import { loadSyncProgramConfig, loadSyncWorkstreams } from './sync-config-loader';
 import type {
   PerWorkstreamSummary,
   SyncOrchestratorInput,
@@ -20,42 +20,6 @@ import type {
   WorkstreamSyncResult,
 } from './types';
 import { syncWorkItemsForWorkstream } from './work-items';
-
-/** Default iterations fetcher using config + ado-client. */
-const defaultIterationsFetcher = () =>
-  fetchTeamIterations(SYNC_CONFIG.projectNameOrId, SYNC_CONFIG.iterationTeamId);
-
-/** Build canonical ADO area path for a configured workstream. */
-function buildAdoAreaPath(adoAreaPathSuffix: string): string {
-  return `${SYNC_CONFIG.projectNameOrId}\\App\\LiveLink - Yellow Box${adoAreaPathSuffix}`;
-}
-
-/**
- * Ensure configured workstreams exist in DB so Sync Now remains self-healing
- * even when seed data was cleared by tests or local resets.
- */
-async function ensureConfiguredWorkstreams(): Promise<void> {
-  for (const cfg of SYNC_CONFIG.workstreams) {
-    const adoAreaPath = buildAdoAreaPath(cfg.adoAreaPathSuffix);
-    const existing = await prisma.workstream.findFirst({ where: { name: cfg.name } });
-    if (existing) {
-      if (existing.adoAreaPath !== adoAreaPath) {
-        await prisma.workstream.update({
-          where: { id: existing.id },
-          data: { adoAreaPath },
-        });
-      }
-      continue;
-    }
-
-    await prisma.workstream.create({
-      data: {
-        name: cfg.name,
-        adoAreaPath,
-      },
-    });
-  }
-}
 
 /**
  * Run ADO sync: create SyncLog, process workstreams with per-workstream isolation,
@@ -67,9 +31,19 @@ async function ensureConfiguredWorkstreams(): Promise<void> {
 export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOrchestratorResult> {
   const syncType = input.syncType ?? 'Full';
   const syncFn = input.syncWorkstreamFn; // undefined = use real implementation
-  const iterationsFetcher = input.iterationsFetcher ?? defaultIterationsFetcher;
-
-  await ensureConfiguredWorkstreams();
+  const syncWorkItemsFn = input.syncWorkItemsForWorkstreamFn ?? syncWorkItemsForWorkstream;
+  const syncCapacityFn = input.syncCapacityForAllWorkstreamsFn ?? syncCapacityForAllWorkstreams;
+  const syncMilestoneFeaturesFn = input.syncMilestoneFeaturesFn ?? syncMilestoneFeatures;
+  const computeMetricsFn =
+    input.computeMetricsFn ??
+    (async (sprintId: string) => {
+      const { computeAllMetrics } = await import('@/lib/metrics/orchestrator');
+      return computeAllMetrics(sprintId);
+    });
+  const programConfig = await loadSyncProgramConfig(prisma);
+  const iterationsFetcher =
+    input.iterationsFetcher ??
+    (() => fetchTeamIterations(programConfig.adoProject, programConfig.iterationTeamId));
 
   // 1. Create SyncLog with status Running
   const syncLog = await prisma.syncLog.create({
@@ -79,7 +53,8 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     },
   });
 
-  const workstreams = await prisma.workstream.findMany({ orderBy: { name: 'asc' } });
+  const workstreams = await loadSyncWorkstreams(prisma);
+
   const perWorkstreamSummaries: PerWorkstreamSummary[] = [];
   let totalFetched = 0;
   let totalCreated = 0;
@@ -100,12 +75,16 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   if (syncType === 'Full' || syncType === 'Iterations' || syncType === 'Capacity') {
     try {
       const allIterations = await iterationsFetcher();
-      const selected = selectRollingFiveSprints(allIterations);
+      const { sprints: selected, currentSprint } = selectRollingSprints(
+        allIterations,
+        programConfig.lookbackSprintCount
+      );
+
       selectedSprintPathsOrderedDesc = selected
         .map((s) => s.path)
         .filter((p): p is string => Boolean(p));
       if (selected.length > 0) {
-        const current = selected.find((s) => s.isCurrent) ?? selected[0];
+        const current = currentSprint ?? selected[0];
         const upsertResult = await upsertSprintsFromIterations(selected, current.path);
         currentSprintId = upsertResult.currentSprintId;
         currentSprintPath = upsertResult.currentSprintPath;
@@ -151,7 +130,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
         result = await syncFn(ws.id, syncType);
       } else if (shouldSyncWorkItems) {
         // Real work item sync (Story 3)
-        result = await syncWorkItemsForWorkstream(ws, {
+        result = await syncWorkItemsFn(ws, {
           sprintPaths: Array.from(sprintIdMap.keys()),
           sprintIdMap,
         });
@@ -175,6 +154,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
       hasFailure = true;
       const errorMsg = err instanceof Error ? err.message : String(err);
       errorMessages.push(`${ws.name}: ${errorMsg}`);
+
       perWorkstreamSummaries.push({
         workstreamId: ws.id,
         status: 'Failed',
@@ -190,7 +170,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   if (syncType === 'Full' && !syncFn) {
     for (const ws of workstreams) {
       try {
-        const milestoneResult = await syncMilestoneFeatures(ws, { sprintIdMap });
+        const milestoneResult = await syncMilestoneFeaturesFn(ws, { sprintIdMap });
         totalCreated += milestoneResult.milestonesCreated + milestoneResult.childStoriesUpserted;
         totalUpdated += milestoneResult.milestonesUpdated;
 
@@ -217,7 +197,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   const shouldSyncCapacity = syncType === 'Full' || syncType === 'Capacity';
   if (shouldSyncCapacity && iterationIdMap.size > 0) {
     try {
-      const capacityResults = await syncCapacityForAllWorkstreams(
+      const capacityResults = await syncCapacityFn(
         workstreams,
         sprintIdMap,
         iterationIdMap,
@@ -268,7 +248,6 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   // Metric computation hook (Story 3) — non-fatal
   if (finalStatus === 'Success' && sprintIdMap.size > 0) {
     try {
-      const { computeAllMetrics } = await import('@/lib/metrics/orchestrator');
       // Recompute rolling window oldest -> newest so current sprint projections can use prior snapshots.
       const orderedSprintIds = selectedSprintPathsOrderedDesc
         .slice()
@@ -280,7 +259,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
       }
 
       for (const sprintId of orderedSprintIds) {
-        await computeAllMetrics(sprintId);
+        await computeMetricsFn(sprintId);
       }
     } catch {
       // Intentionally non-fatal: metric computation failure should not fail sync completion.

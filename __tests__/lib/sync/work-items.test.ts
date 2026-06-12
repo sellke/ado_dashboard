@@ -644,6 +644,7 @@ describe('syncWorkItemsForWorkstream', () => {
         [iterationPath2, sprint2Id],
       ]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: mockWiqlFetcher,
       batchFetcher: mockBatchFetcher,
     };
@@ -682,6 +683,7 @@ describe('syncWorkItemsForWorkstream', () => {
       sprintPaths: [iterationPath2],
       sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: mockWiqlFetcher,
       batchFetcher: mockBatchFetcher,
     };
@@ -706,6 +708,7 @@ describe('syncWorkItemsForWorkstream', () => {
         sprintPaths: [],
         sprintIdMap: new Map(),
         db: prisma,
+        adoProject: 'Event Streaming Platform',
         wiqlFetcher: jest.fn(),
         batchFetcher: jest.fn(),
       }
@@ -724,6 +727,7 @@ describe('syncWorkItemsForWorkstream', () => {
         sprintPaths: [iterationPath2],
         sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
         db: prisma,
+        adoProject: 'Event Streaming Platform',
         wiqlFetcher: jest.fn().mockResolvedValue([]),
         batchFetcher: jest.fn(),
       }
@@ -740,6 +744,7 @@ describe('syncWorkItemsForWorkstream', () => {
       sprintPaths: [iterationPath2],
       sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: jest.fn().mockResolvedValue([301]),
       batchFetcher: jest.fn().mockResolvedValue(rawItems),
     };
@@ -781,6 +786,7 @@ describe('syncWorkItemsForWorkstream', () => {
       sprintPaths: [iterationPath2],
       sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: jest.fn().mockResolvedValue([401]),
       batchFetcher: jest.fn().mockResolvedValue(rawItemsV1),
     };
@@ -819,6 +825,7 @@ describe('syncWorkItemsForWorkstream', () => {
       sprintPaths: [iterationPath2],
       sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: jest.fn().mockResolvedValue([501, 502, 503, 504, 505]),
       batchFetcher: jest.fn().mockResolvedValue(rawItems),
     };
@@ -852,6 +859,7 @@ describe('syncWorkItemsForWorkstream', () => {
         [iterationPath2, sprint2Id],
       ]),
       db: prisma,
+      adoProject: 'Event Streaming Platform',
       wiqlFetcher: jest.fn().mockResolvedValue([601, 602]),
       batchFetcher: jest.fn().mockResolvedValue(rawItems),
     };

@@ -16,7 +16,6 @@ import {
 } from '@/lib/milestones/format';
 import { prisma as defaultPrisma } from '@/lib/prisma';
 import { fetchWorkItemIdsByWiql, fetchWorkItemsBatch } from './ado-client';
-import { SYNC_CONFIG } from './config';
 import { mapAdoWorkItem, type AdoWorkItemRaw } from './mappers';
 import { upsertWorkItems, WORK_ITEM_FIELDS } from './work-items';
 
@@ -36,6 +35,8 @@ export interface MilestoneFeatureSyncContext {
   today?: Date;
   /** Map from ADO iteration path → local Sprint.id (for child story sprint resolution). */
   sprintIdMap?: Map<string, string>;
+  /** ADO project override for tests; production reads from the workstream row. */
+  adoProject?: string;
 }
 
 /** Summary counters from a single milestone-feature sync run. */
@@ -172,17 +173,20 @@ export function parseQuarterTag(tags: string): string | null {
 // ---------------------------------------------------------------------------
 
 const QUARTER_START_MONTH: Record<string, number> = {
-  Q1: 0,  // January
-  Q2: 3,  // April
-  Q3: 6,  // July
-  Q4: 9,  // October
+  Q1: 0, // January
+  Q2: 3, // April
+  Q3: 6, // July
+  Q4: 9, // October
 };
 
 /**
  * Derive a targetMonth Date from a quarter string (e.g. "Q4" → October 1 of the
  * current fiscal year). Returns null if quarter is not recognized.
  */
-export function quarterToTargetMonth(quarter: string | null, today: Date = new Date()): Date | null {
+export function quarterToTargetMonth(
+  quarter: string | null,
+  today: Date = new Date()
+): Date | null {
   if (!quarter) return null;
   const monthIndex = QUARTER_START_MONTH[quarter.toUpperCase()];
   if (monthIndex === undefined) return null;
@@ -287,7 +291,8 @@ async function upsertMilestonesFromFeatures(
  * @returns Counters for features, milestones, and child stories
  */
 export async function syncMilestoneFeatures(
-  workstream: Pick<Workstream, 'id' | 'adoAreaPath' | 'name'>,
+  workstream: Pick<Workstream, 'id' | 'adoAreaPath' | 'name'> &
+    Partial<Pick<Workstream, 'adoProject'>>,
   context: MilestoneFeatureSyncContext = {}
 ): Promise<MilestoneFeatureSyncResult> {
   const db = context.db ?? defaultPrisma;
@@ -295,6 +300,7 @@ export async function syncMilestoneFeatures(
   const batchFetch = context.batchFetcher ?? fetchWorkItemsBatch;
   const today = context.today ?? new Date();
   const sprintIdMap = context.sprintIdMap ?? new Map<string, string>();
+  const adoProject = workstream.adoProject ?? context.adoProject;
 
   const emptyResult: MilestoneFeatureSyncResult = {
     featuresFetched: 0,
@@ -305,16 +311,20 @@ export async function syncMilestoneFeatures(
     childStoriesUpserted: 0,
   };
 
+  if (!adoProject) {
+    throw new Error(`Missing ADO project for workstream ${workstream.name}`);
+  }
+
   // 1. Build and execute WIQL (fetches ALL Features — tag filtering is in code)
   const wiql = buildFeatureGoalWiql(workstream.adoAreaPath);
-  const ids = await wiqlFetch(SYNC_CONFIG.projectNameOrId, wiql);
+  const ids = await wiqlFetch(adoProject, wiql);
 
   if (ids.length === 0) {
     return emptyResult;
   }
 
   // 2. Batch-fetch work item details
-  const rawItems = await batchFetch(SYNC_CONFIG.projectNameOrId, ids, WORK_ITEM_FIELDS);
+  const rawItems = await batchFetch(adoProject, ids, WORK_ITEM_FIELDS);
 
   // 3. Map and keep only Features
   const allMapped = rawItems
@@ -365,10 +375,10 @@ export async function syncMilestoneFeatures(
 
   const childWiql = buildChildStoriesWiql(featureAdoIds);
   if (childWiql) {
-    const childIds = await wiqlFetch(SYNC_CONFIG.projectNameOrId, childWiql);
+    const childIds = await wiqlFetch(adoProject, childWiql);
 
     if (childIds.length > 0) {
-      const rawChildren = await batchFetch(SYNC_CONFIG.projectNameOrId, childIds, WORK_ITEM_FIELDS);
+      const rawChildren = await batchFetch(adoProject, childIds, WORK_ITEM_FIELDS);
       childStoriesFetched = rawChildren.length;
 
       const mappedChildren = rawChildren

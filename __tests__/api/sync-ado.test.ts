@@ -6,6 +6,7 @@
  */
 
 import { POST } from '@/app/api/sync/ado/route';
+import { INGEST_SPRINT_DEPTH } from '@/lib/sync/window';
 import { cleanupTestData, prisma } from '../prisma/helpers';
 
 describe('POST /api/sync/ado', () => {
@@ -199,6 +200,81 @@ describe('POST /api/sync/ado', () => {
       expect(ws.capacitySummary).toHaveProperty('sprintsSkippedLocked');
       expect(ws.capacitySummary).toHaveProperty('retries');
     }
+  });
+
+  it('should pass all ingested sprints to work items, capacity, and metric recompute', async () => {
+    const { runSync } = await import('@/lib/sync/orchestrator');
+    const base = 'Project\\FY27\\Q1';
+    const iterations = Array.from({ length: INGEST_SPRINT_DEPTH }, (_, index) => {
+      const sprintNumber = index + 1;
+      const startDay = 1 + index * 14;
+      return {
+        path: `${base}\\Sprint ${sprintNumber}`,
+        name: `Sprint ${sprintNumber}`,
+        id: `iteration-${sprintNumber}`,
+        startDate: new Date(Date.UTC(2026, 0, startDay)),
+        finishDate: new Date(Date.UTC(2026, 0, startDay + 13)),
+        isCurrent: sprintNumber === INGEST_SPRINT_DEPTH,
+      };
+    });
+    const expectedPathsDesc = iterations.map((it) => it.path).reverse();
+    const workItemSprintPaths: string[][] = [];
+    let firstSprintIdMap: Map<string, string> | null = null;
+    let capacitySprintCount = 0;
+    let capacityIterationCount = 0;
+    const milestoneSprintCounts: number[] = [];
+    const metricSprintIds: string[] = [];
+
+    const result = await runSync({
+      syncType: 'Full',
+      iterationsFetcher: async () => iterations,
+      syncWorkItemsForWorkstreamFn: async (_workstream, context) => {
+        workItemSprintPaths.push([...context.sprintPaths]);
+        firstSprintIdMap ??= new Map(context.sprintIdMap);
+        return { itemsFetched: 0, itemsCreated: 0, itemsUpdated: 0 };
+      },
+      syncMilestoneFeaturesFn: async (_workstream, context) => {
+        milestoneSprintCounts.push(context?.sprintIdMap?.size ?? 0);
+        return {
+          featuresFetched: 0,
+          featuresUpserted: 0,
+          milestonesCreated: 0,
+          milestonesUpdated: 0,
+          childStoriesFetched: 0,
+          childStoriesUpserted: 0,
+        };
+      },
+      syncCapacityForAllWorkstreamsFn: async (workstreams, sprintIdMap, iterationIdMap) => {
+        capacitySprintCount = sprintIdMap.size;
+        capacityIterationCount = iterationIdMap.size;
+        return workstreams.map((workstream) => ({
+          workstreamId: workstream.id,
+          status: 'Success' as const,
+          sprintsUpserted: sprintIdMap.size,
+          sprintsSkippedLocked: 0,
+          retries: 0,
+        }));
+      },
+      computeMetricsFn: async (sprintId) => {
+        metricSprintIds.push(sprintId);
+      },
+    });
+
+    expect(result.summary.status).toBe('Success');
+    expect(result.summary.sprintsSynced).toBe(INGEST_SPRINT_DEPTH);
+    expect(workItemSprintPaths.length).toBeGreaterThan(0);
+    expect(workItemSprintPaths).toEqual(
+      expect.arrayContaining([expect.arrayContaining(expectedPathsDesc)])
+    );
+    workItemSprintPaths.forEach((paths) => expect(paths).toEqual(expectedPathsDesc));
+    expect(capacitySprintCount).toBe(INGEST_SPRINT_DEPTH);
+    expect(capacityIterationCount).toBe(INGEST_SPRINT_DEPTH);
+    milestoneSprintCounts.forEach((count) => expect(count).toBe(INGEST_SPRINT_DEPTH));
+    expect(firstSprintIdMap).not.toBeNull();
+    const expectedMetricIdsOldestToNewest = [...expectedPathsDesc]
+      .reverse()
+      .map((path) => firstSprintIdMap!.get(path));
+    expect(metricSprintIds).toEqual(expectedMetricIdsOldestToNewest);
   });
 
   it('should continue for remaining workstreams when one fails (partial failure)', async () => {
