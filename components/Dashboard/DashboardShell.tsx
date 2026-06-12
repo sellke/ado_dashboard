@@ -2,7 +2,11 @@
 
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Alert, Button, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
-import type { DashboardViewModel, MilestoneQuarterGroup, SprintStoryViewModel } from '@/lib/dashboard/types';
+import type {
+  DashboardViewModel,
+  MilestoneQuarterGroup,
+  SprintStoryViewModel,
+} from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { ProgramSummarySection } from './ProgramSummarySection';
 import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
@@ -17,6 +21,9 @@ export interface DashboardShellProps {
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
+  activeSprintId?: string;
+  onActiveSprintChange?: (sprintId: string) => void;
+  onCurrentSprintChange?: (sprintId: string | null) => void;
 }
 
 function WorkstreamSection({
@@ -24,11 +31,17 @@ function WorkstreamSection({
   sprintStoriesMap,
   storiesLoading,
   storiesError,
+  activeSprintId,
+  onActiveSprintChange,
+  onCurrentSprintChange,
 }: {
   viewModel: DashboardViewModel;
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
+  activeSprintId?: string;
+  onActiveSprintChange?: (sprintId: string) => void;
+  onCurrentSprintChange?: (sprintId: string | null) => void;
 }) {
   if (viewModel.state !== 'success') {
     return null;
@@ -43,6 +56,9 @@ function WorkstreamSection({
       sprintStoriesMap={sprintStoriesMap}
       storiesLoading={storiesLoading}
       storiesError={storiesError}
+      activeSprintId={activeSprintId}
+      onActiveSprintChange={onActiveSprintChange}
+      onCurrentSprintChange={onCurrentSprintChange}
     />
   );
 }
@@ -115,6 +131,9 @@ export function DashboardShell({
   sprintStoriesMap,
   storiesLoading,
   storiesError,
+  activeSprintId,
+  onActiveSprintChange,
+  onCurrentSprintChange,
 }: DashboardShellProps) {
   if (viewModel.state === 'loading') {
     return <LoadingSkeletons />;
@@ -142,6 +161,9 @@ export function DashboardShell({
         sprintStoriesMap={sprintStoriesMap}
         storiesLoading={storiesLoading}
         storiesError={storiesError}
+        activeSprintId={activeSprintId}
+        onActiveSprintChange={onActiveSprintChange}
+        onCurrentSprintChange={onCurrentSprintChange}
       />
     </Stack>
   );

@@ -4,6 +4,8 @@
 
 Generate comprehensive feature specifications using a contract-first approach that ensures complete alignment between developer and AI before creating any supporting files. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**, eliminating presumptuous file creation by establishing a clear "contract" through collaborative conversation.
 
+> **Output discipline (all hosts — Cursor, Claude, GPT, etc.):** The single deliverable of this command is the **markdown spec package** under `.writ/specs/`, written with ordinary file-editing tools. Do NOT generate the host's native plan artifact (e.g., a Cursor "plan", a Build/execute plan, or any `.plan.md`) as a substitute for the spec, and do NOT transition into a Build/implementation mode. Plan Mode here is a *conversation surface* for discovery only — the spec files ARE the plan. When discovery is done, return to Agent Mode and write the spec package directly.
+
 ## Invocation
 
 - `/create-spec` — discover and create a full contract-first spec package
@@ -212,6 +214,7 @@ If user selects "Something else", follow up with a free-text question to get the
 - **Read-only enforcement** — structurally prevents premature file creation
 - **Conversational UX** — open-ended back-and-forth instead of multiple-choice boxes
 - **Clear phase signal** — the mode switch tells the user "we're shaping the idea, not building yet"
+- **Discovery only** — Plan Mode is for the discovery conversation and contract proposal. Do NOT invoke the host's native plan/"create plan"/Build tooling while in Plan Mode. No artifact is produced here; the spec package is written later in Agent Mode (Phase 2).
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 
@@ -360,7 +363,7 @@ When confident, present a contract proposal with any concerns surfaced:
 - Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
-Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+Present this in Plan Mode and discuss any refinements conversationally. When the user approves, return to Agent Mode to proceed — do NOT call a native plan tool to capture the contract or the spec. Once in Agent Mode, confirm with AskQuestion:
 
 #### Step 1.4b: Contract Decision (Agent Mode)
 
@@ -432,6 +435,8 @@ AskQuestion({
 ### Phase 2: Spec Package Creation (Post-Agreement Only)
 
 **Triggered only after user confirms contract with 'yes'**
+
+Execute this phase in Agent Mode by writing files directly with file-editing tools. The spec markdown files are the deliverable — never represent this phase as a host-native plan or Build/execute step.
 
 #### Step 2.1: Initialize Tracking
 

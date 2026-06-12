@@ -1,17 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Group, Stack, Title } from '@mantine/core';
 import { IconSettings } from '@tabler/icons-react';
+import { Button, Group, Stack, Title } from '@mantine/core';
 import {
   createErrorViewModel,
   createLoadingViewModel,
   groupMilestonesByQuarter,
   mapApiResponseToDashboardViewModel,
 } from '@/lib/dashboard/adapter';
-import { mapSprintStoriesResponse } from '@/lib/dashboard/sprint-stories-adapter';
 import { DASHBOARDS, type DashboardId } from '@/lib/dashboard/config';
-import type { ApiResponse, SprintStoriesApiResponse, SprintStoryViewModel } from '@/lib/dashboard/types';
+import { mapSprintStoriesResponse } from '@/lib/dashboard/sprint-stories-adapter';
+import type {
+  ApiResponse,
+  SprintStoriesApiResponse,
+  SprintStoryViewModel,
+} from '@/lib/dashboard/types';
 import {
   appendWorkstreamIdsParam,
   loadDashboardWorkstreamScope,
@@ -19,16 +23,17 @@ import {
   saveDashboardWorkstreamScope,
   type WorkstreamScopeOption,
 } from '@/lib/dashboard/workstream-scope';
+import { buildPresentation, type ExportInput } from '@/lib/export';
 import type {
   ApiMilestonesResponse,
   ApiMilestoneWithProgress,
   ApiProgramMilestoneRollup,
 } from '@/lib/milestones/types';
-import { buildPresentation } from '@/lib/export';
-import type { ExportInput } from '@/lib/export';
 import { DashboardShell } from './DashboardShell';
 import { ExportControl } from './ExportControl';
+import { MetricConfigPanel } from './MetricConfigPanel';
 import { SyncControl } from './SyncControl';
+import { WorkstreamRegistryPanel } from './WorkstreamRegistryPanel';
 import { WorkstreamScopeModal } from './WorkstreamScopeModal';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
@@ -49,7 +54,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [programRollup, setProgramRollup] = useState<ApiProgramMilestoneRollup | null>(null);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
   const [milestonesError, setMilestonesError] = useState<string | null>(null);
-  const [sprintStoriesMap, setSprintStoriesMap] = useState<Record<string, SprintStoryViewModel[]>>({});
+  const [sprintStoriesMap, setSprintStoriesMap] = useState<Record<string, SprintStoryViewModel[]>>(
+    {}
+  );
   const [storiesLoading, setStoriesLoading] = useState(false);
   const [storiesError, setStoriesError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
@@ -58,23 +65,33 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [exportInProgress, setExportInProgress] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [scopeModalOpened, setScopeModalOpened] = useState(false);
+  const [registryOpened, setRegistryOpened] = useState(false);
+  const [metricConfigOpened, setMetricConfigOpened] = useState(false);
   const [allWorkstreams, setAllWorkstreams] = useState<WorkstreamScopeOption[]>([]);
   const [workstreamsLoading, setWorkstreamsLoading] = useState(true);
   const [workstreamsError, setWorkstreamsError] = useState<string | null>(null);
   const [storedScopeIds, setStoredScopeIds] = useState<string[] | null>(null);
   const [activeScopedIds, setActiveScopedIds] = useState<string[] | null>(null);
+  const [activeSprintId, setActiveSprintId] = useState('');
+  const [currentSprintId, setCurrentSprintId] = useState<string | null | undefined>(undefined);
   const [scopeRefreshToken, setScopeRefreshToken] = useState(0);
   const metricsRequestIdRef = useRef(0);
   const milestonesRequestIdRef = useRef(0);
   const storiesRequestIdRef = useRef(0);
 
   const metricsUrl = useMemo(() => {
-    const base = `/api/metrics?dashboard=${dashboardId}`;
+    let base = `/api/metrics?dashboard=${dashboardId}`;
+    if (activeSprintId && currentSprintId !== undefined && activeSprintId !== currentSprintId) {
+      base += `&sprintId=${activeSprintId}`;
+    }
     return activeScopedIds ? appendWorkstreamIdsParam(base, activeScopedIds) : base;
-  }, [dashboardId, activeScopedIds]);
+  }, [dashboardId, activeScopedIds, activeSprintId, currentSprintId]);
 
   const milestonesUrl = useMemo(
-    () => (activeScopedIds ? appendWorkstreamIdsParam('/api/milestones', activeScopedIds) : '/api/milestones'),
+    () =>
+      activeScopedIds
+        ? appendWorkstreamIdsParam('/api/milestones', activeScopedIds)
+        : '/api/milestones',
     [activeScopedIds]
   );
 
@@ -148,10 +165,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     return mapApiResponseToDashboardViewModel(rawMetrics);
   }, [metricsViewState, metricsError, rawMetrics]);
 
-  const milestoneQuarterGroups = useMemo(
-    () => groupMilestonesByQuarter(milestones),
-    [milestones]
-  );
+  const milestoneQuarterGroups = useMemo(() => groupMilestonesByQuarter(milestones), [milestones]);
 
   const fetchMetrics = useCallback(
     async (options?: { skipLoadingState?: boolean }) => {
@@ -272,10 +286,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         return;
       }
 
-      await Promise.all([
-        fetchMetrics({ skipLoadingState: true }),
-        fetchMilestones(),
-      ]);
+      await Promise.all([fetchMetrics({ skipLoadingState: true }), fetchMilestones()]);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sync request failed';
       setSyncError(message);
@@ -289,12 +300,18 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       saveDashboardWorkstreamScope(window.localStorage, dashboardId, includedWorkstreamIds);
       setStoredScopeIds(includedWorkstreamIds);
       setActiveScopedIds(includedWorkstreamIds);
+      setActiveSprintId('');
+      setCurrentSprintId(undefined);
       setScopeModalOpened(false);
       setSprintStoriesMap({});
       setScopeRefreshToken((token) => token + 1);
     },
     [dashboardId]
   );
+
+  const handleCurrentSprintChange = useCallback((sprintId: string | null) => {
+    setCurrentSprintId(sprintId);
+  }, []);
 
   const handleExport = useCallback(async () => {
     setExportError(null);
@@ -323,44 +340,43 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
   }, [rawMetrics, viewModel, programRollup, milestones]);
 
-  const fetchSprintStories = useCallback(
-    async (workstreamIds: string[]) => {
-      const requestId = ++storiesRequestIdRef.current;
-      if (workstreamIds.length === 0) {
-        setSprintStoriesMap({});
+  const fetchSprintStories = useCallback(async (workstreamIds: string[]) => {
+    const requestId = ++storiesRequestIdRef.current;
+    if (workstreamIds.length === 0) {
+      setSprintStoriesMap({});
+      return;
+    }
+    setStoriesLoading(true);
+    setStoriesError(null);
+
+    try {
+      const results: Record<string, SprintStoryViewModel[]> = {};
+      await Promise.all(
+        workstreamIds.map(async (wsId) => {
+          const res = await fetch(`/api/sprints/stories?workstreamId=${wsId}`);
+          if (!res.ok) {
+            return;
+          }
+          const data: SprintStoriesApiResponse = await res.json();
+          results[wsId] = mapSprintStoriesResponse(data);
+        })
+      );
+      if (requestId !== storiesRequestIdRef.current) {
         return;
       }
-      setStoriesLoading(true);
-      setStoriesError(null);
-
-      try {
-        const results: Record<string, SprintStoryViewModel[]> = {};
-        await Promise.all(
-          workstreamIds.map(async (wsId) => {
-            const res = await fetch(`/api/sprints/stories?workstreamId=${wsId}`);
-            if (!res.ok) {return;}
-            const data: SprintStoriesApiResponse = await res.json();
-            results[wsId] = mapSprintStoriesResponse(data);
-          })
-        );
-        if (requestId !== storiesRequestIdRef.current) {
-          return;
-        }
-        setSprintStoriesMap(results);
-      } catch (err) {
-        if (requestId !== storiesRequestIdRef.current) {
-          return;
-        }
-        const message = err instanceof Error ? err.message : 'Failed to load sprint stories';
-        setStoriesError(message);
-      } finally {
-        if (requestId === storiesRequestIdRef.current) {
-          setStoriesLoading(false);
-        }
+      setSprintStoriesMap(results);
+    } catch (err) {
+      if (requestId !== storiesRequestIdRef.current) {
+        return;
       }
-    },
-    []
-  );
+      const message = err instanceof Error ? err.message : 'Failed to load sprint stories';
+      setStoriesError(message);
+    } finally {
+      if (requestId === storiesRequestIdRef.current) {
+        setStoriesLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchMetrics();
@@ -389,6 +405,20 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
           >
             Workstream scope
           </Button>
+          <Button
+            variant="light"
+            leftSection={<IconSettings size={16} />}
+            onClick={() => setRegistryOpened(true)}
+          >
+            Workstream Registry
+          </Button>
+          <Button
+            variant="light"
+            leftSection={<IconSettings size={16} />}
+            onClick={() => setMetricConfigOpened(true)}
+          >
+            Metric configuration
+          </Button>
           <ExportControl
             onExport={handleExport}
             isExporting={exportInProgress}
@@ -414,9 +444,23 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         onCancel={() => setScopeModalOpened(false)}
         onRetry={fetchAllWorkstreams}
       />
+      <MetricConfigPanel
+        opened={metricConfigOpened}
+        onClose={() => setMetricConfigOpened(false)}
+        onRecomputed={() => fetchMetrics()}
+        recalculateSprintId={rawMetrics?.sprint?.id ?? null}
+      />
+      <WorkstreamRegistryPanel
+        opened={registryOpened}
+        onClose={() => setRegistryOpened(false)}
+        onChanged={fetchAllWorkstreams}
+      />
       <DashboardShell
         viewModel={viewModel}
-        onRetry={() => { fetchMetrics(); fetchMilestones(); }}
+        onRetry={() => {
+          fetchMetrics();
+          fetchMilestones();
+        }}
         milestoneQuarterGroups={milestoneQuarterGroups}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
@@ -424,6 +468,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         sprintStoriesMap={sprintStoriesMap}
         storiesLoading={storiesLoading}
         storiesError={storiesError}
+        activeSprintId={activeSprintId}
+        onActiveSprintChange={setActiveSprintId}
+        onCurrentSprintChange={handleCurrentSprintChange}
       />
     </Stack>
   );

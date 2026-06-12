@@ -23,9 +23,11 @@ jest.mock('@/lib/charts', () => ({
       data-type={props.type as string}
     />
   ),
-  ChartLegend: ({ items }: { items: Array<{ label: string; color: string; dashed?: boolean }> }) => (
-    <div data-testid="chart-legend" data-items={JSON.stringify(items)} />
-  ),
+  ChartLegend: ({
+    items,
+  }: {
+    items: Array<{ label: string; color: string; dashed?: boolean }>;
+  }) => <div data-testid="chart-legend" data-items={JSON.stringify(items)} />,
 }));
 
 describe('ProgramSummarySection', () => {
@@ -52,6 +54,14 @@ describe('ProgramSummarySection', () => {
         avgLabel: null,
       },
       {
+        label: 'Avg Total Delivery/Bug',
+        value: '0.12',
+        rawValue: 0.12,
+        unit: '',
+        rag: 'Green',
+        avgLabel: null,
+      },
+      {
         label: 'Avg Total Overhead %',
         value: '29.00%',
         rawValue: 29,
@@ -69,52 +79,52 @@ describe('ProgramSummarySection', () => {
       },
     ],
     programTrendSprints: [
-        {
-          sprintId: 's1',
-          sprintName: 'Sprint 1',
-          isCurrent: false,
-          velocity: '120 pts',
-          velocityRate: '1.40 pts/hr',
-          activeBugs: '10',
-          bugsClosed: '14',
-          rawVelocity: 120,
-          rawVelocityRate: 1.4,
-          rawActiveBugs: 10,
-          rawBugsClosed: 14,
-          bugs: [],
-          velocityAvg: null,
-          overheadPercentAvg: null,
-          carryOverRateAvg: null,
-          plannedPoints: null,
-          completedPoints: null,
-          carryOverPoints: null,
-          grossHours: null,
-          rawOverheadPercent: null,
-          rawCarryOverRate: null,
-        },
-        {
-          sprintId: 's2',
-          sprintName: 'Sprint 2',
-          isCurrent: false,
-          velocity: '126 pts',
-          velocityRate: '1.55 pts/hr',
-          activeBugs: '8',
-          bugsClosed: '15',
-          rawVelocity: 126,
-          rawVelocityRate: 1.55,
-          rawActiveBugs: 8,
-          rawBugsClosed: 15,
-          bugs: [],
-          velocityAvg: null,
-          overheadPercentAvg: null,
-          carryOverRateAvg: null,
-          plannedPoints: null,
-          completedPoints: null,
-          carryOverPoints: null,
-          grossHours: null,
-          rawOverheadPercent: null,
-          rawCarryOverRate: null,
-        },
+      {
+        sprintId: 's1',
+        sprintName: 'Sprint 1',
+        isCurrent: false,
+        velocity: '120 pts',
+        velocityRate: '1.40 pts/hr',
+        activeBugs: '10',
+        bugsClosed: '14',
+        rawVelocity: 120,
+        rawVelocityRate: 1.4,
+        rawActiveBugs: 10,
+        rawBugsClosed: 14,
+        bugs: [],
+        velocityAvg: null,
+        overheadPercentAvg: null,
+        carryOverRateAvg: null,
+        plannedPoints: null,
+        completedPoints: null,
+        carryOverPoints: null,
+        grossHours: null,
+        rawOverheadPercent: null,
+        rawCarryOverRate: null,
+      },
+      {
+        sprintId: 's2',
+        sprintName: 'Sprint 2',
+        isCurrent: false,
+        velocity: '126 pts',
+        velocityRate: '1.55 pts/hr',
+        activeBugs: '8',
+        bugsClosed: '15',
+        rawVelocity: 126,
+        rawVelocityRate: 1.55,
+        rawActiveBugs: 8,
+        rawBugsClosed: 15,
+        bugs: [],
+        velocityAvg: null,
+        overheadPercentAvg: null,
+        carryOverRateAvg: null,
+        plannedPoints: null,
+        completedPoints: null,
+        carryOverPoints: null,
+        grossHours: null,
+        rawOverheadPercent: null,
+        rawCarryOverRate: null,
+      },
     ],
     sprint5Prediction: {
       velocity: '132 pts',
@@ -137,6 +147,9 @@ describe('ProgramSummarySection', () => {
 
     expect(screen.getByText('Avg Total Velocity Rate')).toBeInTheDocument();
     expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
+
+    expect(screen.getByText('Avg Total Delivery/Bug')).toBeInTheDocument();
+    expect(screen.getByText('0.12')).toBeInTheDocument();
 
     expect(screen.getByText('Avg Total Overhead %')).toBeInTheDocument();
     expect(screen.getByText('29.00%')).toBeInTheDocument();
@@ -203,8 +216,15 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 9,
           rawBugsClosed: 7,
           bugs: [],
-          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
         {
           sprintId: 's2',
@@ -219,8 +239,15 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 8,
           rawBugsClosed: 6,
           bugs: [],
-          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
         {
           sprintId: 's3',
@@ -235,8 +262,15 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 7,
           rawBugsClosed: 5,
           bugs: [],
-          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
         {
           sprintId: 's4',
@@ -251,8 +285,15 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 6,
           rawBugsClosed: 4,
           bugs: [],
-          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ],
       sprint5Prediction: {
@@ -400,8 +441,9 @@ describe('ProgramSummarySection', () => {
       programMetrics: [
         { ...populatedViewModel.programMetrics![0], metricId: 'velocity' },
         { ...populatedViewModel.programMetrics![1], metricId: 'velocityRate' },
-        { ...populatedViewModel.programMetrics![2], metricId: 'overheadPercent' },
-        { ...populatedViewModel.programMetrics![3], metricId: 'carryOverRate' },
+        { ...populatedViewModel.programMetrics![2], metricId: 'deliveryToBugRatio' },
+        { ...populatedViewModel.programMetrics![3], metricId: 'overheadPercent' },
+        { ...populatedViewModel.programMetrics![4], metricId: 'carryOverRate' },
       ],
     };
 
@@ -413,6 +455,9 @@ describe('ProgramSummarySection', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Definition for Avg Total Velocity Rate' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Definition for Avg Total Delivery/Bug' })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Definition for Avg Total Overhead %' })
@@ -437,9 +482,7 @@ describe('ProgramSummarySection', () => {
       const user = userEvent.setup();
       render(<ProgramSummarySection viewModel={vmWithMetricIds} />);
 
-      await user.hover(
-        screen.getByRole('button', { name: 'Definition for Avg Total Velocity' })
-      );
+      await user.hover(screen.getByRole('button', { name: 'Definition for Avg Total Velocity' }));
 
       const tooltip = await screen.findByRole('tooltip');
       expect(tooltip.textContent).toContain('Definition:');
@@ -480,8 +523,15 @@ describe('ProgramSummarySection', () => {
           rawActiveBugs: 0,
           rawBugsClosed: 0,
           bugs: [],
-          velocityAvg: null, overheadPercentAvg: null, carryOverRateAvg: null,
-          plannedPoints: null, completedPoints: null, carryOverPoints: null, grossHours: null, rawOverheadPercent: null, rawCarryOverRate: null,
+          velocityAvg: null,
+          overheadPercentAvg: null,
+          carryOverRateAvg: null,
+          plannedPoints: null,
+          completedPoints: null,
+          carryOverPoints: null,
+          grossHours: null,
+          rawOverheadPercent: null,
+          rawCarryOverRate: null,
         },
       ],
       sprint5Prediction: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SimpleGrid, Stack, Title } from '@mantine/core';
 import { deriveSprintList } from '@/lib/dashboard/sprint-utils';
 import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
@@ -12,6 +12,9 @@ export interface WorkstreamCardsGridProps {
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
+  activeSprintId?: string;
+  onActiveSprintChange?: (sprintId: string) => void;
+  onCurrentSprintChange?: (sprintId: string | null) => void;
 }
 
 export function WorkstreamCardsGrid({
@@ -19,25 +22,43 @@ export function WorkstreamCardsGrid({
   sprintStoriesMap,
   storiesLoading,
   storiesError,
+  activeSprintId,
+  onActiveSprintChange,
+  onCurrentSprintChange,
 }: WorkstreamCardsGridProps) {
-  const [activeSprintId, setActiveSprintId] = useState<string>('');
+  const [uncontrolledActiveSprintId, setUncontrolledActiveSprintId] = useState<string>('');
 
-  const sprints = deriveSprintList(sprintStoriesMap);
+  const sprints = useMemo(() => deriveSprintList(sprintStoriesMap), [sprintStoriesMap]);
   const currentSprintId = sprints.find((s) => s.isCurrent)?.id ?? undefined;
+  const selectedActiveSprintId = activeSprintId ?? uncontrolledActiveSprintId;
+  const handleActiveSprintChange = useCallback(
+    (sprintId: string) => {
+      if (onActiveSprintChange) {
+        onActiveSprintChange(sprintId);
+        return;
+      }
+      setUncontrolledActiveSprintId(sprintId);
+    },
+    [onActiveSprintChange]
+  );
 
   useEffect(() => {
+    onCurrentSprintChange?.(currentSprintId ?? null);
     if (sprints.length === 0) {
       return;
     }
-    setActiveSprintId((prev) => {
-      if (!prev) {
-        const current = sprints.find((s) => s.isCurrent);
-        return current?.id ?? sprints[0].id;
-      }
-      const stillValid = sprints.some((s) => s.id === prev);
-      return stillValid ? prev : (sprints.find((s) => s.isCurrent)?.id ?? sprints[0].id);
-    });
-  }, [sprintStoriesMap]);
+    const fallbackSprintId = currentSprintId ?? sprints[0].id;
+    const stillValid = sprints.some((s) => s.id === selectedActiveSprintId);
+    if (!selectedActiveSprintId || !stillValid) {
+      handleActiveSprintChange(fallbackSprintId);
+    }
+  }, [
+    currentSprintId,
+    handleActiveSprintChange,
+    onCurrentSprintChange,
+    selectedActiveSprintId,
+    sprints,
+  ]);
 
   if (!cards || cards.length === 0) {
     return null;
@@ -53,8 +74,8 @@ export function WorkstreamCardsGrid({
       {!storiesLoading && sprints.length > 0 && (
         <SprintTabSelector
           sprints={sprints}
-          activeSprintId={activeSprintId}
-          onSprintChange={setActiveSprintId}
+          activeSprintId={selectedActiveSprintId}
+          onSprintChange={handleActiveSprintChange}
         />
       )}
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: 'start' }}>
@@ -63,7 +84,7 @@ export function WorkstreamCardsGrid({
             key={card.workstreamId}
             card={card}
             sprintStories={sprintStoriesMap?.[card.workstreamId]}
-            activeSprintId={activeSprintId}
+            activeSprintId={selectedActiveSprintId}
             currentSprintId={currentSprintId}
             storiesLoading={storiesLoading}
             storiesError={storiesError}

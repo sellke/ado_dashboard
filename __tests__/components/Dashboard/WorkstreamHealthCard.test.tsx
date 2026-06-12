@@ -66,6 +66,13 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
   metrics: [
     createMetricTile({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
     createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+    createMetricTile({
+      label: 'Delivery/Bug',
+      value: '0.12',
+      rawValue: 0.12,
+      rag: 'Green',
+      metricId: 'deliveryToBugRatio',
+    }),
     createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
     createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
   ],
@@ -168,13 +175,15 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText('Bug Burndown')).toBeInTheDocument();
   });
 
-  it('renders all 4 metrics with values and RAG badges when full data', () => {
+  it('renders all 5 metrics with values and RAG badges when full data', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 
     expect(screen.getByText('Velocity')).toBeInTheDocument();
     expect(screen.getByText('45 pts')).toBeInTheDocument();
     expect(screen.getByText('Velocity Rate')).toBeInTheDocument();
     expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
+    expect(screen.getByText('Delivery/Bug')).toBeInTheDocument();
+    expect(screen.getByText('0.12')).toBeInTheDocument();
     expect(screen.getByText('Overhead %')).toBeInTheDocument();
     expect(screen.getByText('28%')).toBeInTheDocument();
     expect(screen.getByText('Carry-Over %')).toBeInTheDocument();
@@ -182,9 +191,9 @@ describe('WorkstreamHealthCard', () => {
 
     expect(screen.queryByText('Predictability')).not.toBeInTheDocument();
 
-    // Velocity Rate has rag: null so no badge; 3 G badges from Velocity, Overhead %, Carry-Over %
+    // Velocity Rate has rag: null so no badge; 4 G badges from Velocity, Delivery/Bug, Overhead %, Carry-Over %
     const gBadges = screen.getAllByText('G');
-    expect(gBadges.length).toBe(3);
+    expect(gBadges.length).toBe(4);
   });
 
   it('renders N/A for null metric values', () => {
@@ -193,6 +202,7 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
+        createMetricTile({ label: 'Delivery/Bug', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: null }),
       ],
@@ -254,6 +264,7 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', rag: 'Green' }),
         createMetricTile({ label: 'Velocity Rate', rag: null }),
+        createMetricTile({ label: 'Delivery/Bug', value: '—', rawValue: null, rag: 'Green' }),
         createMetricTile({ label: 'Overhead %', rag: 'Amber' }),
         createMetricTile({ label: 'Carry-Over %', rag: 'Red' }),
       ],
@@ -261,7 +272,7 @@ describe('WorkstreamHealthCard', () => {
 
     render(<WorkstreamHealthCard card={mixedRagCard} />);
 
-    expect(screen.getByText('G')).toBeInTheDocument();
+    expect(screen.getAllByText('G').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('R')).toBeInTheDocument();
   });
@@ -301,6 +312,11 @@ describe('WorkstreamHealthCard', () => {
           value: '0.85 pts/hr',
           mode: 'projected',
           rag: null,
+        }),
+        createMetricTile({
+          label: 'Delivery/Bug',
+          value: '0.12',
+          rag: 'Green',
         }),
         createMetricTile({ label: 'Overhead %', value: '28%', rag: 'Green' }),
         createMetricTile({ label: 'Carry-Over %', value: '12%', rag: 'Green' }),
@@ -345,6 +361,7 @@ describe('WorkstreamHealthCard', () => {
       metrics: [
         createMetricTile({ label: 'Velocity', value: 'N/A', rawValue: null, rag: 'Amber' }),
         createMetricTile({ label: 'Velocity Rate', value: 'N/A', rawValue: null, rag: null }),
+        createMetricTile({ label: 'Delivery/Bug', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Overhead %', value: 'N/A', rawValue: null, rag: null }),
         createMetricTile({ label: 'Carry-Over %', value: 'N/A', rawValue: null, rag: 'Red' }),
       ],
@@ -366,6 +383,13 @@ describe('WorkstreamHealthCard', () => {
           value: '0.85 pts/hr',
           rawValue: 0.85,
           rag: null,
+        }),
+        createMetricTile({
+          label: 'Delivery/Bug',
+          value: '0.12',
+          rawValue: 0.12,
+          rag: 'Green',
+          metricId: 'deliveryToBugRatio',
         }),
         createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
         createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
@@ -477,6 +501,12 @@ describe('WorkstreamHealthCard', () => {
             value: '0.85 pts/hr',
             rawValue: 0.85,
             rag: null,
+          }),
+          createMetricTile({
+            label: 'Delivery/Bug',
+            value: '0.12',
+            rawValue: 0.12,
+            rag: 'Green',
           }),
           createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
           createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
@@ -650,8 +680,9 @@ describe('WorkstreamHealthCard', () => {
         screen.getByRole('button', { name: 'Definition for Velocity Rate' })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Definition for Overhead %' })
+        screen.getByRole('button', { name: 'Definition for Delivery/Bug' })
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Definition for Overhead %' })).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Definition for Carry-Over %' })
       ).toBeInTheDocument();

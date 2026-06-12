@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 
 import { mapStateToStatusGroup } from '@/lib/sprints/status-mapping';
 import { prisma } from '@/lib/prisma';
+import { VISIBLE_SPRINT_TABS } from '@/lib/sync/window';
 
 export async function GET(request: Request) {
   try {
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
 
     const rollingSprints = await prisma.sprint.findMany({
       orderBy: { startDate: 'desc' },
-      take: 5,
+      take: VISIBLE_SPRINT_TABS,
       select: { id: true, name: true, startDate: true, endDate: true },
     });
 

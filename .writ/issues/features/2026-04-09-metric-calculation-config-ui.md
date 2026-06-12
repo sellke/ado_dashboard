@@ -21,7 +21,7 @@ Add an in-app settings panel that lets users configure the calculations going in
 ## Expected Outcome
 
 - A **Settings / Metric Configuration** panel in the dashboard exposes all configurable parameters in one place, organized by metric
-- **RAG threshold editing** — per metric (velocity, overheadPercent, predictability, carryOverRate), set Green and Amber min/max; persisted to the `ThresholdConfig` table via API
+- **RAG threshold editing** — per dashboard-visible metric (`overheadPercent`, `carryOverRate`, `deliveryToBugRatio`), set Green and Amber min/max; persisted to the `ThresholdConfig` table via API. Velocity uses trend-based RAG (Velocity & Rolling tab). `deliveryToBugRatio` is lower-is-healthier with a fixed zero-bug Green rule.
 - **Inclusion/exclusion rules** — checkboxes or toggles to control which work item types (`Bug`, `Spike`, `Support`, `Story`, `Task`) count toward each metric category (delivery points vs overhead hours); persisted to a new `MetricRuleConfig` table or similar
 - **Velocity RAG cutoffs** — configurable Amber floor (default 0.70) and Green floor (default 1.0) as ratio of rolling average
 - **Rolling window** — configurable sprint look-back window for rolling averages (default 4)
@@ -30,7 +30,8 @@ Add an in-app settings panel that lets users configure the calculations going in
 
 ## Relevant Files
 
-- `lib/metrics/rag.ts` — `assignRag` and `assignVelocityRag`; cutoffs and ratio thresholds to make configurable
+- `lib/metrics/rag.ts` — `assignRag`, `assignVelocityRag`, and `assignDeliveryToBugRag`; cutoffs and ratio thresholds to make configurable
+- `lib/metrics/trend-service.ts` — rolling window slice for delivery-to-bug aggregation
 - `lib/metrics/calculators.ts` — `calculateVelocity`, `calculateOverhead`, `calculatePredictability`, `calculateCarryOver`; hardcoded type filters to replace with config-driven inclusion rules
 - `lib/metrics/types.ts` — `ThresholdConfigInput` already models per-metric RAG config; needs extension for inclusion rules and velocity RAG cutoffs
 

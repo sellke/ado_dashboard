@@ -1,6 +1,6 @@
 # Story 5 — Inclusion rules + velocity/rolling editors (Phase 2+3 UI)
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** Medium
 > **Dependencies:** Story 2, Story 4
 
@@ -23,12 +23,12 @@ calculation rules from the UI**.
 
 ## Implementation Tasks
 
-- [ ] Write component tests for both tabs (toggle/edit, Save, validation)
-- [ ] Build the **Inclusion Rules** tab: matrix of category × work-item type checkboxes
-- [ ] Build the **Velocity & Rolling** tab: green floor, amber floor, rolling window inputs
-- [ ] Wire both tabs to their PUT endpoints + shared validation
-- [ ] Show which defaults map to current behavior (helper text) to reduce accidental drift
-- [ ] Verify a non-default edit changes engine output (integration with Story 2 refactor)
+- [x] Write component tests for both tabs (toggle/edit, Save, validation)
+- [x] Build the **Inclusion Rules** tab: matrix of category × work-item type checkboxes
+- [x] Build the **Velocity & Rolling** tab: green floor, amber floor, rolling window inputs
+- [x] Wire both tabs to their PUT endpoints + shared validation
+- [x] Show which defaults map to current behavior (helper text) to reduce accidental drift
+- [x] Verify a non-default edit changes engine output (integration with Story 2 refactor)
 
 ## Technical Notes
 
@@ -38,10 +38,21 @@ are fixed (only inclusion is toggled).
 
 ## Definition of Done
 
-- [ ] Both tabs functional, persist, and validate
-- [ ] Helper text documents default = current behavior
-- [ ] Edits demonstrably change engine output
-- [ ] ≥80% coverage on new component code
+- [x] Both tabs functional, persist, and validate
+- [x] Helper text documents default = current behavior
+- [x] Edits demonstrably change engine output
+- [x] ≥80% coverage on new component code
+
+## Verification
+
+- `pnpm exec jest __tests__/components/Dashboard/MetricConfigPanel.test.tsx __tests__/app/api/metrics/route.test.ts --runInBand`
+- `pnpm exec jest __tests__/lib/metrics/rag.test.ts __tests__/lib/metrics/trend-service.test.ts --runInBand`
+
+## Change Log
+
+- Added Inclusion Rules editing with accessible category/type toggles and persistence through `PUT /api/metric-config/rules`.
+- Added Velocity & Rolling editing with inline validation and persistence through `PUT /api/metric-config/engine`.
+- Documented current-behavior defaults in the UI to avoid accidental calculation drift.
 
 ## Context for Agents
 

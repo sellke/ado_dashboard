@@ -1,17 +1,19 @@
 # Metric Calculation Configuration UI
 
-> **Status:** Not Started
+> **Status:** Complete ✅
 > **Created:** 2026-05-28
+> **Last Refreshed:** 2026-06-11
 > **Owner:** @AdamSellke
 > **Origin:** Promoted from issue: `.writ/issues/features/2026-04-09-metric-calculation-config-ui.md`
 
 ## Specification Contract
 
 **Deliverable:** A database-persisted **Metric Configuration** settings panel in the
-dashboard that exposes every parameter feeding the four sprint metrics — RAG thresholds,
-work-item-type inclusion/exclusion rules, velocity RAG cutoffs, and the rolling-average
-window — editable in-app without code or environment changes. Seeded defaults exactly
-reproduce today's hardcoded behavior, so no metric changes on first deploy.
+dashboard that exposes every parameter feeding the sprint health metrics users see today —
+RAG thresholds (including **delivery-to-bug ratio**), work-item-type inclusion/exclusion
+rules, velocity RAG cutoffs, and the rolling-average window — editable in-app without code
+or environment changes. Seeded defaults exactly reproduce today's hardcoded behavior, so no
+metric changes on first deploy.
 
 **Must Include:** All four configurable areas, decomposed into phased stories so the
 lowest-risk piece (RAG threshold editing — table already exists) ships first.
@@ -41,7 +43,15 @@ config there without drift is the riskiest part.
   and `ThresholdConfig` so a fresh database reproduces today's exact metric numbers.
 - **Validation guardrails (per `ThresholdConfig` row):** `greenMin ≤ greenMax`,
   `amberMin ≤ amberMax`, ranges must not produce undefined-RAG gaps that the existing
-  `assignRag` logic would silently drop to Red.
+  `assignRag` logic would silently drop to Red. **`deliveryToBugRatio` is lower-is-healthier**
+  (Green = lowest band); the UI must label direction. The zero-bug healthy case
+  (`bugHours === 0` with delivery points > 0 → Green regardless of ratio) stays in
+  `assignDeliveryToBugRag` — not configurable.
+- **Thresholds tab scope:** expose only **dashboard-visible** threshold metrics:
+  `overheadPercent`, `carryOverRate`, and `deliveryToBugRatio`. Other seeded rows
+  (`sprintPredictability`, `agingWipDays`, `scopeCreepIndex`, `milestone*`) remain in
+  `ThresholdConfig` for future surfaces but are **out of scope** for this panel.
+  Velocity RAG is trend-based (Velocity & Rolling tab), not threshold rows.
 - **Velocity cutoffs:** Amber floor and Green floor are ratios of the rolling average,
   both `> 0`, with `amberFloor ≤ greenFloor`.
 - **Rolling window:** integer `≥ 1` (default 4).
@@ -63,13 +73,13 @@ config there without drift is the riskiest part.
 2. Editing a threshold / cutoff / rule and recomputing changes the RAG/metric output in
    the expected direction.
 3. Every previously hardcoded constant (`!== 'Bug'`, `!== 'Spike'`, `1.0`, `0.7`,
-   `take: 4`) is sourced from configuration.
+   `take: 4`, `slice(0, 4)` in trend aggregation) is sourced from configuration.
 
 **Scope Boundaries:**
 
 - **Included:** settings UI panel, config read/write APIs, schema + migration + seed,
-  refactor of `calculators.ts` / `rag.ts` / `snapshot.ts` to read configuration, and an
-  opt-in recalculation trigger.
+  refactor of `calculators.ts` / `rag.ts` / `snapshot.ts` / `trend-service.ts` to read
+  configuration, and an opt-in recalculation trigger.
 - **Excluded:** real auth/permissions, per-workstream config overrides, retroactive
   automatic recomputation, and updating the static tooltip copy in
   `2026-05-18-metric-definition-tooltips` (see dependency below).
@@ -84,6 +94,9 @@ config there without drift is the riskiest part.
   **static copy**. Once thresholds/cutoffs become editable, that copy goes stale.
   Resolving it is **out of scope here** but tracked as an explicit follow-up dependency
   (see Story 6 notes). Do not silently leave drifting numbers.
+- **`2026-06-04-delivery-to-bug-ratio-metric`** (Complete) — shipped the
+  `deliveryToBugRatio` metric, seeded `ThresholdConfig` row, `assignDeliveryToBugRag`,
+  and dashboard tiles. This spec adds **UI/API editing** for that row; no formula rework.
 
 ## Detailed Requirements
 
@@ -91,10 +104,10 @@ config there without drift is the riskiest part.
 
 | Parameter | Current (hardcoded) | New storage | Refactor target |
 |---|---|---|---|
-| RAG thresholds (green/amber min/max per metric) | `ThresholdConfig` rows (no UI) | `ThresholdConfig` (existing) | `assignRag` already reads it; add UI/API |
-| Inclusion/exclusion by work-item type | `type !== 'Bug' && type !== 'Spike'` (velocity, predictability, carry-over); Bug/Spike/Support → overhead | new `MetricRuleConfig` | `lib/metrics/calculators.ts` |
+| RAG thresholds (green/amber min/max per dashboard metric) | `ThresholdConfig` rows (no UI); includes `deliveryToBugRatio` (shipped 2026-06) | `ThresholdConfig` (existing) | `assignRag` / `assignDeliveryToBugRag` already read it; add UI/API |
+| Inclusion/exclusion by work-item type | `type !== 'Bug' && type !== 'Spike'` (velocity, predictability, carry-over, delivery-to-bug numerator); Bug/Spike/Support → overhead | new `MetricRuleConfig` | `lib/metrics/calculators.ts`, `trend-service.ts` aggregation inputs |
 | Velocity RAG cutoffs | `ratio >= 1.0` Green, `>= 0.7` Amber | new `MetricEngineConfig` | `lib/metrics/rag.ts` → `assignVelocityRag` |
-| Rolling-average window | `take: 4` | new `MetricEngineConfig` | `lib/metrics/snapshot.ts` (prior-snapshot query) |
+| Rolling-average window | `take: 4` in `snapshot.ts`; `.slice(0, 4)` in `trend-service.ts` | new `MetricEngineConfig` | `snapshot.ts` + `trend-service.ts` |
 
 ### Implementation approach
 

@@ -1,20 +1,21 @@
 # User Stories — Metric Calculation Configuration UI
 
 > Spec: ../spec.md
-> Status: Not Started
+> Status: Complete ✅
+> Last refreshed: 2026-06-11 (aligned with delivery-to-bug-ratio metric)
 
 ## Summary
 
 | # | Story | Phase | Tasks | Status |
 |---|---|---|---|---|
-| 1 | [Config schema, migration & seeded defaults](story-1-config-schema-and-defaults.md) | Foundation | 6 | Not Started |
-| 2 | [Config-driven engine refactor](story-2-config-driven-engine-refactor.md) | Foundation | 7 | Not Started |
-| 3 | [Config read/write API + validation](story-3-config-api-and-validation.md) | API | 7 | Not Started |
-| 4 | [Settings panel shell + RAG threshold editor](story-4-settings-shell-and-threshold-editor.md) | Phase 1 UI | 6 | Not Started |
-| 5 | [Inclusion rules + velocity/rolling editors](story-5-rules-and-velocity-rolling-editors.md) | Phase 2+3 UI | 6 | Not Started |
-| 6 | [Recalculate-now action + regression tests](story-6-recalculate-and-regression.md) | Recalc | 5 | Not Started |
+| 1 | [Config schema, migration & seeded defaults](story-1-config-schema-and-defaults.md) | Foundation | 6 | Completed ✅ |
+| 2 | [Config-driven engine refactor](story-2-config-driven-engine-refactor.md) | Foundation | 7 | Completed ✅ |
+| 3 | [Config read/write API + validation](story-3-config-api-and-validation.md) | API | 7 | Completed ✅ |
+| 4 | [Settings panel shell + RAG threshold editor](story-4-settings-shell-and-threshold-editor.md) | Phase 1 UI | 6 | Completed ✅ |
+| 5 | [Inclusion rules + velocity/rolling editors](story-5-rules-and-velocity-rolling-editors.md) | Phase 2+3 UI | 6 | Completed ✅ |
+| 6 | [Recalculate-now action + regression tests](story-6-recalculate-and-regression.md) | Recalc | 5 | Completed ✅ |
 
-**Total:** 6 stories · 37 implementation tasks · 0% complete
+**Total:** 6 stories · 37 implementation tasks · 100% complete
 
 ## Dependencies
 
@@ -46,5 +47,7 @@ Phase 1 (threshold editing) is shippable after Story 4.
   must reproduce today's exact metric numbers.
 - **Tooltip drift follow-up:** `2026-05-18-metric-definition-tooltips` static copy goes
   stale once values are editable — documented in Story 6, tracked as out-of-scope follow-up.
+- **Delivery-to-bug shipped:** `2026-06-04-delivery-to-bug-ratio-metric` added the metric,
+  threshold row, and tiles; this spec adds config UI/API on top.
 - **Entry-point coordination:** align the settings surface with
   `2026-05-27-dashboard-workstream-config-ui`.

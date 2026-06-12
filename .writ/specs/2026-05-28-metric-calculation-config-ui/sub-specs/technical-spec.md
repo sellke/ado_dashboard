@@ -90,6 +90,14 @@ export function assignVelocityRag(
 - Load `MetricEngineConfig` + `MetricRuleConfig` once (alongside the existing
   `thresholdConfig.findMany()`), thread into calculators / `assignVelocityRag`.
 
+### `lib/metrics/trend-service.ts`
+
+- The rolling sprint slice `.slice(0, 4)` in `buildTrendSeries` becomes
+  `engineConfig.rollingWindow`. This window drives velocity-rate averaging and the
+  delivery-to-bug ratio aggregation (completed points + bug hours over the same sprints).
+- Delivery-to-bug RAG continues to use `assignDeliveryToBugRag` with seeded
+  `deliveryToBugRatio` thresholds — no formula change; only threshold editing is new.
+
 ### `lib/metrics/orchestrator.ts`
 
 Loads config once and passes it to `computeWorkstreamMetrics`. Where it reads thresholds
@@ -105,6 +113,9 @@ engine and the GET API use it — single source of truth, no divergence.
 
 - `MetricConfigPanel.tsx` — modal/drawer with Mantine `Tabs`: **Thresholds**,
   **Inclusion Rules**, **Velocity & Rolling**. Loads via `GET /api/metric-config`.
+- **Thresholds tab** shows `overheadPercent`, `carryOverRate`, and `deliveryToBugRatio`
+  only. Label `deliveryToBugRatio` as lower-is-healthier; note the zero-bug Green case is
+  fixed (not editable). Do not expose milestone/aging/scope-creep rows.
 - Entry point: a gear/Settings action in the dashboard header. **Coordinate placement
   with `2026-05-27-dashboard-workstream-config-ui`** so the two config surfaces share a
   consistent home.

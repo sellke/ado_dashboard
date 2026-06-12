@@ -15,7 +15,9 @@ Returns the full current configuration in one payload (the settings panel loads 
 ```json
 {
   "thresholds": [
-    { "metricName": "overheadPercent", "greenMin": 0, "greenMax": 30, "amberMin": 30.01, "amberMax": 45 }
+    { "metricName": "overheadPercent", "greenMin": 0, "greenMax": 30, "amberMin": 30.01, "amberMax": 45 },
+    { "metricName": "carryOverRate", "greenMin": 0, "greenMax": 10, "amberMin": 10.01, "amberMax": 25 },
+    { "metricName": "deliveryToBugRatio", "greenMin": 0, "greenMax": 0.25, "amberMin": 0.26, "amberMax": 0.5 }
   ],
   "engine": { "velocityGreenFloor": 1.0, "velocityAmberFloor": 0.7, "rollingWindow": 4 },
   "rules": [
@@ -29,7 +31,9 @@ Returns the full current configuration in one payload (the settings panel loads 
 
 ### `PUT /api/metric-config/thresholds`
 
-Body: `{ thresholds: ThresholdConfigInput[] }`. Upserts each by `metricName`.
+Body: `{ thresholds: ThresholdConfigInput[] }`. Upserts each by `metricName`. The UI sends
+only dashboard-visible metrics (`overheadPercent`, `carryOverRate`, `deliveryToBugRatio`);
+other seeded rows are not modified by this panel.
 
 ### `PUT /api/metric-config/engine`
 
@@ -54,6 +58,7 @@ Validation is shared between API handlers and the UI (extract pure validators in
 | PUT thresholds | greenMin > greenMax | 422 + `{field, message}` per row | Unit validator + API test |
 | PUT thresholds | amberMin > amberMax | 422 + field error | Unit + API |
 | PUT thresholds | gap producing undefined-RAG band | 422 + explanation | Unit covering `assignRag` semantics |
+| PUT thresholds | deliveryToBugRatio bands not lower-is-healthier | 422 + direction hint | Unit: green band must be lowest values |
 | PUT engine | velocityAmberFloor ≤ 0 | 422 | Unit + API |
 | PUT engine | velocityAmberFloor > velocityGreenFloor | 422 | Unit + API |
 | PUT engine | rollingWindow < 1 or non-integer | 422 | Unit + API |

@@ -288,6 +288,16 @@ function formatVelocityRate(value: number | null | undefined): string {
   return `${value.toFixed(2)} pts/hr`;
 }
 
+function formatDeliveryToBugRatio(
+  value: number | null | undefined,
+  rag: RagStatus | null | undefined
+): string {
+  if (value === null || value === undefined) {
+    return rag === 'Green' ? '\u2014' : 'N/A';
+  }
+  return value.toFixed(2);
+}
+
 /** Format a sprint's name + date range into a compact label, e.g. "Sprint 14 · Jan 6 – Jan 17" */
 function formatSprintLabel(sprint: { name: string; startDate: string; endDate: string }): string {
   const fmt = (iso: string) =>
@@ -332,16 +342,20 @@ export function mapOverheadComposition(sprints: ApiTrendSprint[]): OverheadCompo
     });
 }
 
-/** Maps a bug item to view model. Uses BUG_RESOLVED_STATES (Resolved|Testing|Closed) for isClosed. */
+/**
+ * Maps a bug item to view model. Prefers the server's as-of `isClosed` (the classification
+ * behind the burndown bar for that sprint); falls back to current state when absent.
+ */
 function mapBugToViewModel(bug: {
   adoId: number;
   title: string;
   state: string;
+  isClosed?: boolean;
 }): TrendBugViewModel {
   return {
     adoId: String(bug.adoId),
     title: bug.title,
-    isClosed: (BUG_RESOLVED_STATES as readonly string[]).includes(bug.state),
+    isClosed: bug.isClosed ?? (BUG_RESOLVED_STATES as readonly string[]).includes(bug.state),
     adoUrl: buildAdoWorkItemUrl(bug.adoId),
   };
 }
@@ -377,13 +391,12 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     completedPoints: sprint.completedPoints ?? null,
     carryOverPoints: sprint.carryOverPoints ?? null,
     grossHours: sprint.grossHours ?? null,
-    rawOverheadPercent: sprint.overheadComposition?.overheadPercent != null
-      ? Math.round(sprint.overheadComposition.overheadPercent * 100) / 100
-      : null,
+    rawOverheadPercent:
+      sprint.overheadComposition?.overheadPercent != null
+        ? Math.round(sprint.overheadComposition.overheadPercent * 100) / 100
+        : null,
     rawCarryOverRate:
-      sprint.carryOverPoints != null &&
-      sprint.plannedPoints != null &&
-      sprint.plannedPoints > 0
+      sprint.carryOverPoints != null && sprint.plannedPoints != null && sprint.plannedPoints > 0
         ? Math.round((sprint.carryOverPoints / sprint.plannedPoints) * 100 * 100) / 100
         : null,
   };
@@ -494,6 +507,8 @@ export function mapApiResponseToDashboardViewModel(
   if (response.program?.metrics) {
     const m = response.program.metrics;
     const avgVelocityRate = m.averageVelocityRate ?? null;
+    const deliveryToBugRatio = m.deliveryToBugRatio ?? null;
+    const deliveryToBugRag = toRagStatus(m.deliveryToBugRag ?? null);
     const rawCarryOver = m.carryOverRate?.avg ?? null;
     const roundedCarryOver = rawCarryOver !== null ? Math.round(rawCarryOver * 100) / 100 : null;
     const rawOverhead = m.overheadPercent?.avg ?? null;
@@ -516,6 +531,15 @@ export function mapApiResponseToDashboardViewModel(
         rag: null,
         avgLabel: null,
         metricId: 'velocityRate',
+      },
+      {
+        label: 'Avg Total Delivery/Bug',
+        value: formatDeliveryToBugRatio(deliveryToBugRatio, deliveryToBugRag),
+        rawValue: deliveryToBugRatio,
+        unit: '',
+        rag: deliveryToBugRag,
+        avgLabel: null,
+        metricId: 'deliveryToBugRatio',
       },
       {
         label: 'Avg Total Overhead %',
@@ -569,6 +593,18 @@ export function mapApiResponseToDashboardViewModel(
       rag: null,
       avgLabel: null,
       metricId: 'velocityRate',
+    });
+
+    const deliveryToBugRatio = ws.prediction?.deliveryToBugRatio ?? null;
+    const deliveryToBugRag = toRagStatus(ws.prediction?.deliveryToBugRag ?? null);
+    metrics.splice(2, 0, {
+      label: 'Delivery/Bug',
+      value: formatDeliveryToBugRatio(deliveryToBugRatio, deliveryToBugRag),
+      rawValue: deliveryToBugRatio,
+      unit: '',
+      rag: deliveryToBugRag,
+      avgLabel: null,
+      metricId: 'deliveryToBugRatio',
     });
 
     // Apply 2-decimal-place formatting to overhead % tile.

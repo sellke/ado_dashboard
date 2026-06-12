@@ -115,7 +115,7 @@ export interface ApiTrendSprint {
   /** Bugs in resolved states (Resolved|Testing|Closed) with changedDate within sprint window. */
   bugsClosed: number;
   mode: 'actual' | 'current';
-  bugs?: Array<{ adoId: number; title: string; state: string }>;
+  bugs?: Array<{ adoId: number; title: string; state: string; isClosed?: boolean }>;
   overheadComposition?: ApiOverheadComposition;
   /** Per-category overhead breakdown for the overhead trend chart (Story 6/7). */
   overheadBreakdown?: OverheadBreakdownItem[];
@@ -158,6 +158,10 @@ export interface ApiWorkstream {
   prediction?: {
     velocity: number | null;
     velocityRate: number | null;
+    deliveryToBugRatio?: number | null;
+    deliveryToBugRag?: RagStatus;
+    deliveryToBugVelocityRate?: number | null;
+    deliveryToBugVelocityRateSource?: 'workstream' | 'program' | null;
     mode: 'predicted';
     formula: string;
   };
@@ -180,6 +184,8 @@ export interface ApiResponse {
       predictability: ApiMetric;
       carryOverRate: ApiMetric;
       averageVelocityRate?: number | null;
+      deliveryToBugRatio?: number | null;
+      deliveryToBugRag?: RagStatus;
       milestoneMonthly?: ApiMilestoneMetric | null;
       milestoneQuarterly?: ApiMilestoneMetric | null;
     };

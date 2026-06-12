@@ -7,6 +7,8 @@
 
 import { POST } from '@/app/api/metrics/compute/route';
 import { GET } from '@/app/api/metrics/route';
+import { DEFAULT_ENGINE_CONFIG, DEFAULT_METRIC_RULE_CONFIGS } from '@/lib/metrics/types';
+import { ROLLING_WINDOW_DEPTH, VISIBLE_SPRINT_TABS } from '@/lib/sync/window';
 
 const mockSprint = {
   id: 'sprint-1',
@@ -16,6 +18,7 @@ const mockSprint = {
 };
 
 const mockSnapshot = {
+  sprintId: mockSprint.id,
   workstreamId: 'ws-1',
   workstream: { name: 'Action Tracker' },
   velocity: 34,
@@ -34,10 +37,21 @@ const mockSnapshot = {
   carryOverPoints: 6,
   plannedPoints: 40,
   completedPoints: 34,
+  bugHours: 8.5,
   overheadHours: 22.8,
   grossHours: 80,
   computedAt: new Date('2026-04-28T18:30:00Z'),
 };
+
+const mockThresholds = [
+  {
+    metricName: 'deliveryToBugRatio',
+    greenMin: 0,
+    greenMax: 0.25,
+    amberMin: 0.26,
+    amberMax: 0.5,
+  },
+];
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -51,6 +65,12 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
     },
     thresholdConfig: {
+      findMany: jest.fn(),
+    },
+    metricEngineConfig: {
+      findUnique: jest.fn(),
+    },
+    metricRuleConfig: {
       findMany: jest.fn(),
     },
     workItem: {
@@ -83,6 +103,9 @@ describe('GET /api/metrics', () => {
     prisma.sprintWorkstream.findMany.mockResolvedValue([]);
     prisma.sprintPlanSnapshot.findMany.mockResolvedValue([]);
     prisma.sprint.findFirst.mockResolvedValue(null);
+    prisma.thresholdConfig.findMany.mockResolvedValue(mockThresholds);
+    prisma.metricEngineConfig.findUnique.mockResolvedValue(DEFAULT_ENGINE_CONFIG);
+    prisma.metricRuleConfig.findMany.mockResolvedValue(DEFAULT_METRIC_RULE_CONFIGS);
   });
 
   it('should return formatted metrics on happy path', async () => {
@@ -92,7 +115,6 @@ describe('GET /api/metrics', () => {
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
     prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
-    prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
     const req = new Request('http://localhost/api/metrics');
     const res = await GET(req);
@@ -124,11 +146,38 @@ describe('GET /api/metrics', () => {
     expect(data.workstreams[0].detail).not.toHaveProperty('carryOverItems');
     expect(data.workstreams[0].trends).toBeDefined();
     expect(Array.isArray(data.workstreams[0].trends.sprints)).toBe(true);
+    expect(data.workstreams[0].prediction).toMatchObject({
+      deliveryToBugRatio: 0.15,
+      deliveryToBugRag: 'Green',
+    });
     expect(data.program).toHaveProperty('trends.sprints');
     expect(data.program).toHaveProperty('prediction.sprint5');
+    expect(data.program.metrics.deliveryToBugRatio).toBe(0.15);
+    expect(data.program.metrics.deliveryToBugRag).toBe('Green');
     expect(data.computedAt).toBe('2026-04-28T18:30:00.000Z');
     expect(data.rollingWindow).toBeDefined();
     expect(data.rollingWindow.count).toBe(1);
+    expect(prisma.sprint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { startDate: { lte: mockSprint.startDate } },
+        orderBy: { startDate: 'desc' },
+        take: ROLLING_WINDOW_DEPTH,
+      })
+    );
+    expect(prisma.workItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ type: 'Bug' }),
+        select: expect.objectContaining({ adoCreatedDate: true }),
+      })
+    );
+    expect(prisma.metricSnapshot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          completedPoints: true,
+          bugHours: true,
+        }),
+      })
+    );
   });
 
   it('burndown counts unassigned bugs closed during the sprint window', async () => {
@@ -183,7 +232,7 @@ describe('GET /api/metrics', () => {
     expect(res.status).toBe(200);
     // Burndown uses changedDate within sprint window, not sprint assignment.
     // Bug 3 (sprintId=null) has changedDate within sprint-0's window → counted as closed.
-    // activeBugs for sprint-0 is backward-reconstructed including the current sprint's closed count.
+    // activeBugs for sprint-0 is computed as-of that sprint's end date.
     const sprint0 = data.workstreams[0].trends.sprints.find(
       (s: { sprintId: string }) => s.sprintId === 'sprint-0'
     );
@@ -191,6 +240,68 @@ describe('GET /api/metrics', () => {
       sprintId: 'sprint-0',
       bugsClosed: 2,
     });
+  });
+
+  it('adds delivery-to-bug fields using converted delivery hours at workstream and program levels', async () => {
+    const wsOne = {
+      ...mockSnapshot,
+      workstreamId: 'ws-1',
+      workstream: { name: 'Action Tracker' },
+      completedPoints: 100,
+      bugHours: 10,
+    };
+    const wsTwo = {
+      ...mockSnapshot,
+      workstreamId: 'ws-2',
+      workstream: { name: 'Pitch Tracker' },
+      completedPoints: 1,
+      bugHours: 1,
+    };
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([wsOne, wsTwo])
+      .mockResolvedValueOnce([wsOne, wsTwo]);
+    prisma.workstream.findMany.mockResolvedValue([{ id: 'ws-1' }, { id: 'ws-2' }]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.workstreams[0].prediction.deliveryToBugRatio).toBe(0.06);
+    expect(data.workstreams[0].prediction.deliveryToBugRag).toBe('Green');
+    expect(data.workstreams[1].prediction.deliveryToBugRatio).toBe(0.59);
+    expect(data.workstreams[1].prediction.deliveryToBugRag).toBe('Red');
+    expect(data.program.metrics.deliveryToBugRatio).toBe(0.06);
+    expect(data.program.metrics.deliveryToBugRag).toBe('Green');
+  });
+
+  it('returns null ratio and Green RAG when the window has delivery but zero bug hours', async () => {
+    const zeroBugSnapshot = {
+      ...mockSnapshot,
+      completedPoints: 12,
+      bugHours: 0,
+    };
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([zeroBugSnapshot])
+      .mockResolvedValueOnce([zeroBugSnapshot]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.workstreams[0].prediction.deliveryToBugRatio).toBeNull();
+    expect(data.workstreams[0].prediction.deliveryToBugRag).toBe('Green');
+    expect(data.program.metrics.deliveryToBugRatio).toBeNull();
+    expect(data.program.metrics.deliveryToBugRag).toBe('Green');
   });
 
   it('should return empty data when no snapshots', async () => {
@@ -226,6 +337,214 @@ describe('GET /api/metrics', () => {
         where: { sprintId: 'sprint-2', workstreamId: { in: ['ws-1'] } },
       })
     );
+  });
+
+  it('returns a five-sprint rolling window ending at the selected mid-history sprint', async () => {
+    const selectedSprint = {
+      id: 's5',
+      name: 'Sprint 5',
+      startDate: new Date('2026-03-03'),
+      endDate: new Date('2026-03-16'),
+    };
+    const rollingSprints = [
+      selectedSprint,
+      {
+        id: 's4',
+        name: 'Sprint 4',
+        startDate: new Date('2026-02-17'),
+        endDate: new Date('2026-03-02'),
+      },
+      {
+        id: 's3',
+        name: 'Sprint 3',
+        startDate: new Date('2026-02-03'),
+        endDate: new Date('2026-02-16'),
+      },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-20'),
+        endDate: new Date('2026-02-02'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+    ];
+
+    prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
+      .mockResolvedValueOnce([]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics?sprintId=s5');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(prisma.sprint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { startDate: { lte: selectedSprint.startDate } },
+        orderBy: { startDate: 'desc' },
+        take: ROLLING_WINDOW_DEPTH,
+      })
+    );
+    expect(data.rollingWindow.sprints.map((s: { id: string }) => s.id)).toEqual([
+      's5',
+      's4',
+      's3',
+      's2',
+      's1',
+    ]);
+  });
+
+  it('truncates the anchored rolling window when fewer than five sprints exist', async () => {
+    const selectedSprint = {
+      id: 's3',
+      name: 'Sprint 3',
+      startDate: new Date('2026-02-03'),
+      endDate: new Date('2026-02-16'),
+    };
+    const rollingSprints = [
+      selectedSprint,
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2026-01-20'),
+        endDate: new Date('2026-02-02'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2026-01-06'),
+        endDate: new Date('2026-01-19'),
+      },
+    ];
+
+    prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
+      .mockResolvedValueOnce([]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics?sprintId=s3');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.rollingWindow.count).toBe(3);
+    expect(data.rollingWindow.sprints.map((s: { id: string }) => s.id)).toEqual(['s3', 's2', 's1']);
+  });
+
+  it.each([
+    { totalHistory: 5, expectedWindow: 1 },
+    { totalHistory: 6, expectedWindow: 2 },
+    { totalHistory: 8, expectedWindow: 4 },
+  ])(
+    'truncates the oldest visible tab window with $totalHistory backed sprints',
+    async ({ totalHistory, expectedWindow }) => {
+      const oldestVisibleNumber = totalHistory - VISIBLE_SPRINT_TABS + 1;
+      const rollingSprints = Array.from({ length: expectedWindow }, (_, index) => {
+        const sprintNumber = oldestVisibleNumber - index;
+        return {
+          id: `s${sprintNumber}`,
+          name: `Sprint ${sprintNumber}`,
+          startDate: new Date(Date.UTC(2026, 0, 1 + sprintNumber * 14)),
+          endDate: new Date(Date.UTC(2026, 0, 14 + sprintNumber * 14)),
+        };
+      });
+      const selectedSprint = rollingSprints[0]!;
+
+      prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
+      prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+      prisma.metricSnapshot.findMany
+        .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
+        .mockResolvedValueOnce([]);
+      prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+      const req = new Request(`http://localhost/api/metrics?sprintId=${selectedSprint.id}`);
+      const res = await GET(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.rollingWindow.count).toBe(expectedWindow);
+      expect(data.rollingWindow.sprints).toHaveLength(expectedWindow);
+      expect(prisma.sprint.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: ROLLING_WINDOW_DEPTH })
+      );
+    }
+  );
+
+  it('preserves current-sprint trend and prediction behavior when sprintId is omitted', async () => {
+    const currentSprint = {
+      id: 'current',
+      name: 'Current Sprint',
+      startDate: new Date('2020-01-01'),
+      endDate: new Date('2100-01-01'),
+    };
+    const rollingSprints = [
+      currentSprint,
+      {
+        id: 's4',
+        name: 'Sprint 4',
+        startDate: new Date('2019-12-17'),
+        endDate: new Date('2019-12-31'),
+      },
+      {
+        id: 's3',
+        name: 'Sprint 3',
+        startDate: new Date('2019-12-03'),
+        endDate: new Date('2019-12-16'),
+      },
+      {
+        id: 's2',
+        name: 'Sprint 2',
+        startDate: new Date('2019-11-19'),
+        endDate: new Date('2019-12-02'),
+      },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        startDate: new Date('2019-11-05'),
+        endDate: new Date('2019-11-18'),
+      },
+    ];
+
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: currentSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(currentSprint);
+    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    prisma.metricSnapshot.findMany
+      .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: currentSprint.id }])
+      .mockResolvedValueOnce([
+        { sprintId: 's1', workstreamId: 'ws-1', velocity: 10, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's2', workstreamId: 'ws-1', velocity: 12, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's3', workstreamId: 'ws-1', velocity: 14, grossHours: 80, overheadHours: 20 },
+        { sprintId: 's4', workstreamId: 'ws-1', velocity: 16, grossHours: 80, overheadHours: 20 },
+        {
+          sprintId: 'current',
+          workstreamId: 'ws-1',
+          velocity: null,
+          grossHours: 100,
+          overheadHours: 20,
+        },
+      ]);
+    prisma.thresholdConfig.findMany.mockResolvedValue([]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.rollingWindow.currentSprintId).toBe('current');
+    const trendSprints = data.workstreams[0].trends.sprints;
+    expect(trendSprints).toHaveLength(5);
+    expect(trendSprints.at(-1)).toMatchObject({ sprintId: 'current', mode: 'current' });
+    expect(data.workstreams[0].prediction.velocity).not.toBeNull();
   });
 
   it('should filter by workstreamId when provided', async () => {
@@ -319,7 +638,7 @@ describe('GET /api/metrics', () => {
     expect(data.workstreams[0].metrics.velocity).toHaveProperty('rag');
   });
 
-  it('includes prediction field per workstream with velocity, velocityRate, mode, and formula', async () => {
+  it('suppresses workstream prediction velocity when the rolling window has no current sprint', async () => {
     const rollingSprints = [
       {
         id: 's3',
@@ -361,10 +680,10 @@ describe('GET /api/metrics', () => {
     const ws = data.workstreams[0];
     expect(ws).toHaveProperty('prediction');
     expect(ws.prediction).toMatchObject({
+      velocity: null,
       mode: 'predicted',
       formula: expect.any(String),
     });
-    expect(ws.prediction.velocity).toBeCloseTo(35.4, 1);
     expect(ws.prediction.velocityRate).toBeCloseTo(0.59, 2);
   });
 
@@ -406,6 +725,7 @@ describe('GET /api/metrics', () => {
         workstreamId: 'ws-1',
         state: 'Active',
         adoChangedDate: new Date('2025-12-28'),
+        adoCreatedDate: new Date('2025-12-24'),
         adoId: 102,
         title: 'Bug B',
       },
@@ -414,6 +734,7 @@ describe('GET /api/metrics', () => {
         workstreamId: 'ws-1',
         state: 'Closed',
         adoChangedDate: new Date('2025-12-30'),
+        adoCreatedDate: new Date('2025-12-24'),
         adoId: 101,
         title: 'Bug A',
       },
@@ -422,6 +743,7 @@ describe('GET /api/metrics', () => {
         workstreamId: 'ws-1',
         state: 'New',
         adoChangedDate: new Date('2026-01-10'),
+        adoCreatedDate: new Date('2026-01-08'),
         adoId: 201,
         title: 'Bug C',
       },
@@ -437,14 +759,20 @@ describe('GET /api/metrics', () => {
     // s1 and s2 are actual sprints; s3 is the current sprint (also included now)
     expect(sprints.length).toBeGreaterThanOrEqual(2);
 
+    // The list mirrors the burndown bars: open = unresolved as-of sprint end,
+    // closed = resolved during that sprint's window (as-of, not sprint-assignment).
     const s1 = sprints.find((s: { sprintId: string }) => s.sprintId === 's1');
     expect(s1.bugs).toEqual([
-      { adoId: 101, title: 'Bug A', state: 'Closed' },
-      { adoId: 102, title: 'Bug B', state: 'Active' },
+      { adoId: 101, title: 'Bug A', state: 'Closed', isClosed: true },
+      { adoId: 102, title: 'Bug B', state: 'Active', isClosed: false },
     ]);
 
+    // Bug B carries forward as still-open in s2 (cumulative as-of), and Bug C (created in s2) appears.
     const s2 = sprints.find((s: { sprintId: string }) => s.sprintId === 's2');
-    expect(s2.bugs).toEqual([{ adoId: 201, title: 'Bug C', state: 'New' }]);
+    expect(s2.bugs).toEqual([
+      { adoId: 102, title: 'Bug B', state: 'Active', isClosed: false },
+      { adoId: 201, title: 'Bug C', state: 'New', isClosed: false },
+    ]);
   });
 
   it('returns empty bugs array when sprint has no bug work items', async () => {
@@ -685,17 +1013,13 @@ describe('GET /api/metrics', () => {
       { adoId: 201, title: 'Bug A', state: 'Done', hours: 2 },
       { adoId: 202, title: 'Bug B', state: 'Active', hours: 4 },
     ]);
-    expect(s2Items.spikes).toEqual([
-      { adoId: 401, title: 'Spike A', state: 'New', hours: 8 },
-    ]);
+    expect(s2Items.spikes).toEqual([{ adoId: 401, title: 'Spike A', state: 'New', hours: 8 }]);
     expect(s2Items.support).toEqual([
       { adoId: 301, title: 'Support A', state: 'Active', hours: 5 },
     ]);
 
     const s1Items = ws.overheadItemsBySprint.find((s: { sprintId: string }) => s.sprintId === 's1');
-    expect(s1Items.bugs).toEqual([
-      { adoId: 101, title: 'Old Bug', state: 'Done', hours: 1 },
-    ]);
+    expect(s1Items.bugs).toEqual([{ adoId: 101, title: 'Old Bug', state: 'Done', hours: 1 }]);
     expect(s1Items.spikes).toEqual([]);
     expect(s1Items.support).toEqual([
       { adoId: 302, title: 'Old Support', state: 'Done', hours: 3 },

@@ -11,8 +11,10 @@ reproduces the pre-feature metric numbers exactly.
 
 ## Existing — `ThresholdConfig` (no schema change)
 
-Already models per-metric RAG bands and is read by `assignRag`. This spec adds an edit
-**API + UI** on top; the table itself is unchanged.
+Already models per-metric RAG bands and is read by `assignRag` and
+`assignDeliveryToBugRag`. This spec adds an edit **API + UI** on top; the table itself is
+unchanged. The `deliveryToBugRatio` row was added by `2026-06-04-delivery-to-bug-ratio-metric`
+(Green 0–0.25, Amber 0.26–0.5, Red > 0.5; lower is healthier).
 
 ```prisma
 model ThresholdConfig {
@@ -60,7 +62,8 @@ model MetricEngineConfig {
 One row per (metric category × work-item type) with a boolean indicating whether that type
 counts toward the category. Two categories cover current behavior:
 
-- `deliveryPoints` — feeds velocity, predictability, carry-over (point-based metrics).
+- `deliveryPoints` — feeds velocity, predictability, carry-over, and delivery-to-bug
+  numerator (point-based metrics).
 - `overheadHours` — feeds overhead hours.
 
 ```prisma

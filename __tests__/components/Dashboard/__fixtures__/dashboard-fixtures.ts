@@ -100,6 +100,14 @@ export function createWorkstreamCard(
         metricId: 'velocityRate',
       }),
       createMetricTile({
+        label: 'Delivery/Bug',
+        value: '0.12',
+        rawValue: 0.12,
+        unit: '',
+        rag: 'Green',
+        metricId: 'deliveryToBugRatio',
+      }),
+      createMetricTile({
         label: 'Overhead %',
         value: '28%',
         rawValue: 28,
@@ -135,8 +143,20 @@ export function createWorkstreamCard(
         rawActiveBugs: 2,
         rawBugsClosed: 5,
         bugs: [
-          { adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345' },
-          { adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890' },
+          {
+            adoId: '12345',
+            title: 'Login crash',
+            isClosed: true,
+            adoUrl:
+              'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
+          },
+          {
+            adoId: '67890',
+            title: 'Slow query',
+            isClosed: false,
+            adoUrl:
+              'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890',
+          },
         ],
         overheadBreakdown: [
           { category: 'Meetings' as const, hours: 10.25 },
@@ -166,7 +186,15 @@ export function createWorkstreamCard(
         rawVelocityRate: 0.7,
         rawActiveBugs: 3,
         rawBugsClosed: 4,
-        bugs: [{ adoId: '11111', title: 'Memory leak', isClosed: true, adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111' }],
+        bugs: [
+          {
+            adoId: '11111',
+            title: 'Memory leak',
+            isClosed: true,
+            adoUrl:
+              'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111',
+          },
+        ],
         overheadBreakdown: [
           { category: 'Meetings' as const, hours: 10.25 },
           { category: 'Spikes' as const, hours: 2 },
@@ -272,6 +300,14 @@ export function createDashboardViewModel(
           unit: 'pts/hr',
           rag: null,
           metricId: 'velocityRate',
+        }),
+        createMetricTile({
+          label: 'Avg Total Delivery/Bug',
+          value: '0.12',
+          rawValue: 0.12,
+          unit: '',
+          rag: 'Green',
+          metricId: 'deliveryToBugRatio',
         }),
         createMetricTile({
           label: 'Avg Total Overhead %',
@@ -406,8 +442,18 @@ function createApiWorkstream(overrides: Partial<ApiWorkstream> = {}): ApiWorkstr
       {
         sprintId: 's1',
         bugs: [
-          createApiOverheadItem({ adoId: 12345, title: 'Login crash', state: 'Closed', hours: 4.5 }),
-          createApiOverheadItem({ adoId: 67890, title: 'Slow query', state: 'Active', hours: null }),
+          createApiOverheadItem({
+            adoId: 12345,
+            title: 'Login crash',
+            state: 'Closed',
+            hours: 4.5,
+          }),
+          createApiOverheadItem({
+            adoId: 67890,
+            title: 'Slow query',
+            state: 'Active',
+            hours: null,
+          }),
         ],
         spikes: [],
         support: [
@@ -438,6 +484,8 @@ export function createApiResponse(overrides: Partial<ApiResponse> = {}): ApiResp
         overheadPercent: createApiMetric({ value: 31.2, avg: 29, rag: 'Amber' }),
         predictability: createApiMetric({ value: 82, avg: 80.5, rag: 'Green' }),
         carryOverRate: createApiMetric({ value: 12, avg: 13.5, rag: 'Amber' }),
+        deliveryToBugRatio: 0.12,
+        deliveryToBugRag: 'Green',
         milestoneMonthly: { value: null, rag: null },
         milestoneQuarterly: { value: null, rag: null },
       },

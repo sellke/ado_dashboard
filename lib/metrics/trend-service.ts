@@ -1,4 +1,4 @@
-import { BUG_OPEN_STATES, BUG_RESOLVED_STATES } from './types';
+import { BUG_OPEN_STATES, BUG_RESOLVED_STATES, DEFAULT_ENGINE_CONFIG } from './types';
 
 export interface TrendSprintRef {
   id: string;
@@ -13,6 +13,8 @@ export interface TrendSnapshotInput {
   velocity: number | null;
   grossHours: number | null;
   overheadHours: number | null;
+  completedPoints?: number | null;
+  bugHours?: number | null;
 }
 
 export interface TrendBugInput {
@@ -42,6 +44,9 @@ export interface TrendSeriesResult {
   sprints: TrendSprintMetrics[];
   prediction: SprintPrediction;
   averageVelocityRate: number | null;
+  deliveryToBugRatio: number | null;
+  deliveryToBugCompletedPoints: number | null;
+  deliveryToBugHours: number | null;
 }
 
 function isDateWithinSprintWindow(
@@ -49,7 +54,9 @@ function isDateWithinSprintWindow(
   sprintStart: Date,
   sprintEnd: Date
 ): boolean {
-  if (!value) return false;
+  if (!value) {
+    return false;
+  }
   return value >= sprintStart && value <= sprintEnd;
 }
 
@@ -60,21 +67,56 @@ function isDateWithinSprintWindow(
 export interface BurndownBugInput {
   state: string;
   changedDate?: Date | null;
+  createdDate?: Date | null;
+  adoId?: number;
+  title?: string;
+}
+
+/**
+ * A bug attributed to a sprint by the as-of burndown rule, with the classification
+ * used by that sprint's bar (NOT the bug's current state). `isClosed: false` means the
+ * bug was still open at sprint end; `isClosed: true` means it was resolved during the sprint.
+ */
+export interface BurndownBugListItem {
+  adoId: number;
+  title: string;
+  state: string;
+  isClosed: boolean;
 }
 
 export interface BurndownSprintResult {
   sprintId: string;
   activeBugs: number;
   bugsClosed: number;
+  /** The exact bugs behind activeBugs (open) + bugsClosed (closed), so the list matches the bars. */
+  bugs: BurndownBugListItem[];
+}
+
+function wasCreatedBySprintEnd(createdDate: Date | null | undefined, sprintEnd: Date): boolean {
+  return !createdDate || createdDate <= sprintEnd;
+}
+
+function wasActiveAtSprintEnd(bug: BurndownBugInput, sprintEnd: Date): boolean {
+  if (!wasCreatedBySprintEnd(bug.createdDate, sprintEnd)) {
+    return false;
+  }
+  if ((BUG_OPEN_STATES as readonly string[]).includes(bug.state)) {
+    return true;
+  }
+  if ((BUG_RESOLVED_STATES as readonly string[]).includes(bug.state)) {
+    return bug.changedDate ? bug.changedDate > sprintEnd : false;
+  }
+  return false;
 }
 
 /**
- * Program-level bug burndown using backward reconstruction.
+ * Program-level bug burndown using direct as-of computation.
  *
  * Closed = bugs in a resolved state whose changedDate falls within the sprint window.
- * Open   = backward-reconstructed from the current total open count:
- *   open(latest)  = total currently-open bugs
- *   open(earlier) = open(next) + closed(next)
+ * Open   = bugs created by sprint end that were still open as of sprint end.
+ *
+ * The ADO model only exposes one changedDate, so resolve/reopen churn is approximated
+ * from the latest state and latest changedDate.
  *
  * @param sprintsAsc  Completed sprints in chronological order
  * @param allBugs     ALL bugs from the relevant workstreams (no sprint filter)
@@ -85,32 +127,32 @@ export function computeBugBurndown(params: {
 }): BurndownSprintResult[] {
   const { sprintsAsc, allBugs } = params;
 
-  const closedPerSprint = sprintsAsc.map((sprint) => ({
-    sprintId: sprint.id,
-    bugsClosed: allBugs.filter(
+  const toListItem = (bug: BurndownBugInput, isClosed: boolean): BurndownBugListItem => ({
+    adoId: bug.adoId ?? 0,
+    title: bug.title ?? '',
+    state: bug.state,
+    isClosed,
+  });
+
+  return sprintsAsc.map((sprint) => {
+    const openBugs = allBugs.filter((bug) => wasActiveAtSprintEnd(bug, sprint.endDate));
+    const closedBugs = allBugs.filter(
       (b) =>
         (BUG_RESOLVED_STATES as readonly string[]).includes(b.state) &&
         isDateWithinSprintWindow(b.changedDate, sprint.startDate, sprint.endDate)
-    ).length,
-  }));
+    );
+    const bugs = [
+      ...openBugs.map((b) => toListItem(b, false)),
+      ...closedBugs.map((b) => toListItem(b, true)),
+    ].sort((a, b) => a.adoId - b.adoId);
 
-  const currentOpen = allBugs.filter((b) =>
-    (BUG_OPEN_STATES as readonly string[]).includes(b.state)
-  ).length;
-
-  const results: BurndownSprintResult[] = [];
-  let runningOpen = currentOpen;
-
-  for (let i = closedPerSprint.length - 1; i >= 0; i--) {
-    results.unshift({
-      sprintId: closedPerSprint[i].sprintId,
-      activeBugs: runningOpen,
-      bugsClosed: closedPerSprint[i].bugsClosed,
-    });
-    runningOpen += closedPerSprint[i].bugsClosed;
-  }
-
-  return results;
+    return {
+      sprintId: sprint.id,
+      activeBugs: openBugs.length,
+      bugsClosed: closedBugs.length,
+      bugs,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -159,15 +201,46 @@ export function calculateVelocityRate(
   return Math.round((doneLikeStoryPoints / netCapacityHours) * 100) / 100;
 }
 
+/**
+ * deliveryToBugRatio = bug hours / completed delivery hours.
+ * Delivery hours are completed story points converted through velocity rate (pts/hr).
+ */
+export function calculateDeliveryToBugRatio(
+  completedPoints: number | null | undefined,
+  bugHours: number | null | undefined,
+  averageVelocityRate: number | null | undefined
+): number | null {
+  if (completedPoints === null || completedPoints === undefined) {
+    return null;
+  }
+  if (bugHours === null || bugHours === undefined || bugHours <= 0) {
+    return null;
+  }
+  if (
+    averageVelocityRate === null ||
+    averageVelocityRate === undefined ||
+    averageVelocityRate <= 0
+  ) {
+    return null;
+  }
+  const deliveryHours = completedPoints / averageVelocityRate;
+  if (deliveryHours <= 0) {
+    return null;
+  }
+  return Math.round((bugHours / deliveryHours) * 100) / 100;
+}
+
 export function buildTrendSeries(params: {
   rollingSprintsDesc: TrendSprintRef[];
   currentSprintId: string | null;
   snapshots: TrendSnapshotInput[];
   bugItems: TrendBugInput[];
   workstreamId?: string;
+  rollingWindow?: number;
 }): TrendSeriesResult {
   const { rollingSprintsDesc, snapshots, bugItems, workstreamId } = params;
-  const selectedCurrentSprintId = params.currentSprintId ?? rollingSprintsDesc[0]?.id ?? null;
+  const selectedCurrentSprintId = params.currentSprintId ?? null;
+  const rollingWindow = params.rollingWindow ?? DEFAULT_ENGINE_CONFIG.rollingWindow;
 
   const scopeSnapshots = workstreamId
     ? snapshots.filter((s) => s.workstreamId === workstreamId)
@@ -176,10 +249,12 @@ export function buildTrendSeries(params: {
     ? bugItems.filter((b) => b.workstreamId === workstreamId)
     : bugItems;
 
-  const actualSprintsAsc = rollingSprintsDesc
-    .filter((s) => s.id !== selectedCurrentSprintId)
-    .slice(0, 4)
-    .reverse();
+  const actualSprintsAsc = selectedCurrentSprintId
+    ? rollingSprintsDesc
+        .filter((s) => s.id !== selectedCurrentSprintId)
+        .slice(0, rollingWindow)
+        .reverse()
+    : rollingSprintsDesc.slice(0, rollingWindow).reverse();
 
   const sprints: TrendSprintMetrics[] = actualSprintsAsc.map((sprint) => {
     const sprintSnapshots = scopeSnapshots.filter((s) => s.sprintId === sprint.id);
@@ -218,8 +293,26 @@ export function buildTrendSeries(params: {
     .filter((value): value is number => value !== null);
   const averageVelocityRate =
     velocityRates.length > 0
-      ? Math.round((velocityRates.reduce((sum, value) => sum + value, 0) / velocityRates.length) * 100) / 100
+      ? Math.round(
+          (velocityRates.reduce((sum, value) => sum + value, 0) / velocityRates.length) * 100
+        ) / 100
       : null;
+
+  const actualSprintIds = new Set(actualSprintsAsc.map((sprint) => sprint.id));
+  const deliveryToBugSnapshots = scopeSnapshots.filter((snapshot) =>
+    actualSprintIds.has(snapshot.sprintId)
+  );
+  const deliveryToBugCompletedPoints = sumNullable(
+    deliveryToBugSnapshots.map((snapshot) => snapshot.completedPoints)
+  );
+  const deliveryToBugHours = sumNullable(
+    deliveryToBugSnapshots.map((snapshot) => snapshot.bugHours)
+  );
+  const deliveryToBugRatio = calculateDeliveryToBugRatio(
+    deliveryToBugCompletedPoints,
+    deliveryToBugHours,
+    averageVelocityRate
+  );
 
   const prediction: SprintPrediction = {
     velocity:
@@ -245,5 +338,12 @@ export function buildTrendSeries(params: {
     });
   }
 
-  return { sprints, prediction, averageVelocityRate };
+  return {
+    sprints,
+    prediction,
+    averageVelocityRate,
+    deliveryToBugRatio,
+    deliveryToBugCompletedPoints,
+    deliveryToBugHours,
+  };
 }

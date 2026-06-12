@@ -119,6 +119,58 @@ describe('DashboardContainer', () => {
     expect(screen.getByText('Action Tracker')).toBeInTheDocument();
   });
 
+  it('opens metric configuration from the dashboard header', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/metric-config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              thresholds: [
+                {
+                  metricName: 'overheadPercent',
+                  greenMin: 0,
+                  greenMax: 30,
+                  amberMin: 30.01,
+                  amberMax: 45,
+                },
+              ],
+              engine: { velocityGreenFloor: 1, velocityAmberFloor: 0.7, rollingWindow: 4 },
+              rules: [],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    await user.click(await screen.findByRole('button', { name: /metric configuration/i }));
+
+    expect(await screen.findByText('Metric Configuration')).toBeInTheDocument();
+    expect(await screen.findByText('Overhead percent')).toBeInTheDocument();
+  });
+
   it('shows empty state when API returns empty payload', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
@@ -189,8 +241,7 @@ describe('DashboardContainer', () => {
 
   it('shows "Loading milestone data..." when milestones are still loading', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/milestones'))
-        return new Promise(() => {}); // never resolves
+      if (url.includes('/api/milestones')) return new Promise(() => {}); // never resolves
       if (url.includes('/api/sprints/stories'))
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
@@ -321,6 +372,232 @@ describe('DashboardContainer', () => {
         expect.stringContaining('/api/milestones?workstreamIds=ws-2')
       );
       expect(global.fetch).toHaveBeenCalledWith('/api/sprints/stories?workstreamId=ws-2');
+    });
+  });
+
+  it('refetches metrics with sprintId for previous sprint tabs and omits it for current sprint', async () => {
+    const user = userEvent.setup();
+    const storiesPayload = {
+      sprints: [
+        {
+          id: 's-current',
+          name: 'Sprint 05',
+          startDate: '2026-05-11T00:00:00.000Z',
+          endDate: '2026-05-22T00:00:00.000Z',
+          isCurrent: true,
+          stories: [],
+        },
+        {
+          id: 's-prev',
+          name: 'Sprint 04',
+          startDate: '2026-04-27T00:00:00.000Z',
+          endDate: '2026-05-08T00:00:00.000Z',
+          isCurrent: false,
+          stories: [],
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(storiesPayload) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    const previousTab = await screen.findByRole('tab', { name: /Sprint 04/ });
+    await user.click(previousTab);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/metrics?dashboard=main&sprintId=s-prev')
+      );
+    });
+
+    const currentTab = await screen.findByRole('tab', { name: /Sprint 05/ });
+    await user.click(currentTab);
+
+    await waitFor(() => {
+      const metricsCalls = (global.fetch as jest.Mock).mock.calls
+        .map(([url]) => String(url))
+        .filter((url) => url.includes('/api/metrics'));
+      expect(metricsCalls.at(-1)).toBe('/api/metrics?dashboard=main');
+    });
+  });
+
+  it('uses sprintId when a selected sprint exists but no sprint is marked current', async () => {
+    const storiesPayload = {
+      sprints: [
+        {
+          id: 's-prev',
+          name: 'Sprint 04',
+          startDate: '2026-04-27T00:00:00.000Z',
+          endDate: '2026-05-08T00:00:00.000Z',
+          isCurrent: false,
+          stories: [],
+        },
+        {
+          id: 's-older',
+          name: 'Sprint 03',
+          startDate: '2026-04-13T00:00:00.000Z',
+          endDate: '2026-04-24T00:00:00.000Z',
+          isCurrent: false,
+          stories: [],
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(storiesPayload) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByRole('tab', { name: /Sprint 04/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/metrics?dashboard=main&sprintId=s-prev')
+      );
+    });
+  });
+
+  it('ignores stale metrics responses when a newer guarded request has completed', async () => {
+    window.localStorage.setItem(
+      'dashboardWorkstreamScope:v1:main',
+      JSON.stringify({ includedWorkstreamIds: ['ws-2'], updatedAt: '2026-05-27T00:00:00.000Z' })
+    );
+
+    let resolveStaleMetrics:
+      | ((value: { ok: boolean; json: () => Promise<typeof mockSuccessResponse> }) => void)
+      | null = null;
+    const scopedMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Pitch Tracker',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      if (url.includes('/api/metrics?dashboard=main&workstreamIds=ws-2')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(scopedMetrics) });
+      }
+      return new Promise((resolve) => {
+        resolveStaleMetrics = resolve;
+      });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText('Pitch Tracker')).toBeInTheDocument();
+
+    expect(resolveStaleMetrics).toBeTruthy();
+    (
+      resolveStaleMetrics as unknown as (value: {
+        ok: boolean;
+        json: () => Promise<typeof mockSuccessResponse>;
+      }) => void
+    )({
+      ok: true,
+      json: () => Promise.resolve(mockSuccessResponse),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Pitch Tracker')).toBeInTheDocument();
+      expect(screen.queryByText('Action Tracker')).not.toBeInTheDocument();
     });
   });
 });

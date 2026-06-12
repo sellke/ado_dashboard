@@ -34,6 +34,8 @@ const apiResponse: ApiResponse = {
       prediction: {
         velocity: 36,
         velocityRate: 0.75,
+        deliveryToBugRatio: 0.12,
+        deliveryToBugRag: 'Green',
         mode: 'predicted',
         formula: 'avg velocity rate × net capacity',
       },
@@ -46,6 +48,8 @@ const apiResponse: ApiResponse = {
       predictability: { value: 82, avg: 80.5, rag: 'Green' },
       carryOverRate: { value: 12, avg: 13.5, rag: 'Amber' },
       averageVelocityRate: 0.85,
+      deliveryToBugRatio: 0.12,
+      deliveryToBugRag: 'Green',
     },
   },
   computedAt: '2026-04-28T18:30:00.000Z',
@@ -59,6 +63,7 @@ describe('adapter metricId mapping', () => {
     const expected: Array<{ label: string; metricId: MetricId }> = [
       { label: 'Avg Total Velocity', metricId: 'velocity' },
       { label: 'Avg Total Velocity Rate', metricId: 'velocityRate' },
+      { label: 'Avg Total Delivery/Bug', metricId: 'deliveryToBugRatio' },
       { label: 'Avg Total Overhead %', metricId: 'overheadPercent' },
       { label: 'Avg Total Carry-Over %', metricId: 'carryOverRate' },
     ];
@@ -69,8 +74,8 @@ describe('adapter metricId mapping', () => {
       expect(tile?.metricId).toBe(metricId);
     });
 
-    it('attaches a metricId to all four program tiles', () => {
-      expect(vm.programMetrics).toHaveLength(4);
+    it('attaches a metricId to all five program tiles', () => {
+      expect(vm.programMetrics).toHaveLength(5);
       expect(vm.programMetrics?.every((m) => m.metricId !== undefined)).toBe(true);
     });
   });
@@ -79,6 +84,7 @@ describe('adapter metricId mapping', () => {
     const expected: Array<{ label: string; metricId: MetricId }> = [
       { label: 'Avg Velocity', metricId: 'velocity' },
       { label: 'Velocity Rate', metricId: 'velocityRate' },
+      { label: 'Delivery/Bug', metricId: 'deliveryToBugRatio' },
       { label: 'Overhead %', metricId: 'overheadPercent' },
       { label: 'Carry-Over %', metricId: 'carryOverRate' },
     ];
@@ -89,9 +95,9 @@ describe('adapter metricId mapping', () => {
       expect(row?.metricId).toBe(metricId);
     });
 
-    it('attaches a metricId to all four workstream rows', () => {
+    it('attaches a metricId to all five workstream rows', () => {
       const metrics = vm.workstreamCards[0].metrics;
-      expect(metrics).toHaveLength(4);
+      expect(metrics).toHaveLength(5);
       expect(metrics.every((m) => m.metricId !== undefined)).toBe(true);
     });
   });

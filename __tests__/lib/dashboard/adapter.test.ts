@@ -76,6 +76,8 @@ describe('dashboard adapter', () => {
         overheadPercent: { value: 31.2, avg: 29, rag: 'Amber' },
         predictability: { value: 82, avg: 80.5, rag: 'Green' },
         carryOverRate: { value: 12, avg: 13.5, rag: 'Amber' },
+        deliveryToBugRatio: 0.15,
+        deliveryToBugRag: 'Amber',
         milestoneMonthly: { value: null, rag: null },
         milestoneQuarterly: { value: null, rag: null },
       },
@@ -123,7 +125,7 @@ describe('dashboard adapter', () => {
       expect(vm.sprintLabel).toBe('Sprint 27.1');
       expect(vm.rollingWindowLabel).toBe('Rolling 5 sprints (current + 4 prior)');
       expect(vm.computedAtLabel).toBeTruthy();
-      expect(vm.programMetrics).toHaveLength(4);
+      expect(vm.programMetrics).toHaveLength(5);
       expect(vm.workstreamCards).toHaveLength(1);
 
       const programVelocity = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity');
@@ -140,6 +142,14 @@ describe('dashboard adapter', () => {
       expect(programVelocityRate?.rawValue).toBeNull();
       expect(programVelocityRate?.unit).toBe('pts/hr');
       expect(programVelocityRate?.rag).toBeNull();
+
+      const programDeliveryToBug = vm.programMetrics?.find(
+        (m) => m.label === 'Avg Total Delivery/Bug'
+      );
+      expect(programDeliveryToBug?.value).toBe('0.15');
+      expect(programDeliveryToBug?.rawValue).toBe(0.15);
+      expect(programDeliveryToBug?.rag).toBe('Amber');
+      expect(programDeliveryToBug?.metricId).toBe('deliveryToBugRatio');
 
       const programOverhead = vm.programMetrics?.find((m) => m.label === 'Avg Total Overhead %');
       expect(programOverhead?.value).toBe('29.00%');
@@ -273,6 +283,8 @@ describe('dashboard adapter', () => {
               prediction: {
                 velocity: 36,
                 velocityRate: 0.75,
+                deliveryToBugRatio: 0.12,
+                deliveryToBugRag: 'Green',
                 mode: 'predicted' as const,
                 formula: 'avg velocity rate × net capacity',
               },
@@ -283,11 +295,12 @@ describe('dashboard adapter', () => {
         const vm = mapApiResponseToDashboardViewModel(responseWithPrediction);
         const ws = vm.workstreamCards[0];
 
-        expect(ws.metrics).toHaveLength(4);
+        expect(ws.metrics).toHaveLength(5);
         expect(ws.metrics[0].label).toBe('Avg Velocity');
         expect(ws.metrics[1].label).toBe('Velocity Rate');
-        expect(ws.metrics[2].label).toBe('Overhead %');
-        expect(ws.metrics[3].label).toBe('Carry-Over %');
+        expect(ws.metrics[2].label).toBe('Delivery/Bug');
+        expect(ws.metrics[3].label).toBe('Overhead %');
+        expect(ws.metrics[4].label).toBe('Carry-Over %');
 
         const rateTile = ws.metrics[1];
         expect(rateTile.value).toBe('0.75 pts/hr');
@@ -295,16 +308,27 @@ describe('dashboard adapter', () => {
         expect(rateTile.unit).toBe('pts/hr');
         expect(rateTile.rag).toBeNull();
         expect(rateTile.avgLabel).toBeNull();
+
+        const deliveryTile = ws.metrics[2];
+        expect(deliveryTile.value).toBe('0.12');
+        expect(deliveryTile.rawValue).toBe(0.12);
+        expect(deliveryTile.unit).toBe('');
+        expect(deliveryTile.rag).toBe('Green');
+        expect(deliveryTile.metricId).toBe('deliveryToBugRatio');
       });
 
-      it('shows "N/A" for velocity rate when prediction is missing', () => {
+      it('shows "N/A" for velocity rate and delivery-to-bug when prediction is missing', () => {
         const vm = mapApiResponseToDashboardViewModel(fullApiResponse);
         const ws = vm.workstreamCards[0];
 
-        expect(ws.metrics).toHaveLength(4);
+        expect(ws.metrics).toHaveLength(5);
         const rateTile = ws.metrics.find((m) => m.label === 'Velocity Rate');
         expect(rateTile?.value).toBe('N/A');
         expect(rateTile?.rawValue).toBeNull();
+
+        const deliveryTile = ws.metrics.find((m) => m.label === 'Delivery/Bug');
+        expect(deliveryTile?.value).toBe('N/A');
+        expect(deliveryTile?.rawValue).toBeNull();
       });
 
       it('shows "N/A" for velocity rate when velocityRate is null', () => {
@@ -316,6 +340,8 @@ describe('dashboard adapter', () => {
               prediction: {
                 velocity: 36,
                 velocityRate: null,
+                deliveryToBugRatio: null,
+                deliveryToBugRag: null,
                 mode: 'predicted' as const,
                 formula: 'avg velocity rate × net capacity',
               },
@@ -329,6 +355,32 @@ describe('dashboard adapter', () => {
         const rateTile = ws.metrics.find((m) => m.label === 'Velocity Rate');
         expect(rateTile?.value).toBe('N/A');
         expect(rateTile?.rawValue).toBeNull();
+      });
+
+      it('shows an em dash and Green badge for zero-bug delivery-to-bug values', () => {
+        const responseWithZeroBugRatio: ApiResponse = {
+          ...fullApiResponse,
+          workstreams: [
+            {
+              ...fullApiResponse.workstreams[0]!,
+              prediction: {
+                velocity: 36,
+                velocityRate: 0.75,
+                deliveryToBugRatio: null,
+                deliveryToBugRag: 'Green',
+                mode: 'predicted' as const,
+                formula: 'avg velocity rate × net capacity',
+              },
+            },
+          ],
+        };
+
+        const vm = mapApiResponseToDashboardViewModel(responseWithZeroBugRatio);
+        const deliveryTile = vm.workstreamCards[0].metrics.find((m) => m.label === 'Delivery/Bug');
+
+        expect(deliveryTile?.value).toBe('\u2014');
+        expect(deliveryTile?.rawValue).toBeNull();
+        expect(deliveryTile?.rag).toBe('Green');
       });
     });
 
@@ -365,12 +417,33 @@ describe('dashboard adapter', () => {
         const vm = mapApiResponseToDashboardViewModel(responseWithBugs);
         const bugs = vm.workstreamCards[0].trendSprints[0].bugs;
 
-        const ADO_BASE = 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit';
+        const ADO_BASE =
+          'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit';
         expect(bugs).toHaveLength(4);
-        expect(bugs[0]).toEqual({ adoId: '12345', title: 'Login crash', isClosed: true, adoUrl: `${ADO_BASE}/12345` });
-        expect(bugs[1]).toEqual({ adoId: '67890', title: 'Slow query', isClosed: false, adoUrl: `${ADO_BASE}/67890` });
-        expect(bugs[2]).toEqual({ adoId: '11111', title: 'Memory leak', isClosed: true, adoUrl: `${ADO_BASE}/11111` });
-        expect(bugs[3]).toEqual({ adoId: '22222', title: 'UI glitch', isClosed: true, adoUrl: `${ADO_BASE}/22222` });
+        expect(bugs[0]).toEqual({
+          adoId: '12345',
+          title: 'Login crash',
+          isClosed: true,
+          adoUrl: `${ADO_BASE}/12345`,
+        });
+        expect(bugs[1]).toEqual({
+          adoId: '67890',
+          title: 'Slow query',
+          isClosed: false,
+          adoUrl: `${ADO_BASE}/67890`,
+        });
+        expect(bugs[2]).toEqual({
+          adoId: '11111',
+          title: 'Memory leak',
+          isClosed: true,
+          adoUrl: `${ADO_BASE}/11111`,
+        });
+        expect(bugs[3]).toEqual({
+          adoId: '22222',
+          title: 'UI glitch',
+          isClosed: true,
+          adoUrl: `${ADO_BASE}/22222`,
+        });
       });
 
       it('returns empty bugs array when bugs field is missing', () => {
@@ -827,7 +900,8 @@ describe('dashboard adapter', () => {
         state: 'Closed',
         hours: '4.5 hrs',
         isClosed: true,
-        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
+        adoUrl:
+          'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/12345',
       });
       expect(sprint.bugs[1]).toEqual({
         adoId: '#67890',
@@ -835,7 +909,8 @@ describe('dashboard adapter', () => {
         state: 'Active',
         hours: 'N/A',
         isClosed: false,
-        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890',
+        adoUrl:
+          'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/67890',
       });
 
       expect(sprint.spikes).toHaveLength(1);
@@ -852,7 +927,8 @@ describe('dashboard adapter', () => {
         state: 'Done',
         hours: '2 hrs',
         isClosed: true,
-        adoUrl: 'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111',
+        adoUrl:
+          'https://dev.azure.com/Operations-Innovation/Event%20Streaming%20Platform/_workitems/edit/11111',
       });
     });
 
@@ -1499,7 +1575,9 @@ describe('dashboard adapter', () => {
 
   describe('groupMilestonesByQuarter', () => {
     const makeMilestone = (
-      overrides: Partial<ApiMilestoneWithProgress & { workstreamBreakdown: MilestoneWorkstreamBreakdown[] }> = {}
+      overrides: Partial<
+        ApiMilestoneWithProgress & { workstreamBreakdown: MilestoneWorkstreamBreakdown[] }
+      > = {}
     ): ApiMilestoneWithProgress & { workstreamBreakdown: MilestoneWorkstreamBreakdown[] } => ({
       id: 'ms-1',
       title: 'Feature A',

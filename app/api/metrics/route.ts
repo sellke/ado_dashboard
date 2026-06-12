@@ -13,11 +13,26 @@
 
 import { NextResponse } from 'next/server';
 import { resolveDashboard } from '@/lib/dashboard/config';
-import { parseScopedWorkstreamIds, validateScopedWorkstreamIds } from '@/lib/dashboard/workstream-scope';
+import {
+  parseScopedWorkstreamIds,
+  validateScopedWorkstreamIds,
+} from '@/lib/dashboard/workstream-scope';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
-import { buildTrendSeries, computeBugBurndown } from '@/lib/metrics/trend-service';
-import { DONE_STATES, type MetricWithRag, type ThresholdConfigInput, type WorkstreamMetrics } from '@/lib/metrics/types';
+import { loadMetricConfig } from '@/lib/metrics/config-loader';
+import { assignDeliveryToBugRag } from '@/lib/metrics/rag';
+import {
+  buildTrendSeries,
+  calculateDeliveryToBugRatio,
+  computeBugBurndown,
+} from '@/lib/metrics/trend-service';
+import {
+  DONE_STATES,
+  type MetricWithRag,
+  type ThresholdConfigInput,
+  type WorkstreamMetrics,
+} from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
+import { ROLLING_WINDOW_DEPTH } from '@/lib/sync/window';
 
 /** Synthetic meeting hours per eligible member (dev / QA / BA) per sprint — dashboard charts only. */
 const MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT = 8.25;
@@ -119,21 +134,21 @@ function formatWorkstreamResponse(
     },
     trends: {
       sprints: [] as Array<{
-      sprintId: string;
-      sprintName: string;
-      velocity: number | null;
-      velocityRate: number | null;
-      activeBugs: number;
-      bugsClosed: number;
-      mode: 'actual' | 'current';
-      velocityAvg: number | null;
-      overheadPercentAvg: number | null;
-      carryOverRateAvg: number | null;
-      plannedPoints: number | null;
-      completedPoints: number | null;
-      carryOverPoints: number | null;
-      grossHours: number | null;
-      overheadComposition: {
+        sprintId: string;
+        sprintName: string;
+        velocity: number | null;
+        velocityRate: number | null;
+        activeBugs: number;
+        bugsClosed: number;
+        mode: 'actual' | 'current';
+        velocityAvg: number | null;
+        overheadPercentAvg: number | null;
+        carryOverRateAvg: number | null;
+        plannedPoints: number | null;
+        completedPoints: number | null;
+        carryOverPoints: number | null;
+        grossHours: number | null;
+        overheadComposition: {
           ceremonyHours: number | null;
           bugHours: number | null;
           spikeHours: number | null;
@@ -141,13 +156,17 @@ function formatWorkstreamResponse(
           totalOverheadHours: number | null;
           overheadPercent: number | null;
         };
-        bugs: Array<{ adoId: number; title: string; state: string }>;
+        bugs: Array<{ adoId: number; title: string; state: string; isClosed?: boolean }>;
         overheadBreakdown: Array<{ category: string; hours: number }>;
       }>,
     },
     prediction: null as {
       velocity: number | null;
       velocityRate: number | null;
+      deliveryToBugRatio: number | null;
+      deliveryToBugRag: string | null;
+      deliveryToBugVelocityRate?: number | null;
+      deliveryToBugVelocityRateSource?: 'workstream' | 'program' | null;
       mode: 'predicted';
       formula: string;
     } | null,
@@ -209,8 +228,9 @@ export async function GET(request: Request) {
     }
 
     const rollingSprints = await prisma.sprint.findMany({
+      where: { startDate: { lte: sprint.startDate } },
       orderBy: { startDate: 'desc' },
-      take: 5,
+      take: ROLLING_WINDOW_DEPTH,
       select: { id: true, name: true, startDate: true, endDate: true },
     });
 
@@ -375,15 +395,20 @@ export async function GET(request: Request) {
 
     // Fetch meetingOverheadMemberCount via raw SQL so this works even if the
     // Prisma client was generated before the column was added.
-    let meetingOverheadMap = new Map<string, number | null>();
+    const meetingOverheadMap = new Map<string, number | null>();
     try {
-      const rows = await prisma.$queryRaw<Array<{ sprintId: string; workstreamId: string; meetingOverheadMemberCount: number | null }>>`
+      const rows = await prisma.$queryRaw<
+        Array<{ sprintId: string; workstreamId: string; meetingOverheadMemberCount: number | null }>
+      >`
         SELECT "sprintId", "workstreamId", "meetingOverheadMemberCount"
         FROM "sprint_workstreams"
         WHERE "sprintId" = ANY(${rollingSprintIds}::text[])
       `;
       for (const row of rows) {
-        meetingOverheadMap.set(`${row.sprintId}:${row.workstreamId}`, row.meetingOverheadMemberCount ?? null);
+        meetingOverheadMap.set(
+          `${row.sprintId}:${row.workstreamId}`,
+          row.meetingOverheadMemberCount ?? null
+        );
       }
     } catch {
       // Column not yet in DB — fall back to fteCount at usage site.
@@ -391,7 +416,8 @@ export async function GET(request: Request) {
 
     const trendSprintWorkstreams = trendSprintWorkstreamsBase.map((sw) => ({
       ...sw,
-      meetingOverheadMemberCount: meetingOverheadMap.get(`${sw.sprintId}:${sw.workstreamId}`) ?? null,
+      meetingOverheadMemberCount:
+        meetingOverheadMap.get(`${sw.sprintId}:${sw.workstreamId}`) ?? null,
     }));
     const trendBugInputs = trendBugs.map((bug) => ({
       sprintId: bug.sprintId,
@@ -399,17 +425,25 @@ export async function GET(request: Request) {
       state: bug.state,
       changedDate: bug.adoChangedDate,
     }));
-
     // ALL bugs for burndown charts (no sprint filter) — shared by workstream + program levels.
     const allBurndownBugs = await prisma.workItem.findMany({
       where: { type: 'Bug', ...wsFilter },
-      select: { workstreamId: true, state: true, adoChangedDate: true },
+      select: {
+        workstreamId: true,
+        state: true,
+        adoChangedDate: true,
+        adoCreatedDate: true,
+        adoId: true,
+        title: true,
+      },
     });
 
     const latestComputedAt = snapshots.reduce(
       (max, s) => (s.computedAt > max ? s.computedAt : max),
       snapshots[0]!.computedAt
     );
+    const metricConfig = await loadMetricConfig(prisma);
+    const thresholds: ThresholdConfigInput[] = metricConfig.thresholds;
 
     // When the active sprint is current, pull detail fields from the last completed sprint
     // so Planned/Completed/Carry-over reflect a closed sprint rather than mid-sprint partials.
@@ -492,6 +526,17 @@ export async function GET(request: Request) {
       }
     }
 
+    const programTrends =
+      includeProgram && snapshots.length > 0
+        ? buildTrendSeries({
+            rollingSprintsDesc: rollingSprints,
+            currentSprintId: currentRollingSprintId,
+            snapshots: trendSnapshots,
+            bugItems: trendBugInputs,
+            rollingWindow: metricConfig.engine.rollingWindow,
+          })
+        : null;
+
     const workstreams = snapshots.map((s) => {
       const formatted = formatWorkstreamResponse(s, includeRolling, isCurrentSprint);
       if (isCurrentSprint) {
@@ -518,6 +563,7 @@ export async function GET(request: Request) {
         snapshots: trendSnapshots,
         bugItems: trendBugInputs,
         workstreamId: s.workstreamId,
+        rollingWindow: metricConfig.engine.rollingWindow,
       });
       formatted.trends = {
         sprints: trends.sprints.map((sprint) => {
@@ -530,10 +576,8 @@ export async function GET(request: Request) {
           const swRow = trendSprintWorkstreams.find(
             (sw) => sw.sprintId === sprintId && sw.workstreamId === wsId
           );
-          const meetingHeadcount =
-            swRow?.meetingOverheadMemberCount ?? swRow?.fteCount ?? 0;
-          const meetingHours =
-            MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT * meetingHeadcount;
+          const meetingHeadcount = swRow?.meetingOverheadMemberCount ?? swRow?.fteCount ?? 0;
+          const meetingHours = MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT * meetingHeadcount;
           const spikeHours = trendSpikes
             .filter((sp) => sp.sprintId === sprintId && sp.workstreamId === wsId)
             .reduce((sum, sp) => sum + (sp.storyPoints ?? 0), 0);
@@ -589,12 +633,23 @@ export async function GET(request: Request) {
       // Per-workstream bug burndown: override sprint-assigned counts with time-based burndown.
       const wsBurndownBugs = allBurndownBugs
         .filter((b) => b.workstreamId === s.workstreamId)
-        .map((b) => ({ state: b.state, changedDate: b.adoChangedDate }));
+        .map((b) => ({
+          state: b.state,
+          changedDate: b.adoChangedDate,
+          createdDate: b.adoCreatedDate,
+          adoId: b.adoId,
+          title: b.title,
+        }));
       const sprintRefMap = new Map(rollingSprints.map((rs) => [rs.id, rs]));
       const wsBurndown = computeBugBurndown({
         sprintsAsc: formatted.trends.sprints.map((ts: { sprintId: string; sprintName: string }) => {
           const ref = sprintRefMap.get(ts.sprintId)!;
-          return { id: ts.sprintId, name: ts.sprintName, startDate: ref.startDate, endDate: ref.endDate };
+          return {
+            id: ts.sprintId,
+            name: ts.sprintName,
+            startDate: ref.startDate,
+            endDate: ref.endDate,
+          };
         }),
         allBugs: wsBurndownBugs,
       });
@@ -605,12 +660,41 @@ export async function GET(request: Request) {
         if (sprint) {
           sprint.activeBugs = bd.activeBugs;
           sprint.bugsClosed = bd.bugsClosed;
+          // Replace assignment-based bugs with the exact as-of population behind the bars.
+          sprint.bugs = bd.bugs.map((b) => ({
+            adoId: b.adoId,
+            title: b.title,
+            state: b.state,
+            isClosed: b.isClosed,
+          }));
         }
       }
 
+      const deliveryToBugVelocityRate =
+        trends.averageVelocityRate ?? programTrends?.averageVelocityRate ?? null;
+      const deliveryToBugRatio = calculateDeliveryToBugRatio(
+        trends.deliveryToBugCompletedPoints,
+        trends.deliveryToBugHours,
+        deliveryToBugVelocityRate
+      );
       formatted.prediction = {
         velocity: trends.prediction.velocity,
         velocityRate: trends.averageVelocityRate,
+        deliveryToBugRatio,
+        deliveryToBugRag: assignDeliveryToBugRag(
+          deliveryToBugRatio,
+          trends.deliveryToBugCompletedPoints,
+          trends.deliveryToBugHours,
+          thresholds
+        ),
+        deliveryToBugVelocityRate,
+        deliveryToBugVelocityRateSource:
+          trends.averageVelocityRate !== null
+            ? ('workstream' as const)
+            : programTrends?.averageVelocityRate !== null &&
+                programTrends?.averageVelocityRate !== undefined
+              ? ('program' as const)
+              : null,
         mode: 'predicted' as const,
         formula: trends.prediction.formula,
       };
@@ -683,29 +767,12 @@ export async function GET(request: Request) {
         computedAt: s.computedAt,
       }));
 
-      const thresholds: ThresholdConfigInput[] = (await prisma.thresholdConfig.findMany()).map(
-        (t) => ({
-          metricName: t.metricName,
-          greenMin: t.greenMin,
-          greenMax: t.greenMax,
-          amberMin: t.amberMin,
-          amberMax: t.amberMax,
-        })
-      );
-
-      const prog = aggregateToProgram(wsMetrics, thresholds);
+      const prog = aggregateToProgram(wsMetrics, thresholds, metricConfig.engine);
       if (prog) {
-        const programTrends = buildTrendSeries({
-          rollingSprintsDesc: rollingSprints,
-          currentSprintId: currentRollingSprintId,
-          snapshots: trendSnapshots,
-          bugItems: trendBugInputs,
-        });
-
         // Program-level bug burndown: reuse shared allBurndownBugs (no sprint filter).
         const progSprintRefMap = new Map(rollingSprints.map((rs) => [rs.id, rs]));
         const burndownResults = computeBugBurndown({
-          sprintsAsc: programTrends.sprints.map((s) => {
+          sprintsAsc: programTrends!.sprints.map((s) => {
             const ref = progSprintRefMap.get(s.sprintId)!;
             return {
               id: s.sprintId,
@@ -717,10 +784,11 @@ export async function GET(request: Request) {
           allBugs: allBurndownBugs.map((b) => ({
             state: b.state,
             changedDate: b.adoChangedDate,
+            createdDate: b.adoCreatedDate,
           })),
         });
         for (const bd of burndownResults) {
-          const sprint = programTrends.sprints.find((s) => s.sprintId === bd.sprintId);
+          const sprint = programTrends!.sprints.find((s) => s.sprintId === bd.sprintId);
           if (sprint) {
             sprint.activeBugs = bd.activeBugs;
             sprint.bugsClosed = bd.bugsClosed;
@@ -750,15 +818,22 @@ export async function GET(request: Request) {
             overheadPercent: toMetric(prog.overheadPercent, includeRolling),
             predictability: toMetric(prog.predictability, includeRolling),
             carryOverRate: toMetric(prog.carryOverRate, includeRolling),
-            averageVelocityRate: programTrends.averageVelocityRate,
+            averageVelocityRate: programTrends!.averageVelocityRate,
+            deliveryToBugRatio: programTrends!.deliveryToBugRatio,
+            deliveryToBugRag: assignDeliveryToBugRag(
+              programTrends!.deliveryToBugRatio,
+              programTrends!.deliveryToBugCompletedPoints,
+              programTrends!.deliveryToBugHours,
+              thresholds
+            ),
             milestoneMonthly: { value: null, rag: null },
             milestoneQuarterly: { value: null, rag: null },
           },
           trends: {
-            sprints: programTrends.sprints,
+            sprints: programTrends!.sprints,
           },
           prediction: {
-            sprint5: programTrends.prediction,
+            sprint5: programTrends!.prediction,
           },
         };
       }

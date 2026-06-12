@@ -6,6 +6,7 @@
  */
 
 import { GET } from '@/app/api/sprints/stories/route';
+import { VISIBLE_SPRINT_TABS } from '@/lib/sync/window';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -93,6 +94,12 @@ describe('GET /api/sprints/stories', () => {
 
     expect(res.status).toBe(200);
     expect(data.sprints).toHaveLength(5);
+    expect(prisma.sprint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { startDate: 'desc' },
+        take: VISIBLE_SPRINT_TABS,
+      })
+    );
     expect(data.sprints[0].id).toBe('sprint-5');
     expect(data.sprints[0].isCurrent).toBe(true);
     expect(data.sprints[0].stories).toHaveLength(2);
