@@ -5,9 +5,38 @@
  * Tests sync orchestration, SyncLog lifecycle, and per-workstream isolation.
  */
 
+jest.mock('@/lib/sync/ado-client', () => ({
+  ...jest.requireActual('@/lib/sync/ado-client'),
+  fetchTeamIterations: jest.fn(),
+  fetchWorkItemIdsByWiql: jest.fn(),
+  fetchWorkItemsBatch: jest.fn(),
+  fetchTeamCapacity: jest.fn(),
+}));
+
 import { POST } from '@/app/api/sync/ado/route';
+import {
+  fetchTeamCapacity,
+  fetchTeamIterations,
+  fetchWorkItemIdsByWiql,
+  fetchWorkItemsBatch,
+} from '@/lib/sync/ado-client';
+import { SYNC_CONFIG } from '@/lib/sync/config';
+import {
+  buildDefaultAdoAreaPath,
+  DEFAULT_ADO_ORG,
+} from '@/lib/sync/defaults';
 import { INGEST_SPRINT_DEPTH } from '@/lib/sync/window';
+import { getDefaultSyncProgramConfig } from '@/prisma/seed';
 import { cleanupTestData, prisma } from '../prisma/helpers';
+
+const MOCK_ITERATION = {
+  path: `${SYNC_CONFIG.projectNameOrId}\\FY27\\Q1\\Sprint 27.1`,
+  name: 'Sprint 27.1',
+  id: 'def498ab-a9cf-41eb-a7c7-9eb67d1852ef',
+  startDate: new Date('2026-04-27'),
+  finishDate: new Date('2026-05-08'),
+  isCurrent: true,
+};
 
 describe('POST /api/sync/ado', () => {
   // Orchestrator + DB can exceed 15s on slower hosts / OneDrive paths
@@ -15,13 +44,46 @@ describe('POST /api/sync/ado', () => {
 
   beforeAll(async () => {
     await cleanupTestData();
-    // Seed workstreams for sync (orchestrator needs workstreams)
+
+    await prisma.syncProgramConfig.create({
+      data: getDefaultSyncProgramConfig(),
+    });
+
+    // Seed workstreams with registry fields so sync-config-loader includes them
     await prisma.workstream.createMany({
       data: [
-        { name: 'Streams', adoAreaPath: 'Area\\Streams' },
-        { name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+        {
+          name: 'Streams',
+          adoAreaPath: buildDefaultAdoAreaPath('\\Streams'),
+          adoOrg: DEFAULT_ADO_ORG,
+          adoProject: SYNC_CONFIG.projectNameOrId,
+          adoTeamId: 'ae8bcdaa-d61b-475c-ba34-13c88b1adf8e',
+          syncEnabled: true,
+        },
+        {
+          name: 'Pitch Tracker',
+          adoAreaPath: buildDefaultAdoAreaPath('\\Pitch Tracker'),
+          adoOrg: DEFAULT_ADO_ORG,
+          adoProject: SYNC_CONFIG.projectNameOrId,
+          adoTeamId: '178ad7d2-bd20-42f9-a992-43b20dfa9b9e',
+          syncEnabled: true,
+        },
       ],
     });
+
+    await prisma.sprint.create({
+      data: {
+        name: MOCK_ITERATION.name,
+        adoIterationPath: MOCK_ITERATION.path,
+        startDate: MOCK_ITERATION.startDate,
+        endDate: MOCK_ITERATION.finishDate,
+      },
+    });
+
+    jest.mocked(fetchTeamIterations).mockResolvedValue([MOCK_ITERATION]);
+    jest.mocked(fetchWorkItemIdsByWiql).mockResolvedValue([]);
+    jest.mocked(fetchWorkItemsBatch).mockResolvedValue([]);
+    jest.mocked(fetchTeamCapacity).mockResolvedValue({ members: [], retries: 0 });
   });
 
   afterEach(async () => {
@@ -29,6 +91,7 @@ describe('POST /api/sync/ado', () => {
   });
 
   afterAll(async () => {
+    jest.resetAllMocks();
     await cleanupTestData();
     await prisma.$disconnect();
   });
