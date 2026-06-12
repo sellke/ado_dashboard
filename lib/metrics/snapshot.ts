@@ -12,6 +12,7 @@ import {
   calculatePredictability,
   calculateVelocity,
 } from './calculators';
+import { loadMetricConfig, type MetricConfigInput } from './config-loader';
 import { assignRag, assignVelocityRag } from './rag';
 import { calculateRollingAverages } from './rolling';
 import type {
@@ -46,7 +47,8 @@ export async function computeWorkstreamMetrics(
   sprintId: string,
   workstreamId: string,
   currentSprintStart: Date,
-  db: PrismaClient = prisma
+  db: PrismaClient = prisma,
+  metricConfig?: MetricConfigInput
 ): Promise<void> {
   // Validate sprint and workstream exist (invalid IDs → throw)
   const sprint = await db.sprint.findUnique({
@@ -135,11 +137,12 @@ export async function computeWorkstreamMetrics(
     : { grossHours: null, ceremonyHours: null };
 
   const wiInputs = workItems.map(toWorkItemInput);
+  const config = metricConfig ?? (await loadMetricConfig(db));
 
   // 3–6. Run pure calculators
-  const actualVelocity = calculateVelocity(wiInputs);
-  const overhead = calculateOverhead(wiInputs, swInput);
-  const predictabilityResult = calculatePredictability(wiInputs);
+  const actualVelocity = calculateVelocity(wiInputs, config.rules);
+  const overhead = calculateOverhead(wiInputs, swInput, config.rules);
+  const predictabilityResult = calculatePredictability(wiInputs, config.rules);
 
   // For completed sprints, use snapshot data for carry-over if available
   let carryOverInput = wiInputs;
@@ -157,7 +160,7 @@ export async function computeWorkstreamMetrics(
       }));
     }
   }
-  const carryOverResult = calculateCarryOver(carryOverInput);
+  const carryOverResult = calculateCarryOver(carryOverInput, config.rules);
 
   // 7. Prior snapshots for rolling averages
   const priorSnapshots = await db.metricSnapshot.findMany({
@@ -166,7 +169,7 @@ export async function computeWorkstreamMetrics(
       sprint: { endDate: { lt: currentSprintStart } },
     },
     orderBy: { sprint: { endDate: 'desc' } },
-    take: 4,
+    take: config.engine.rollingWindow,
     include: { sprint: true },
   });
 
@@ -181,18 +184,13 @@ export async function computeWorkstreamMetrics(
   const velocity = isCurrentSprint ? rollingAvgs.velocityAvg : actualVelocity;
 
   // 8. Thresholds for RAG
-  const thresholdRows = await db.thresholdConfig.findMany();
-  const thresholds: ThresholdConfigInput[] = thresholdRows.map((t) => ({
-    metricName: t.metricName,
-    greenMin: t.greenMin,
-    greenMax: t.greenMax,
-    amberMin: t.amberMin,
-    amberMax: t.amberMax,
-  }));
+  const thresholds: ThresholdConfigInput[] = config.thresholds;
 
   // 9. RAG assignment
   // Current sprint velocity is projected from prior sprints; avoid trend RAG on projections.
-  const velocityRag = isCurrentSprint ? null : assignVelocityRag(velocity, rollingAvgs.velocityAvg);
+  const velocityRag = isCurrentSprint
+    ? null
+    : assignVelocityRag(velocity, rollingAvgs.velocityAvg, config.engine);
   const overheadRag = assignRag(overhead.overheadPercent, 'overheadPercent', thresholds);
   const predictabilityRag = assignRag(
     predictabilityResult?.predictability ?? null,

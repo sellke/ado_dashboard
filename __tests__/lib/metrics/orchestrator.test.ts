@@ -111,6 +111,48 @@ describe('computeAllMetrics', () => {
     expect(snapshots).toHaveLength(2);
   });
 
+  it('uses the current saved config when compute runs', async () => {
+    await prisma.metricRuleConfig.create({
+      data: { category: 'deliveryPoints', workItemType: 'Bug', included: true },
+    });
+    await prisma.sprintWorkstream.create({
+      data: { sprintId, workstreamId: ws1Id, grossHours: 80, ceremonyHours: 16 },
+    });
+    await prisma.workItem.createMany({
+      data: [
+        {
+          adoId: 3101,
+          type: 'UserStory',
+          title: 'US 1',
+          state: 'Done',
+          storyPoints: 10,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId: ws1Id,
+          sprintId,
+        },
+        {
+          adoId: 3102,
+          type: 'Bug',
+          title: 'Bug included by config',
+          state: 'Done',
+          storyPoints: 5,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId: ws1Id,
+          sprintId,
+        },
+      ],
+    });
+
+    await computeAllMetrics(sprintId, prisma);
+
+    const snapshot = await prisma.metricSnapshot.findUnique({
+      where: { sprintId_workstreamId: { sprintId, workstreamId: ws1Id } },
+    });
+    expect(snapshot?.velocity).toBe(15);
+  });
+
   it('should isolate failures: one workstream fails, others still succeed', async () => {
     // Inject a computeFn that throws for ws2 but delegates to the real function for ws1
     const failingComputeFn = async (s: string, w: string, start: Date, db: any) => {

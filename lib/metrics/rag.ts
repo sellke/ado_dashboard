@@ -4,7 +4,12 @@
  * @module lib/metrics/rag
  */
 
-import type { RagColor, ThresholdConfigInput } from './types';
+import {
+  DEFAULT_ENGINE_CONFIG,
+  type MetricEngineConfigInput,
+  type RagColor,
+  type ThresholdConfigInput,
+} from './types';
 
 // ---------------------------------------------------------------------------
 // Threshold-based RAG
@@ -39,6 +44,31 @@ export function assignRag(
   return 'Red';
 }
 
+/**
+ * Assign delivery-to-bug RAG with the zero-bug healthy case.
+ *
+ * Finite ratios delegate to seeded `deliveryToBugRatio` thresholds where lower is healthier.
+ */
+export function assignDeliveryToBugRag(
+  ratio: number | null,
+  completedPoints: number | null | undefined,
+  bugHours: number | null | undefined,
+  thresholds: ThresholdConfigInput[]
+): RagColor {
+  if (
+    bugHours === 0 &&
+    completedPoints !== null &&
+    completedPoints !== undefined &&
+    completedPoints > 0
+  ) {
+    return 'Green';
+  }
+  if (ratio === null) {
+    return null;
+  }
+  return assignRag(ratio, 'deliveryToBugRatio', thresholds);
+}
+
 // ---------------------------------------------------------------------------
 // Velocity trend-based RAG
 // ---------------------------------------------------------------------------
@@ -52,7 +82,14 @@ export function assignRag(
  * - null: when velocity or rolling average is null
  * - Special: when rollingAvg = 0 and velocity > 0 → Green; both 0 → null
  */
-export function assignVelocityRag(velocity: number | null, rollingAvg: number | null): RagColor {
+export function assignVelocityRag(
+  velocity: number | null,
+  rollingAvg: number | null,
+  config: Pick<
+    MetricEngineConfigInput,
+    'velocityGreenFloor' | 'velocityAmberFloor'
+  > = DEFAULT_ENGINE_CONFIG
+): RagColor {
   if (velocity === null || rollingAvg === null) {
     return null;
   }
@@ -62,10 +99,10 @@ export function assignVelocityRag(velocity: number | null, rollingAvg: number | 
   }
 
   const ratio = velocity / rollingAvg;
-  if (ratio >= 1.0) {
+  if (ratio >= config.velocityGreenFloor) {
     return 'Green';
   }
-  if (ratio >= 0.7) {
+  if (ratio >= config.velocityAmberFloor) {
     return 'Amber';
   }
   return 'Red';

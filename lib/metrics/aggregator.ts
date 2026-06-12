@@ -6,6 +6,7 @@
 
 import { assignRag, assignVelocityRag } from './rag';
 import type {
+  MetricEngineConfigInput,
   MetricWithRag,
   ProgramMetrics,
   ThresholdConfigInput,
@@ -22,7 +23,8 @@ import type {
  */
 export function aggregateToProgram(
   workstreamMetrics: WorkstreamMetrics[],
-  thresholds: ThresholdConfigInput[]
+  thresholds: ThresholdConfigInput[],
+  engineConfig?: Pick<MetricEngineConfigInput, 'velocityGreenFloor' | 'velocityAmberFloor'>
 ): ProgramMetrics | null {
   if (workstreamMetrics.length === 0) {
     return null;
@@ -63,7 +65,7 @@ export function aggregateToProgram(
   const velocity: MetricWithRag = {
     value: velocityValue,
     average: velocityAvg,
-    rag: assignVelocityRag(velocityValue, velocityAvg),
+    rag: assignVelocityRag(velocityValue, velocityAvg, engineConfig),
   };
 
   const overheadPercent: MetricWithRag = {

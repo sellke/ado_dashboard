@@ -1,4 +1,4 @@
-import { assignRag, assignVelocityRag } from '@/lib/metrics/rag';
+import { assignDeliveryToBugRag, assignRag, assignVelocityRag } from '@/lib/metrics/rag';
 import type { ThresholdConfigInput } from '@/lib/metrics/types';
 
 // ---------------------------------------------------------------------------
@@ -15,6 +15,13 @@ const thresholds: ThresholdConfigInput[] = [
   },
   { metricName: 'carryOverRate', greenMin: 0, greenMax: 10, amberMin: 10.01, amberMax: 25 },
   { metricName: 'overheadPercent', greenMin: 0, greenMax: 30, amberMin: 30.01, amberMax: 45 },
+  {
+    metricName: 'deliveryToBugRatio',
+    greenMin: 0,
+    greenMax: 0.25,
+    amberMin: 0.26,
+    amberMax: 0.5,
+  },
 ];
 
 // ============================================================================
@@ -114,5 +121,46 @@ describe('assignVelocityRag', () => {
   it('should handle exact boundary at 100%', () => {
     // ratio = 20/20 = 1.0 → should be Green (>= 1.0)
     expect(assignVelocityRag(20, 20)).toBe('Green');
+  });
+
+  it('should use configured velocity cutoff ratios', () => {
+    expect(
+      assignVelocityRag(22, 20, {
+        velocityGreenFloor: 1.2,
+        velocityAmberFloor: 0.8,
+      })
+    ).toBe('Amber');
+    expect(
+      assignVelocityRag(15, 20, {
+        velocityGreenFloor: 1.2,
+        velocityAmberFloor: 0.8,
+      })
+    ).toBe('Red');
+  });
+});
+
+// ============================================================================
+// assignDeliveryToBugRag (threshold-based with zero-bug rule)
+// ============================================================================
+
+describe('assignDeliveryToBugRag', () => {
+  it('returns Green when bug hours are zero and delivery exists', () => {
+    expect(assignDeliveryToBugRag(null, 8, 0, thresholds)).toBe('Green');
+  });
+
+  it('returns null for 0/0 and missing ratio cases without the zero-bug healthy rule', () => {
+    expect(assignDeliveryToBugRag(null, 0, 0, thresholds)).toBeNull();
+    expect(assignDeliveryToBugRag(null, null, 0, thresholds)).toBeNull();
+    expect(assignDeliveryToBugRag(null, 8, null, thresholds)).toBeNull();
+  });
+
+  it('applies delivery-to-bug threshold boundaries when ratio is finite', () => {
+    expect(assignDeliveryToBugRag(0.25, 8, 2, thresholds)).toBe('Green');
+    expect(assignDeliveryToBugRag(0.26, 8, 4, thresholds)).toBe('Amber');
+    expect(assignDeliveryToBugRag(0.51, 1.99, 1, thresholds)).toBe('Red');
+  });
+
+  it('returns null when the delivery-to-bug threshold is missing', () => {
+    expect(assignDeliveryToBugRag(4, 8, 2, [])).toBeNull();
   });
 });

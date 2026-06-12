@@ -4,14 +4,23 @@
  * @module lib/metrics/calculators
  */
 
+import { isIncluded } from './config-rules';
 import {
   DONE_STATES,
   type CarryOverResult,
+  type MetricRuleConfigInput,
   type OverheadResult,
   type PredictabilityResult,
   type SprintWorkstreamInput,
   type WorkItemInput,
 } from './types';
+
+function deliveryPointItems(
+  workItems: WorkItemInput[],
+  rules: MetricRuleConfigInput[] = []
+): WorkItemInput[] {
+  return workItems.filter((wi) => isIncluded(rules, 'deliveryPoints', wi.type));
+}
 
 // ---------------------------------------------------------------------------
 // Velocity
@@ -22,9 +31,11 @@ import {
  * Bug and Spike items are excluded — their effort feeds Overhead hours, not velocity.
  * Null storyPoints are treated as 0. Always returns a number (0 when no done items).
  */
-export function calculateVelocity(workItems: WorkItemInput[]): number {
-  return workItems
-    .filter((wi) => wi.type !== 'Bug' && wi.type !== 'Spike')
+export function calculateVelocity(
+  workItems: WorkItemInput[],
+  rules: MetricRuleConfigInput[] = []
+): number {
+  return deliveryPointItems(workItems, rules)
     .filter((wi) => (DONE_STATES as readonly string[]).includes(wi.state))
     .reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
 }
@@ -48,20 +59,21 @@ export function calculateVelocity(workItems: WorkItemInput[]): number {
  */
 export function calculateOverhead(
   workItems: WorkItemInput[],
-  sprintWorkstream: SprintWorkstreamInput
+  sprintWorkstream: SprintWorkstreamInput,
+  rules: MetricRuleConfigInput[] = []
 ): OverheadResult {
   const ceremonyHours = sprintWorkstream.ceremonyHours ?? 0;
 
   const bugHours = workItems
-    .filter((wi) => wi.type === 'Bug')
+    .filter((wi) => wi.type === 'Bug' && isIncluded(rules, 'overheadHours', wi.type))
     .reduce((sum, wi) => sum + (wi.completedWork ?? wi.originalEstimate ?? 0), 0);
 
   const spikeHours = workItems
-    .filter((wi) => wi.type === 'Spike')
+    .filter((wi) => wi.type === 'Spike' && isIncluded(rules, 'overheadHours', wi.type))
     .reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
 
   const supportHours = workItems
-    .filter((wi) => wi.type === 'Support')
+    .filter((wi) => wi.type === 'Support' && isIncluded(rules, 'overheadHours', wi.type))
     .reduce((sum, wi) => sum + (wi.completedWork ?? wi.originalEstimate ?? 0), 0);
 
   const overheadHours = ceremonyHours + bugHours + spikeHours + supportHours;
@@ -100,15 +112,18 @@ export function calculateOverhead(
  * - Bug and Spike items are excluded — their effort feeds Overhead hours, not point plans.
  * - Returns null when plannedPoints = 0 (division by zero)
  */
-export function calculatePredictability(workItems: WorkItemInput[]): PredictabilityResult | null {
-  const nonBugItems = workItems.filter((wi) => wi.type !== 'Bug' && wi.type !== 'Spike');
-  const plannedPoints = nonBugItems.reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
+export function calculatePredictability(
+  workItems: WorkItemInput[],
+  rules: MetricRuleConfigInput[] = []
+): PredictabilityResult | null {
+  const deliveryItems = deliveryPointItems(workItems, rules);
+  const plannedPoints = deliveryItems.reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
 
   if (plannedPoints === 0) {
     return null;
   }
 
-  const completedPoints = nonBugItems
+  const completedPoints = deliveryItems
     .filter((wi) => (DONE_STATES as readonly string[]).includes(wi.state))
     .reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
 
@@ -133,15 +148,18 @@ export function calculatePredictability(workItems: WorkItemInput[]): Predictabil
  * - Bug and Spike items are excluded — their effort feeds Overhead hours, not point plans.
  * - Returns null when plannedPoints = 0 (division by zero)
  */
-export function calculateCarryOver(workItems: WorkItemInput[]): CarryOverResult | null {
-  const nonBugItems = workItems.filter((wi) => wi.type !== 'Bug' && wi.type !== 'Spike');
-  const plannedPoints = nonBugItems.reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
+export function calculateCarryOver(
+  workItems: WorkItemInput[],
+  rules: MetricRuleConfigInput[] = []
+): CarryOverResult | null {
+  const deliveryItems = deliveryPointItems(workItems, rules);
+  const plannedPoints = deliveryItems.reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
 
   if (plannedPoints === 0) {
     return null;
   }
 
-  const incompleteItems = nonBugItems.filter(
+  const incompleteItems = deliveryItems.filter(
     (wi) => !(DONE_STATES as readonly string[]).includes(wi.state)
   );
 

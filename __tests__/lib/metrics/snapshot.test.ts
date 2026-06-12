@@ -6,6 +6,7 @@
  */
 
 import { computeWorkstreamMetrics } from '@/lib/metrics/snapshot';
+import { DEFAULT_ENGINE_CONFIG, DEFAULT_METRIC_RULE_CONFIGS } from '@/lib/metrics/types';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
 
 describe('computeWorkstreamMetrics', () => {
@@ -265,6 +266,105 @@ describe('computeWorkstreamMetrics', () => {
     expect(snapshot!.velocityRag).toBeNull();
   });
 
+  it('should apply delivery-point rules when computing snapshot values', async () => {
+    await prisma.sprintWorkstream.create({
+      data: {
+        sprintId,
+        workstreamId,
+        grossHours: 80,
+        ceremonyHours: 0,
+      },
+    });
+    await prisma.workItem.createMany({
+      data: [
+        {
+          adoId: 9201,
+          type: 'UserStory',
+          title: 'US',
+          state: 'Done',
+          storyPoints: 5,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId,
+          sprintId,
+        },
+        {
+          adoId: 9202,
+          type: 'Bug',
+          title: 'Bug as delivery',
+          state: 'Done',
+          storyPoints: 3,
+          areaPath: 'Area',
+          iterationPath: 'Iter',
+          workstreamId,
+          sprintId,
+        },
+      ],
+    });
+
+    await computeWorkstreamMetrics(sprintId, workstreamId, sprintStart, prisma, {
+      thresholds: [],
+      engine: DEFAULT_ENGINE_CONFIG,
+      rules: [
+        { category: 'deliveryPoints', workItemType: 'Bug', included: true },
+        ...DEFAULT_METRIC_RULE_CONFIGS,
+      ],
+    });
+
+    const snapshot = await prisma.metricSnapshot.findUnique({
+      where: { sprintId_workstreamId: { sprintId, workstreamId } },
+    });
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.velocity).toBe(8);
+    expect(snapshot!.plannedPoints).toBe(8);
+    expect(snapshot!.completedPoints).toBe(8);
+  });
+
+  it('should use configured rolling window for prior snapshot averages', async () => {
+    const priorSprints = await Promise.all(
+      [
+        ['Prior 1', '2026-02-16', '2026-02-27', 10],
+        ['Prior 2', '2026-03-02', '2026-03-13', 20],
+        ['Prior 3', '2026-03-16', '2026-03-27', 40],
+      ].map(async ([name, startDate, endDate, velocity]) => {
+        const priorSprint = await prisma.sprint.create({
+          data: {
+            name: name as string,
+            startDate: new Date(startDate as string),
+            endDate: new Date(endDate as string),
+          },
+        });
+        await prisma.metricSnapshot.create({
+          data: {
+            sprintId: priorSprint.id,
+            workstreamId,
+            velocity: velocity as number,
+            overheadPercent: 10,
+            predictability: 80,
+            carryOverRate: 10,
+          },
+        });
+        return priorSprint;
+      })
+    );
+
+    expect(priorSprints).toHaveLength(3);
+
+    await computeWorkstreamMetrics(sprintId, workstreamId, sprintStart, prisma, {
+      thresholds: [],
+      engine: { ...DEFAULT_ENGINE_CONFIG, rollingWindow: 2 },
+      rules: DEFAULT_METRIC_RULE_CONFIGS,
+    });
+
+    const snapshot = await prisma.metricSnapshot.findUnique({
+      where: { sprintId_workstreamId: { sprintId, workstreamId } },
+    });
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.velocityAvg).toBe(30);
+  });
+
   describe('SprintPlanSnapshot capture', () => {
     it('should upsert snapshot rows for current sprint work items', async () => {
       const now = new Date();
@@ -303,7 +403,12 @@ describe('computeWorkstreamMetrics', () => {
         ],
       });
 
-      await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+      await computeWorkstreamMetrics(
+        currentSprint.id,
+        workstreamId,
+        currentSprint.startDate,
+        prisma
+      );
 
       const snapshots = await prisma.sprintPlanSnapshot.findMany({
         where: { sprintId: currentSprint.id, workstreamId },
@@ -374,7 +479,12 @@ describe('computeWorkstreamMetrics', () => {
         },
       });
 
-      await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+      await computeWorkstreamMetrics(
+        currentSprint.id,
+        workstreamId,
+        currentSprint.startDate,
+        prisma
+      );
 
       // Update the work item state
       await prisma.workItem.update({
@@ -382,7 +492,12 @@ describe('computeWorkstreamMetrics', () => {
         data: { state: 'Done', storyPoints: 5 },
       });
 
-      await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+      await computeWorkstreamMetrics(
+        currentSprint.id,
+        workstreamId,
+        currentSprint.startDate,
+        prisma
+      );
 
       const snapshots = await prisma.sprintPlanSnapshot.findMany({
         where: { sprintId: currentSprint.id, workstreamId },
@@ -434,7 +549,12 @@ describe('computeWorkstreamMetrics', () => {
       });
 
       // First compute: both items snapshotted
-      await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+      await computeWorkstreamMetrics(
+        currentSprint.id,
+        workstreamId,
+        currentSprint.startDate,
+        prisma
+      );
 
       let snapshots = await prisma.sprintPlanSnapshot.findMany({
         where: { sprintId: currentSprint.id, workstreamId },
@@ -448,7 +568,12 @@ describe('computeWorkstreamMetrics', () => {
       });
 
       // Second compute: stale row should be removed
-      await computeWorkstreamMetrics(currentSprint.id, workstreamId, currentSprint.startDate, prisma);
+      await computeWorkstreamMetrics(
+        currentSprint.id,
+        workstreamId,
+        currentSprint.startDate,
+        prisma
+      );
 
       snapshots = await prisma.sprintPlanSnapshot.findMany({
         where: { sprintId: currentSprint.id, workstreamId },

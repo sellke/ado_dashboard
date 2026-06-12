@@ -18,6 +18,61 @@ export const BUG_RESOLVED_STATES = ['Resolved', 'Testing', 'Closed'] as const;
 export type BugOpenState = (typeof BUG_OPEN_STATES)[number];
 export type BugResolvedState = (typeof BUG_RESOLVED_STATES)[number];
 
+/** Singleton key for program-wide metric engine configuration. */
+export const DEFAULT_METRIC_ENGINE_CONFIG_KEY = 'default' as const;
+
+/** Scalar knobs that control metric engine behavior outside threshold bands. */
+export interface MetricEngineConfigInput {
+  velocityGreenFloor: number;
+  velocityAmberFloor: number;
+  rollingWindow: number;
+}
+
+/** Defaults that reproduce the pre-configuration metric engine behavior. */
+export const DEFAULT_ENGINE_CONFIG: MetricEngineConfigInput = {
+  velocityGreenFloor: 1.0,
+  velocityAmberFloor: 0.7,
+  rollingWindow: 4,
+};
+
+export type MetricCategory = 'deliveryPoints' | 'overheadHours';
+
+/** Per-category work-item inclusion rule persisted by MetricRuleConfig. */
+export interface MetricRuleConfigInput {
+  category: MetricCategory;
+  workItemType: string;
+  included: boolean;
+}
+
+export const METRIC_CATEGORIES = ['deliveryPoints', 'overheadHours'] as const;
+export const CONFIGURABLE_WORK_ITEM_TYPES = [
+  'Epic',
+  'UserStory',
+  'Task',
+  'Feature',
+  'Bug',
+  'Spike',
+  'Support',
+] as const;
+
+/** Encodes current behavior: only Bug and Spike are excluded from delivery-point metrics. */
+export const DEFAULT_DELIVERY_EXCLUDED_TYPES = ['Bug', 'Spike'] as const;
+export const DEFAULT_OVERHEAD_INCLUDED_TYPES = ['Bug', 'Spike', 'Support'] as const;
+
+export const DEFAULT_METRIC_RULE_CONFIGS: MetricRuleConfigInput[] =
+  CONFIGURABLE_WORK_ITEM_TYPES.flatMap((workItemType) => [
+    {
+      category: 'deliveryPoints',
+      workItemType,
+      included: !(DEFAULT_DELIVERY_EXCLUDED_TYPES as readonly string[]).includes(workItemType),
+    },
+    {
+      category: 'overheadHours',
+      workItemType,
+      included: (DEFAULT_OVERHEAD_INCLUDED_TYPES as readonly string[]).includes(workItemType),
+    },
+  ]);
+
 // ============================================================================
 // Input types for pure calculator functions
 // ============================================================================
@@ -45,6 +100,41 @@ export interface ThresholdConfigInput {
   amberMin: number;
   amberMax: number;
 }
+
+export const DEFAULT_THRESHOLD_CONFIGS: ThresholdConfigInput[] = [
+  {
+    metricName: 'sprintPredictability',
+    greenMin: 80,
+    greenMax: 100,
+    amberMin: 60,
+    amberMax: 79.99,
+  },
+  { metricName: 'carryOverRate', greenMin: 0, greenMax: 10, amberMin: 10.01, amberMax: 25 },
+  { metricName: 'overheadPercent', greenMin: 0, greenMax: 30, amberMin: 30.01, amberMax: 45 },
+  {
+    metricName: 'deliveryToBugRatio',
+    greenMin: 0,
+    greenMax: 0.25,
+    amberMin: 0.26,
+    amberMax: 0.5,
+  },
+  { metricName: 'agingWipDays', greenMin: 0, greenMax: 5, amberMin: 5.01, amberMax: 10 },
+  { metricName: 'scopeCreepIndex', greenMin: 0, greenMax: 10, amberMin: 10.01, amberMax: 20 },
+  {
+    metricName: 'milestoneMonthly',
+    greenMin: 80,
+    greenMax: 100,
+    amberMin: 60,
+    amberMax: 79.99,
+  },
+  {
+    metricName: 'milestoneQuarterly',
+    greenMin: 80,
+    greenMax: 100,
+    amberMin: 60,
+    amberMax: 79.99,
+  },
+];
 
 /** Minimal shape for sprint plan snapshot rows used by carry-over calculation */
 export interface SprintPlanSnapshotInput {

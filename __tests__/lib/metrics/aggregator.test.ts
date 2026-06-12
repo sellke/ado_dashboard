@@ -268,4 +268,22 @@ describe('aggregateToProgram', () => {
     // CarryOver RAG: 5 in [0,10] → Green
     expect(result!.carryOverRate.rag).toBe('Green');
   });
+
+  it('should use configured velocity cutoffs for program velocity RAG', () => {
+    const wsMetrics: WorkstreamMetrics[] = [
+      makeWsMetrics({
+        workstreamId: 'ws-1',
+        velocity: { value: 22, average: 20, rag: 'Amber' },
+        plannedPoints: 50,
+      }),
+    ];
+
+    const result = aggregateToProgram(wsMetrics, thresholds, {
+      velocityGreenFloor: 1.2,
+      velocityAmberFloor: 0.8,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.velocity.rag).toBe('Amber');
+  });
 });

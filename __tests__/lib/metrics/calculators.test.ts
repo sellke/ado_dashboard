@@ -4,7 +4,12 @@ import {
   calculatePredictability,
   calculateVelocity,
 } from '@/lib/metrics/calculators';
-import type { SprintWorkstreamInput, WorkItemInput } from '@/lib/metrics/types';
+import type {
+  MetricRuleConfigInput,
+  SprintWorkstreamInput,
+  WorkItemInput,
+} from '@/lib/metrics/types';
+import { DEFAULT_METRIC_RULE_CONFIGS } from '@/lib/metrics/types';
 
 // ---------------------------------------------------------------------------
 // Helper factory
@@ -28,6 +33,42 @@ function makeSW(overrides: Partial<SprintWorkstreamInput> = {}): SprintWorkstrea
     ...overrides,
   };
 }
+
+const includeBugDeliveryRule: MetricRuleConfigInput[] = [
+  { category: 'deliveryPoints', workItemType: 'Bug', included: true },
+];
+
+const excludeSupportOverheadRule: MetricRuleConfigInput[] = [
+  { category: 'overheadHours', workItemType: 'Support', included: false },
+];
+
+describe('default configuration zero drift', () => {
+  it('matches the legacy omitted-config calculation output', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'UserStory', state: 'Closed', storyPoints: 8 }),
+      makeItem({ type: 'Feature', state: 'Done', storyPoints: 5 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 13, completedWork: 4 }),
+      makeItem({ type: 'Spike', state: 'Done', storyPoints: 3 }),
+      makeItem({ type: 'Support', state: 'Active', storyPoints: 2, completedWork: 6 }),
+      makeItem({ type: 'Task', state: 'Active', storyPoints: 5 }),
+    ];
+    const sprintWorkstream = makeSW({
+      grossHours: 120,
+      ceremonyHours: 10,
+    });
+
+    expect(calculateVelocity(items, DEFAULT_METRIC_RULE_CONFIGS)).toBe(calculateVelocity(items));
+    expect(calculatePredictability(items, DEFAULT_METRIC_RULE_CONFIGS)).toEqual(
+      calculatePredictability(items)
+    );
+    expect(calculateCarryOver(items, DEFAULT_METRIC_RULE_CONFIGS)).toEqual(
+      calculateCarryOver(items)
+    );
+    expect(calculateOverhead(items, sprintWorkstream, DEFAULT_METRIC_RULE_CONFIGS)).toEqual(
+      calculateOverhead(items, sprintWorkstream)
+    );
+  });
+});
 
 // ============================================================================
 // calculateVelocity
@@ -79,7 +120,7 @@ describe('calculateVelocity', () => {
     const items: WorkItemInput[] = [
       makeItem({ state: 'Closed', storyPoints: 5 }),
       makeItem({ type: 'Bug', state: 'Closed', storyPoints: 10 }), // done Bug — excluded
-      makeItem({ type: 'Bug', state: 'Active', storyPoints: 3 }),  // active Bug — excluded
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 3 }), // active Bug — excluded
       makeItem({ state: 'Done', storyPoints: 8 }),
     ];
     expect(calculateVelocity(items)).toBe(13); // 5+8 only; both Bug rows excluded
@@ -100,6 +141,15 @@ describe('calculateVelocity', () => {
       makeItem({ type: 'Spike', state: 'Active', storyPoints: 3 }), // active Spike — excluded
     ];
     expect(calculateVelocity(items)).toBe(6); // only UserStory counts
+  });
+
+  it('should include Bug items when delivery rules allow them', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 6 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 5 }),
+    ];
+
+    expect(calculateVelocity(items, includeBugDeliveryRule)).toBe(11);
   });
 });
 
@@ -258,6 +308,19 @@ describe('calculateOverhead', () => {
     );
     expect(result.overheadHours).toBe(25); // 7 + 10 + 5 + 3
   });
+
+  it('should exclude overhead type hours when rules disable them', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ type: 'Bug', completedWork: 4 }),
+      makeItem({ type: 'Support', completedWork: 6 }),
+    ];
+    const sw = makeSW({ grossHours: 100, ceremonyHours: 0 });
+    const result = calculateOverhead(items, sw, excludeSupportOverheadRule);
+
+    expect(result.bugHours).toBe(4);
+    expect(result.supportHours).toBe(0);
+    expect(result.overheadHours).toBe(4);
+  });
 });
 
 // ============================================================================
@@ -351,9 +414,9 @@ describe('calculatePredictability', () => {
     const result = calculatePredictability(items);
 
     expect(result).not.toBeNull();
-    expect(result!.plannedPoints).toBe(10);   // only UserStory items: 5+5
-    expect(result!.completedPoints).toBe(5);  // only closed UserStory: 5
-    expect(result!.predictability).toBe(50);  // 5/10*100
+    expect(result!.plannedPoints).toBe(10); // only UserStory items: 5+5
+    expect(result!.completedPoints).toBe(5); // only closed UserStory: 5
+    expect(result!.predictability).toBe(50); // 5/10*100
   });
 
   it('should return null when only Bug items are present', () => {
@@ -374,16 +437,27 @@ describe('calculatePredictability', () => {
     const result = calculatePredictability(items);
 
     expect(result).not.toBeNull();
-    expect(result!.plannedPoints).toBe(10);   // only UserStory items: 5+5
-    expect(result!.completedPoints).toBe(5);  // only closed UserStory: 5
+    expect(result!.plannedPoints).toBe(10); // only UserStory items: 5+5
+    expect(result!.completedPoints).toBe(5); // only closed UserStory: 5
     expect(result!.predictability).toBe(50);
   });
 
   it('should return null when only Spike items are present', () => {
-    const items: WorkItemInput[] = [
-      makeItem({ type: 'Spike', state: 'Closed', storyPoints: 8 }),
-    ];
+    const items: WorkItemInput[] = [makeItem({ type: 'Spike', state: 'Closed', storyPoints: 8 })];
     expect(calculatePredictability(items)).toBeNull();
+  });
+
+  it('should include Bug items in predictability when delivery rules allow them', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ type: 'Bug', state: 'Closed', storyPoints: 3 }),
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 2 }),
+    ];
+    const result = calculatePredictability(items, includeBugDeliveryRule);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(10);
+    expect(result!.completedPoints).toBe(8);
   });
 });
 
@@ -470,10 +544,10 @@ describe('calculateCarryOver', () => {
     const result = calculateCarryOver(items);
 
     expect(result).not.toBeNull();
-    expect(result!.plannedPoints).toBe(8);      // only UserStory items: 5+3
-    expect(result!.carryOverItems).toBe(1);     // one incomplete UserStory
-    expect(result!.carryOverPoints).toBe(3);    // active UserStory only
-    expect(result!.carryOverRate).toBe(37.5);   // 3/8*100
+    expect(result!.plannedPoints).toBe(8); // only UserStory items: 5+3
+    expect(result!.carryOverItems).toBe(1); // one incomplete UserStory
+    expect(result!.carryOverPoints).toBe(3); // active UserStory only
+    expect(result!.carryOverRate).toBe(37.5); // 3/8*100
   });
 
   it('should return null when only Bug items are present', () => {
@@ -494,16 +568,27 @@ describe('calculateCarryOver', () => {
     const result = calculateCarryOver(items);
 
     expect(result).not.toBeNull();
-    expect(result!.plannedPoints).toBe(8);    // only UserStory items: 5+3
-    expect(result!.carryOverItems).toBe(1);   // one incomplete UserStory
-    expect(result!.carryOverPoints).toBe(3);  // active UserStory only
+    expect(result!.plannedPoints).toBe(8); // only UserStory items: 5+3
+    expect(result!.carryOverItems).toBe(1); // one incomplete UserStory
+    expect(result!.carryOverPoints).toBe(3); // active UserStory only
     expect(result!.carryOverRate).toBe(37.5); // 3/8*100
   });
 
   it('should return null when only Spike items are present', () => {
-    const items: WorkItemInput[] = [
-      makeItem({ type: 'Spike', state: 'Active', storyPoints: 8 }),
-    ];
+    const items: WorkItemInput[] = [makeItem({ type: 'Spike', state: 'Active', storyPoints: 8 })];
     expect(calculateCarryOver(items)).toBeNull();
+  });
+
+  it('should include Bug items in carry-over when delivery rules allow them', () => {
+    const items: WorkItemInput[] = [
+      makeItem({ state: 'Closed', storyPoints: 5 }),
+      makeItem({ type: 'Bug', state: 'Active', storyPoints: 3 }),
+    ];
+    const result = calculateCarryOver(items, includeBugDeliveryRule);
+
+    expect(result).not.toBeNull();
+    expect(result!.plannedPoints).toBe(8);
+    expect(result!.carryOverPoints).toBe(3);
+    expect(result!.carryOverRate).toBe(37.5);
   });
 });

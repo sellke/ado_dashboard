@@ -4,9 +4,9 @@
  */
 
 import {
-  METRIC_DEFINITIONS,
   getMetricTooltip,
   getRagTooltip,
+  METRIC_DEFINITIONS,
   type MetricId,
 } from '@/lib/metrics/definitions';
 import { thresholdConfigs } from '../../../prisma/seed';
@@ -14,13 +14,19 @@ import { thresholdConfigs } from '../../../prisma/seed';
 const ALL_METRIC_IDS: MetricId[] = [
   'velocity',
   'velocityRate',
+  'deliveryToBugRatio',
   'overheadPercent',
   'carryOverRate',
   'chartVelocity',
   'chartBugBurndown',
 ];
 
-const RAG_METRIC_IDS: MetricId[] = ['velocity', 'overheadPercent', 'carryOverRate'];
+const RAG_METRIC_IDS: MetricId[] = [
+  'velocity',
+  'deliveryToBugRatio',
+  'overheadPercent',
+  'carryOverRate',
+];
 const NON_RAG_METRIC_IDS: MetricId[] = ['velocityRate', 'chartVelocity', 'chartBugBurndown'];
 
 describe('metric definitions registry', () => {
@@ -73,6 +79,14 @@ describe('metric definitions registry', () => {
       const body = getMetricTooltip('velocityRate');
       expect(body).toMatch(/gross hours.{0,3}.{0,3}overhead hours/i);
     });
+
+    it('reflects delivery-to-bug unit conversion through average velocity rate', () => {
+      const body = getMetricTooltip('deliveryToBugRatio');
+      expect(body).toMatch(/Bug hours/i);
+      expect(body).toMatch(/delivery hours/i);
+      expect(body).toMatch(/average velocity rate/i);
+      expect(body).not.toMatch(/1 SP = 1 hour/);
+    });
   });
 
   describe('getRagTooltip', () => {
@@ -114,6 +128,15 @@ describe('metric definitions registry', () => {
       expect(rag).toContain('10.01–25%');
       expect(rag).toMatch(/25%/);
     });
+
+    it('delivery-to-bug RAG copy matches seeded ThresholdConfig and lower-is-healthier direction', () => {
+      const rag = getRagTooltip('deliveryToBugRatio')!;
+      expect(rag).toMatch(/Lower is healthier/i);
+      expect(rag).toContain('0–0.25');
+      expect(rag).toContain('0.26–0.5');
+      expect(rag).toContain('above 0.5');
+      expect(rag).toMatch(/Zero bug hours/i);
+    });
   });
 
   describe('seed threshold drift guard', () => {
@@ -141,5 +164,17 @@ describe('metric definitions registry', () => {
         expect(rag).toContain(`above ${config.amberMax}%`);
       }
     );
+
+    it('deliveryToBugRatio has the locked lower-is-healthier seeded boundaries', () => {
+      const config = seedFor('deliveryToBugRatio');
+      expect(config).toMatchObject({
+        greenMin: 0,
+        greenMax: 0.25,
+        amberMin: 0.26,
+        amberMax: 0.5,
+        redMin: 0.51,
+        redMax: 999999,
+      });
+    });
   });
 });

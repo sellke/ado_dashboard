@@ -16,6 +16,7 @@
 export type MetricId =
   | 'velocity'
   | 'velocityRate'
+  | 'deliveryToBugRatio'
   | 'overheadPercent'
   | 'carryOverRate'
   | 'chartVelocity'
@@ -50,9 +51,15 @@ export const METRIC_DEFINITIONS: Record<MetricId, MetricDefinition> = {
     calculation:
       'Done-like story points ÷ net capacity hours, where net capacity = gross hours − overhead hours. The program tile shows the average rate across workstreams. N/A when net capacity is zero or unavailable.',
   },
+  deliveryToBugRatio: {
+    definition: 'Bug-fixing effort per delivery hour.',
+    calculation:
+      'Bug hours ÷ delivery hours. Delivery hours are completed delivery story points converted through the average velocity rate (points per hour) over the rolling window. Shows — when bug hours are zero.',
+    ragExplanation:
+      'Lower is healthier: Green 0–0.25, Amber 0.26–0.5, Red above 0.5. Zero bug hours with delivery is Green.',
+  },
   overheadPercent: {
-    definition:
-      'Share of capacity spent on non-delivery work (ceremonies, bugs, spikes, support).',
+    definition: 'Share of capacity spent on non-delivery work (ceremonies, bugs, spikes, support).',
     calculation:
       '(ceremony + bug + spike + support hours) ÷ gross hours × 100. The program tile is a weighted average by planned points across workstreams. N/A when gross hours is zero.',
     ragExplanation: 'Green 0–30%, Amber 30.01–45%, Red above 45%.',

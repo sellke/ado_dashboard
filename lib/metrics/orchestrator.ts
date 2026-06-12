@@ -7,6 +7,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { aggregateToProgram } from './aggregator';
+import { loadMetricConfig, type MetricConfigInput } from './config-loader';
 import { computeWorkstreamMetrics } from './snapshot';
 import type {
   ComputeMetricsResult,
@@ -95,7 +96,8 @@ export interface ComputeAllMetricsOptions {
     sprintId: string,
     workstreamId: string,
     sprintStart: Date,
-    db: PrismaClient
+    db: PrismaClient,
+    metricConfig: MetricConfigInput
   ) => Promise<void>;
 }
 
@@ -138,12 +140,13 @@ export async function computeAllMetrics(
   }
 
   const workstreams = await db.workstream.findMany({ orderBy: { name: 'asc' } });
+  const metricConfig = await loadMetricConfig(db);
   const errors: Array<{ workstreamId: string; error: string }> = [];
   const successfulWorkstreamIds: string[] = [];
 
   for (const ws of workstreams) {
     try {
-      await computeFn(targetSprintId, ws.id, sprint.startDate, db);
+      await computeFn(targetSprintId, ws.id, sprint.startDate, db, metricConfig);
       successfulWorkstreamIds.push(ws.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -166,15 +169,9 @@ export async function computeAllMetrics(
     snapshotToWorkstreamMetrics(s, s.workstream.name, sprint.name)
   );
 
-  const thresholds: ThresholdConfigInput[] = (await db.thresholdConfig.findMany()).map((t) => ({
-    metricName: t.metricName,
-    greenMin: t.greenMin,
-    greenMax: t.greenMax,
-    amberMin: t.amberMin,
-    amberMax: t.amberMax,
-  }));
+  const thresholds: ThresholdConfigInput[] = metricConfig.thresholds;
 
-  const program = aggregateToProgram(workstreamMetrics, thresholds);
+  const program = aggregateToProgram(workstreamMetrics, thresholds, metricConfig.engine);
 
   return {
     sprintId: targetSprintId,
