@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.5.0] - 2026-06-12
+
+### Added
+
+- **Metric calculation configuration UI** — persisted thresholds, inclusion rules, and
+  rolling-window settings with read/write API, validation, and a Settings panel
+  (`MetricConfigPanel`) including recalculate-now. Config-driven engine preserves
+  zero drift against seeded defaults. (Metric Calculation Config UI spec, Stories 1–6)
+- **Delivery-to-bug ratio metric** — workstream and program tiles showing delivery hours
+  per bug hour with RAG thresholds; sum-then-divide aggregation across the rolling window.
+  (Delivery-to-Bug Ratio Metric spec, Stories 1–3)
+- **Previous sprint full rolling window** — server-side sprint-anchored metrics window,
+  client refetch on tab change, forecast suppression for past sprints, and as-of bug
+  burndown for historical tabs. (Previous Sprint Full Rolling Window spec, Stories 1–4)
+- **Nine-sprint sync ingest** — centralized sprint depth constants so sync ingests nine
+  sprints, backing all five visible dashboard sprint tabs plus rolling metrics.
+  (Five-Sprint Window Visible Tabs spec, Stories 1–3)
+- **ADO workstream registry** — DB-backed sync targets with registry CRUD API, ADO project/team
+  discovery endpoints, admin UI (`WorkstreamRegistryPanel`), and sync orchestrator refactor
+  off hardcoded config. (ADO Workstream Registry Config UI spec)
+
+### Changed
+
+- **`/api/metrics`** — honors optional `sprintId` for sprint-anchored rolling windows and
+  exposes delivery-to-bug ratio in trend and tile payloads.
+- **Sync orchestrator** — loads program config and enabled workstreams from the database;
+  iteration ingest depth aligned to visible tab coverage.
+
+### Internal
+
+- Prisma migrations for metric config tables and workstream registry fields; extended seed
+  with default config rows matching prior hardcoded behavior.
+- Regression and integration test coverage across metrics config, sync window, registry API,
+  and dashboard wiring.
+
 ## [0.4.0] - 2026-04-17
 
 ### Added
