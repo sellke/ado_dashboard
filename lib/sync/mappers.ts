@@ -53,6 +53,8 @@ export interface AdoWorkItemFields {
   'System.Tags'?: string;
   'System.CreatedDate'?: string;
   'System.ChangedDate'?: string;
+  'Microsoft.VSTS.Common.ActivatedDate'?: string;
+  'Microsoft.VSTS.Common.ClosedDate'?: string;
 }
 
 /** Raw ADO work item object from the batch API response. */
@@ -80,6 +82,8 @@ export interface MappedWorkItem {
   tags: string | null;
   adoCreatedDate: Date | null;
   adoChangedDate: Date | null;
+  adoActivatedDate: Date | null;
+  adoClosedDate: Date | null;
 }
 
 /**
@@ -99,6 +103,15 @@ function extractAssignedTo(
     return raw.displayName || raw.uniqueName || null;
   }
   return null;
+}
+
+function parseAdoDate(raw: string | undefined | null): Date | null {
+  if (!raw) {
+    return null;
+  }
+
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
@@ -137,7 +150,9 @@ export function mapAdoWorkItem(fields: AdoWorkItemFields): MappedWorkItem | null
     parentAdoId: fields['System.Parent'] ?? null,
     assignedTo: extractAssignedTo(fields['System.AssignedTo']),
     tags: fields['System.Tags'] || null,
-    adoCreatedDate: fields['System.CreatedDate'] ? new Date(fields['System.CreatedDate']) : null,
-    adoChangedDate: fields['System.ChangedDate'] ? new Date(fields['System.ChangedDate']) : null,
+    adoCreatedDate: parseAdoDate(fields['System.CreatedDate']),
+    adoChangedDate: parseAdoDate(fields['System.ChangedDate']),
+    adoActivatedDate: parseAdoDate(fields['Microsoft.VSTS.Common.ActivatedDate']),
+    adoClosedDate: parseAdoDate(fields['Microsoft.VSTS.Common.ClosedDate']),
   };
 }

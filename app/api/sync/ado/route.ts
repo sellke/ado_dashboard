@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import type { SyncType } from '@prisma/client';
+import { isAdoAuthError } from '@/lib/sync/ado-client';
 import { runSync } from '@/lib/sync/orchestrator';
 
 const VALID_SYNC_TYPES: SyncType[] = ['Full', 'WorkItems', 'Iterations', 'Capacity'];
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     const result = await runSync({ syncType });
     const success = result.summary.status === 'Success';
     const errorMessage = result.summary.errorMessage?.trim() ?? '';
+    const authFailure = !success && isAdoAuthError(new Error(errorMessage));
 
     return NextResponse.json({
       success,
@@ -33,10 +35,15 @@ export async function POST(request: Request) {
       summary: result.summary,
       ...(!success && {
         error: errorMessage || 'Sync finished with errors',
+        ...(authFailure && { errorCode: 'ADO_AUTH_FAILURE' }),
       }),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const authFailure = isAdoAuthError(err);
+    return NextResponse.json(
+      { success: false, error: message, ...(authFailure && { errorCode: 'ADO_AUTH_FAILURE' }) },
+      { status: 500 }
+    );
   }
 }

@@ -45,6 +45,8 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     input.iterationsFetcher ??
     (() => fetchTeamIterations(programConfig.adoProject, programConfig.iterationTeamId));
 
+  const workstreams = await loadSyncWorkstreams(prisma);
+
   // 1. Create SyncLog with status Running
   const syncLog = await prisma.syncLog.create({
     data: {
@@ -53,14 +55,29 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     },
   });
 
-  const workstreams = await loadSyncWorkstreams(prisma);
-
   const perWorkstreamSummaries: PerWorkstreamSummary[] = [];
   let totalFetched = 0;
   let totalCreated = 0;
   let totalUpdated = 0;
   let hasFailure = false;
   const errorMessages: string[] = [];
+
+  if (
+    workstreams.length === 0 &&
+    (syncType === 'Full' || syncType === 'WorkItems' || syncType === 'Capacity')
+  ) {
+    const totalWorkstreams = await prisma.workstream.count();
+    if (totalWorkstreams === 0) {
+      errorMessages.push(
+        'No workstreams configured. Add workstreams in Settings → Workstream Registry, or run pnpm db:seed to restore defaults.'
+      );
+    } else {
+      errorMessages.push(
+        `No sync-enabled workstreams (${totalWorkstreams} registered but disabled). Enable at least one in Settings → Workstream Registry.`
+      );
+    }
+    hasFailure = true;
+  }
 
   // 1.5 Iteration sync (Story 2): for Full or Iterations, fetch and upsert rolling 5 sprints
   let currentSprintId: string | null = null;
@@ -197,12 +214,9 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
   const shouldSyncCapacity = syncType === 'Full' || syncType === 'Capacity';
   if (shouldSyncCapacity && iterationIdMap.size > 0) {
     try {
-      const capacityResults = await syncCapacityFn(
-        workstreams,
-        sprintIdMap,
-        iterationIdMap,
-        { db: prisma }
-      );
+      const capacityResults = await syncCapacityFn(workstreams, sprintIdMap, iterationIdMap, {
+        db: prisma,
+      });
 
       for (const cap of capacityResults) {
         const summary = perWorkstreamSummaries.find((s) => s.workstreamId === cap.workstreamId);

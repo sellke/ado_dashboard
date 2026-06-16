@@ -15,6 +15,12 @@ export const prisma = new PrismaClient({
  * Clean up test data in correct order (respecting foreign keys)
  */
 export async function cleanupTestData() {
+  const adoCredential = (
+    prisma as unknown as {
+      adoCredential?: { deleteMany: (args: object) => Promise<unknown> };
+    }
+  ).adoCredential;
+  await adoCredential?.deleteMany({});
   await prisma.ceremonyInsight.deleteMany({});
   await prisma.transcript.deleteMany({});
   await prisma.workItem.deleteMany({});

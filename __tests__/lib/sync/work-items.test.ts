@@ -35,6 +35,7 @@ import {
   resolveWorkstreamId,
   syncWorkItemsForWorkstream,
   upsertWorkItems,
+  WORK_ITEM_FIELDS,
   type WorkItemSyncContext,
 } from '@/lib/sync/work-items';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
@@ -132,6 +133,8 @@ describe('mapAdoWorkItem', () => {
     'System.Tags': 'frontend; high-priority',
     'System.CreatedDate': '2026-01-15T10:00:00Z',
     'System.ChangedDate': '2026-02-01T14:30:00Z',
+    'Microsoft.VSTS.Common.ActivatedDate': '2026-01-16T09:00:00Z',
+    'Microsoft.VSTS.Common.ClosedDate': '2026-01-22T17:30:00Z',
   };
 
   it('should map all fields correctly for a valid User Story', () => {
@@ -153,6 +156,24 @@ describe('mapAdoWorkItem', () => {
     expect(result!.tags).toBe('frontend; high-priority');
     expect(result!.adoCreatedDate).toEqual(new Date('2026-01-15T10:00:00Z'));
     expect(result!.adoChangedDate).toEqual(new Date('2026-02-01T14:30:00Z'));
+    expect(result!.adoActivatedDate).toEqual(new Date('2026-01-16T09:00:00Z'));
+    expect(result!.adoClosedDate).toEqual(new Date('2026-01-22T17:30:00Z'));
+  });
+
+  it.each([
+    ['User Story', 'UserStory'],
+    ['Bug', 'Bug'],
+    ['Spike', 'Spike'],
+  ])('should map lifecycle dates for cycle-time type %s', (adoType, mappedType) => {
+    const result = mapAdoWorkItem({
+      ...validFields,
+      'System.WorkItemType': adoType,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.type).toBe(mappedType);
+    expect(result!.adoActivatedDate).toEqual(new Date('2026-01-16T09:00:00Z'));
+    expect(result!.adoClosedDate).toEqual(new Date('2026-01-22T17:30:00Z'));
   });
 
   it('should handle AssignedTo as identity object', () => {
@@ -222,6 +243,20 @@ describe('mapAdoWorkItem', () => {
     expect(result!.tags).toBeNull();
     expect(result!.adoCreatedDate).toBeNull();
     expect(result!.adoChangedDate).toBeNull();
+    expect(result!.adoActivatedDate).toBeNull();
+    expect(result!.adoClosedDate).toBeNull();
+  });
+
+  it('should map malformed lifecycle dates to null without skipping the work item', () => {
+    const result = mapAdoWorkItem({
+      ...validFields,
+      'Microsoft.VSTS.Common.ActivatedDate': 'not-a-date',
+      'Microsoft.VSTS.Common.ClosedDate': '',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.adoActivatedDate).toBeNull();
+    expect(result!.adoClosedDate).toBeNull();
   });
 
   it('should default adoRevision to 0 when not provided', () => {
@@ -395,6 +430,8 @@ describe('upsertWorkItems', () => {
       tags: 'test',
       adoCreatedDate: new Date('2026-01-15'),
       adoChangedDate: new Date('2026-02-01'),
+      adoActivatedDate: new Date('2026-01-16'),
+      adoClosedDate: new Date('2026-01-23'),
       ...overrides,
     };
   }
@@ -429,6 +466,8 @@ describe('upsertWorkItems', () => {
     expect(wi!.title).toBe('Test story');
     expect(wi!.workstreamId).toBe(wsId);
     expect(wi!.sprintId).toBe(sprintId);
+    expect(wi!.adoActivatedDate).toEqual(new Date('2026-01-16'));
+    expect(wi!.adoClosedDate).toEqual(new Date('2026-01-23'));
   });
 
   it('should update work item when adoRevision changes', async () => {
@@ -461,6 +500,36 @@ describe('upsertWorkItems', () => {
     expect(result.created).toBe(0);
     expect(result.updated).toBe(0);
     expect(result.unchanged).toBe(1);
+  });
+
+  it('should backfill lifecycle dates when adoRevision is unchanged and existing dates are null', async () => {
+    await upsertWorkItems(
+      [makeMappedItem({ adoRevision: 3, adoActivatedDate: null, adoClosedDate: null })],
+      getWorkstreams(),
+      getSprintIdMap(),
+      prisma
+    );
+
+    const result = await upsertWorkItems(
+      [
+        makeMappedItem({
+          adoRevision: 3,
+          adoActivatedDate: new Date('2026-01-20T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-24T18:00:00Z'),
+        }),
+      ],
+      getWorkstreams(),
+      getSprintIdMap(),
+      prisma
+    );
+
+    expect(result.created).toBe(0);
+    expect(result.updated).toBe(1);
+    expect(result.unchanged).toBe(0);
+
+    const wi = await prisma.workItem.findUnique({ where: { adoId: 1001 } });
+    expect(wi!.adoActivatedDate).toEqual(new Date('2026-01-20T09:00:00Z'));
+    expect(wi!.adoClosedDate).toEqual(new Date('2026-01-24T18:00:00Z'));
   });
 
   it('should not create duplicate records across multiple runs', async () => {
@@ -630,12 +699,13 @@ describe('syncWorkItemsForWorkstream', () => {
 
   it('should create work items from ADO data via mocked fetchers', async () => {
     const mockWiqlFetcher = jest.fn().mockResolvedValue([101, 102]);
-    const mockBatchFetcher = jest
-      .fn()
-      .mockResolvedValue([
-        makeRawItem(101, 'User Story', 'Story 1'),
-        makeRawItem(102, 'Bug', 'Bug 1'),
-      ]);
+    const mockBatchFetcher = jest.fn().mockResolvedValue([
+      makeRawItem(101, 'User Story', 'Story 1', iterationPath2, {
+        'Microsoft.VSTS.Common.ActivatedDate': '2026-04-28T09:00:00Z',
+        'Microsoft.VSTS.Common.ClosedDate': '2026-05-01T17:00:00Z',
+      }),
+      makeRawItem(102, 'Bug', 'Bug 1'),
+    ]);
 
     const context: WorkItemSyncContext = {
       sprintPaths: [iterationPath1, iterationPath2],
@@ -658,6 +728,20 @@ describe('syncWorkItemsForWorkstream', () => {
     expect(result.itemsCreated).toBe(2);
     expect(result.itemsUpdated).toBe(0);
     expect(result.itemsSkipped).toBe(0);
+    expect(mockBatchFetcher).toHaveBeenCalledWith(
+      'Event Streaming Platform',
+      [101, 102],
+      expect.arrayContaining([
+        'Microsoft.VSTS.Common.ActivatedDate',
+        'Microsoft.VSTS.Common.ClosedDate',
+      ])
+    );
+    expect(WORK_ITEM_FIELDS).toEqual(
+      expect.arrayContaining([
+        'Microsoft.VSTS.Common.ActivatedDate',
+        'Microsoft.VSTS.Common.ClosedDate',
+      ])
+    );
 
     const items = await prisma.workItem.findMany({ orderBy: { adoId: 'asc' } });
     expect(items).toHaveLength(2);
@@ -665,8 +749,46 @@ describe('syncWorkItemsForWorkstream', () => {
     expect(items[0]!.type).toBe('UserStory');
     expect(items[0]!.workstreamId).toBe(wsId);
     expect(items[0]!.sprintId).toBe(sprint2Id);
+    expect(items[0]!.adoActivatedDate).toEqual(new Date('2026-04-28T09:00:00Z'));
+    expect(items[0]!.adoClosedDate).toEqual(new Date('2026-05-01T17:00:00Z'));
     expect(items[1]!.adoId).toBe(102);
     expect(items[1]!.type).toBe('Bug');
+  });
+
+  it('should persist null lifecycle dates when ADO omits or returns malformed values', async () => {
+    const mockWiqlFetcher = jest.fn().mockResolvedValue([111, 112]);
+    const mockBatchFetcher = jest.fn().mockResolvedValue([
+      makeRawItem(111, 'User Story', 'Missing lifecycle dates'),
+      makeRawItem(112, 'Spike', 'Malformed lifecycle dates', iterationPath2, {
+        'Microsoft.VSTS.Common.ActivatedDate': 'bad-date',
+        'Microsoft.VSTS.Common.ClosedDate': 'also-bad',
+      }),
+    ]);
+
+    const context: WorkItemSyncContext = {
+      sprintPaths: [iterationPath2],
+      sprintIdMap: new Map([[iterationPath2, sprint2Id]]),
+      db: prisma,
+      adoProject: 'Event Streaming Platform',
+      wiqlFetcher: mockWiqlFetcher,
+      batchFetcher: mockBatchFetcher,
+    };
+
+    const result = await syncWorkItemsForWorkstream(
+      { id: wsId, adoAreaPath: areaPath, name: 'Streams' },
+      context
+    );
+
+    expect(result.itemsFetched).toBe(2);
+    expect(result.itemsCreated).toBe(2);
+    expect(result.itemsSkipped).toBe(0);
+
+    const items = await prisma.workItem.findMany({ orderBy: { adoId: 'asc' } });
+    expect(items).toHaveLength(2);
+    expect(items[0]!.adoActivatedDate).toBeNull();
+    expect(items[0]!.adoClosedDate).toBeNull();
+    expect(items[1]!.adoActivatedDate).toBeNull();
+    expect(items[1]!.adoClosedDate).toBeNull();
   });
 
   it('should skip unsupported types and count them in itemsSkipped', async () => {

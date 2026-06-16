@@ -161,6 +161,8 @@ describe('WorkItem model', () => {
     expect(wi.tags).toBeNull();
     expect(wi.adoCreatedDate).toBeNull();
     expect(wi.adoChangedDate).toBeNull();
+    expect(wi.adoActivatedDate).toBeNull();
+    expect(wi.adoClosedDate).toBeNull();
     expect(wi.workstreamId).toBeNull();
     expect(wi.sprintId).toBeNull();
   });
@@ -180,6 +182,8 @@ describe('WorkItem model', () => {
         tags: 'Backend,API',
         adoCreatedDate: now,
         adoChangedDate: now,
+        adoActivatedDate: now,
+        adoClosedDate: now,
       }),
     });
 
@@ -193,6 +197,8 @@ describe('WorkItem model', () => {
     expect(wi.tags).toBe('Backend,API');
     expect(wi.adoCreatedDate).toEqual(now);
     expect(wi.adoChangedDate).toEqual(now);
+    expect(wi.adoActivatedDate).toEqual(now);
+    expect(wi.adoClosedDate).toEqual(now);
   });
 
   // ──────────────────────────────────────────────────────────────

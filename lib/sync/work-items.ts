@@ -42,6 +42,8 @@ export const WORK_ITEM_FIELDS = [
   'System.Tags',
   'System.CreatedDate',
   'System.ChangedDate',
+  'Microsoft.VSTS.Common.ActivatedDate',
+  'Microsoft.VSTS.Common.ClosedDate',
 ];
 
 // ---------------------------------------------------------------------------
@@ -141,6 +143,16 @@ export interface UpsertResult {
   unchanged: number;
 }
 
+function hasLifecycleBackfill(
+  existing: { adoActivatedDate: Date | null; adoClosedDate: Date | null },
+  item: Pick<MappedWorkItem, 'adoActivatedDate' | 'adoClosedDate'>
+): boolean {
+  return (
+    (existing.adoActivatedDate === null && item.adoActivatedDate !== null) ||
+    (existing.adoClosedDate === null && item.adoClosedDate !== null)
+  );
+}
+
 /**
  * Upsert mapped work items into the database.
  * - Uses adoId as the unique key.
@@ -190,18 +202,24 @@ export async function upsertWorkItems(
       tags: item.tags,
       adoCreatedDate: item.adoCreatedDate,
       adoChangedDate: item.adoChangedDate,
+      adoActivatedDate: item.adoActivatedDate,
+      adoClosedDate: item.adoClosedDate,
       workstreamId,
       sprintId,
     };
 
     const existing = await client.workItem.findUnique({
       where: { adoId: item.adoId },
-      select: { id: true, adoRevision: true },
+      select: { id: true, adoRevision: true, adoActivatedDate: true, adoClosedDate: true },
     });
 
     if (existing) {
       // Revision-aware: only update when ADO revision has changed
-      if (existing.adoRevision !== null && existing.adoRevision === item.adoRevision) {
+      if (
+        existing.adoRevision !== null &&
+        existing.adoRevision === item.adoRevision &&
+        !hasLifecycleBackfill(existing, item)
+      ) {
         unchanged++;
         continue;
       }

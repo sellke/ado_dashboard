@@ -1,9 +1,11 @@
 /**
  * ADO REST API client for server-side sync.
  * Wraps node:https (see {@link adoFetch}) for team iterations, WIQL queries, and
- * work item batch fetch. Uses ADO_PAT and ADO_ORG from environment.
+ * work item batch fetch. Resolves ADO_PAT from the encrypted credential store
+ * first, then falls back to environment bootstrap.
  */
 
+import { getResolvedPat, isPlaceholderPat } from './credentials';
 import type { AdoWorkItemRaw } from './mappers';
 import type { AdoCapacityMember, AdoIterationInput } from './types';
 
@@ -11,16 +13,16 @@ import type { AdoCapacityMember, AdoIterationInput } from './types';
 const RETRY_MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 500;
 
-function getAdoEnv(): { org: string; pat: string } {
+export async function resolveAdoEnv(): Promise<{ org: string; pat: string }> {
   const org = process.env.ADO_ORG?.trim();
-  const pat = process.env.ADO_PAT?.trim();
+  const pat = await getResolvedPat();
 
   if (!org) {
     throw new Error('Missing ADO_ORG environment variable.');
   }
 
   if (!pat) {
-    throw new Error('Missing ADO_PAT environment variable.');
+    throw new Error('Missing ADO_PAT credential.');
   }
 
   return { org, pat };
@@ -109,6 +111,7 @@ async function adoFetch(url: string, options: AdoFetchOptions = {}): Promise<Ado
       method: options.method,
       headers: options.headers,
       body: options.body,
+      redirect: 'manual',
     });
     return {
       ok: res.ok,
@@ -157,7 +160,9 @@ async function adoFetch(url: string, options: AdoFetchOptions = {}): Promise<Ado
         });
       }
     );
-    req.on('error', (err: Error) => reject(err));
+    req.on('error', (err: Error) => {
+      reject(err);
+    });
     if (options.body) {
       req.write(options.body);
     }
@@ -177,14 +182,18 @@ async function buildAdoError(res: AdoHttpResponse, context: string): Promise<Err
   );
 }
 
-function buildAdoHeaders(contentType?: string): Record<string, string> {
-  const { pat } = getAdoEnv();
+function buildAdoHeadersForPat(pat: string, contentType?: string): Record<string, string> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (contentType) {
     headers['Content-Type'] = contentType;
   }
   headers.Authorization = `Basic ${Buffer.from(`:${pat}`).toString('base64')}`;
   return headers;
+}
+
+async function buildAdoHeaders(contentType?: string): Promise<Record<string, string>> {
+  const { pat } = await resolveAdoEnv();
+  return buildAdoHeadersForPat(pat, contentType);
 }
 
 export interface AdoProject {
@@ -206,10 +215,45 @@ interface AdoTeamResponse {
   value?: Array<{ id?: string; name?: string; projectName?: string }>;
 }
 
+export interface AdoProbeResult {
+  ok: boolean;
+  status: number;
+  statusText?: string;
+}
+
+export async function probeAdoPat(pat: string, org: string): Promise<AdoProbeResult> {
+  const trimmedPat = pat.trim();
+  const trimmedOrg = org.trim();
+  if (!trimmedOrg) {
+    throw new Error('Missing ADO_ORG environment variable.');
+  }
+  if (!trimmedPat || isPlaceholderPat(trimmedPat)) {
+    return { ok: false, status: 401, statusText: 'Missing or placeholder PAT' };
+  }
+
+  const url = `https://dev.azure.com/${trimmedOrg}/_apis/projects?$top=1&api-version=7.0`;
+  const res = await adoFetch(url, { headers: buildAdoHeadersForPat(trimmedPat) });
+  return { ok: res.ok, status: res.status, statusText: res.statusText };
+}
+
+export function isAdoAuthError(error: unknown): boolean {
+  if (error instanceof AdoRequestError) {
+    return error.status === 302 || error.status === 401 || error.status === 403;
+  }
+
+  if (error instanceof Error) {
+    return /Missing ADO_PAT|Missing ADO_ORG|credential|placeholder|\b(302|401|403)\b/i.test(
+      error.message
+    );
+  }
+
+  return false;
+}
+
 export async function fetchAdoProjects(): Promise<AdoProject[]> {
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
   const url = `https://dev.azure.com/${org}/_apis/projects?api-version=7.0`;
-  const res = await adoFetch(url, { headers: buildAdoHeaders() });
+  const res = await adoFetch(url, { headers: await buildAdoHeaders() });
 
   if (!res.ok) {
     throw await buildAdoError(res, 'ADO projects request');
@@ -224,10 +268,10 @@ export async function fetchAdoProjects(): Promise<AdoProject[]> {
 }
 
 export async function fetchAdoTeams(project: string): Promise<AdoTeam[]> {
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
   const encodedProject = encodeURIComponent(project);
   const url = `https://dev.azure.com/${org}/_apis/projects/${encodedProject}/teams?api-version=7.0`;
-  const res = await adoFetch(url, { headers: buildAdoHeaders() });
+  const res = await adoFetch(url, { headers: await buildAdoHeaders() });
 
   if (!res.ok) {
     throw await buildAdoError(res, 'ADO teams request');
@@ -265,10 +309,10 @@ export async function fetchTeamIterations(
   project: string,
   team: string
 ): Promise<AdoIterationInput[]> {
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations?api-version=7.0&$top=100`;
 
-  const headers = buildAdoHeaders();
+  const headers = await buildAdoHeaders();
 
   const res = await adoFetch(url, { headers });
   if (!res.ok) {
@@ -278,7 +322,7 @@ export async function fetchTeamIterations(
   const data = (await res.json()) as { value?: AdoIterationResponse[] };
   const raw = data.value ?? [];
 
-  return raw
+  const iterations = raw
     .filter((i) => i.path && i.attributes?.startDate && i.attributes?.finishDate)
     .map((i) => {
       const tf = i.attributes!.timeFrame;
@@ -292,6 +336,8 @@ export async function fetchTeamIterations(
         isCurrent,
       };
     });
+
+  return iterations;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,10 +356,10 @@ interface WiqlResponse {
  * @returns Array of work item IDs; empty on error or when org not configured
  */
 export async function fetchWorkItemIdsByWiql(project: string, query: string): Promise<number[]> {
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/wiql?api-version=7.0`;
 
-  const headers = buildAdoHeaders('application/json');
+  const headers = await buildAdoHeaders('application/json');
 
   const res = await adoFetch(url, {
     method: 'POST',
@@ -361,11 +407,11 @@ export async function fetchWorkItemsBatch(
   if (ids.length === 0) {
     return [];
   }
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
 
   const baseUrl = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/_apis/wit/workitemsbatch?api-version=7.0`;
 
-  const headers = buildAdoHeaders('application/json');
+  const headers = await buildAdoHeaders('application/json');
 
   const results: AdoWorkItemRaw[] = [];
 
@@ -439,11 +485,11 @@ export async function fetchTeamCapacity(
   if (!iterationId) {
     return { members: [], retries: 0 };
   }
-  const { org } = getAdoEnv();
+  const { org } = await resolveAdoEnv();
 
   const url = `https://dev.azure.com/${org}/${encodeURIComponent(project)}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations/${iterationId}/capacities?api-version=7.0`;
 
-  const headers = buildAdoHeaders();
+  const headers = await buildAdoHeaders();
 
   let lastError: Error | undefined;
   for (let attempt = 0; attempt < RETRY_MAX_ATTEMPTS; attempt++) {

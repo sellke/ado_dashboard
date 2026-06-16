@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { AdoRequestError, fetchAdoTeams } from '@/lib/sync/ado-client';
+import { AdoRequestError, fetchAdoTeams, isAdoAuthError } from '@/lib/sync/ado-client';
 
 export async function GET(request: Request) {
   try {
@@ -15,6 +15,9 @@ export async function GET(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown ADO discovery error';
     const status = err instanceof AdoRequestError && err.status === 404 ? 404 : 503;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: message, ...(isAdoAuthError(err) && { errorCode: 'ADO_AUTH_FAILURE' }) },
+      { status }
+    );
   }
 }
