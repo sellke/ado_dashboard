@@ -168,6 +168,7 @@ describe('/api/metric-config', () => {
         velocityGreenFloor: 0.7,
         velocityAmberFloor: 1,
         rollingWindow: 0,
+        cycleTimeRollingWindow: 0,
       })
     );
     const data = await res.json();
@@ -177,6 +178,7 @@ describe('/api/metric-config', () => {
       expect.arrayContaining([
         expect.objectContaining({ field: 'velocityAmberFloor' }),
         expect.objectContaining({ field: 'rollingWindow' }),
+        expect.objectContaining({ field: 'cycleTimeRollingWindow' }),
       ])
     );
     expect(prisma.metricEngineConfig.upsert).not.toHaveBeenCalled();
@@ -198,6 +200,7 @@ describe('/api/metric-config', () => {
         velocityGreenFloor: true,
         velocityAmberFloor: true,
         rollingWindow: true,
+        cycleTimeRollingWindow: true,
       })
     );
     const data = await res.json();
@@ -208,6 +211,7 @@ describe('/api/metric-config', () => {
         expect.objectContaining({ field: 'velocityGreenFloor' }),
         expect.objectContaining({ field: 'velocityAmberFloor' }),
         expect.objectContaining({ field: 'rollingWindow' }),
+        expect.objectContaining({ field: 'cycleTimeRollingWindow' }),
       ])
     );
     expect(prisma.metricEngineConfig.upsert).not.toHaveBeenCalled();
@@ -219,6 +223,7 @@ describe('/api/metric-config', () => {
         velocityGreenFloor: 1.2,
         velocityAmberFloor: 0.8,
         rollingWindow: 2,
+        cycleTimeRollingWindow: 3,
       })
     );
 
@@ -226,7 +231,32 @@ describe('/api/metric-config', () => {
     expect(prisma.metricEngineConfig.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { key: 'default' },
-        update: { velocityGreenFloor: 1.2, velocityAmberFloor: 0.8, rollingWindow: 2 },
+        update: {
+          velocityGreenFloor: 1.2,
+          velocityAmberFloor: 0.8,
+          rollingWindow: 2,
+          cycleTimeRollingWindow: 3,
+        },
+      })
+    );
+  });
+
+  it('PUT engine defaults cycle-time window for legacy payloads', async () => {
+    const res = await putEngine(
+      jsonRequest('http://localhost/api/metric-config/engine', {
+        velocityGreenFloor: 1.2,
+        velocityAmberFloor: 0.8,
+        rollingWindow: 2,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(prisma.metricEngineConfig.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          rollingWindow: 2,
+          cycleTimeRollingWindow: DEFAULT_ENGINE_CONFIG.cycleTimeRollingWindow,
+        }),
       })
     );
   });

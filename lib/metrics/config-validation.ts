@@ -92,6 +92,7 @@ export function validateEngineConfig(
   const velocityAmberFloor = engine.velocityAmberFloor;
   const velocityGreenFloor = engine.velocityGreenFloor;
   const rollingWindow = engine.rollingWindow;
+  const cycleTimeRollingWindow = engine.cycleTimeRollingWindow;
 
   if (!isFiniteNumber(velocityAmberFloor) || velocityAmberFloor <= 0) {
     errors.push({
@@ -119,6 +120,15 @@ export function validateEngineConfig(
     errors.push({
       field: 'rollingWindow',
       message: 'Rolling window must be an integer greater than or equal to 1',
+    });
+  }
+  if (
+    !Number.isInteger(cycleTimeRollingWindow) ||
+    (isFiniteNumber(cycleTimeRollingWindow) && cycleTimeRollingWindow < 1)
+  ) {
+    errors.push({
+      field: 'cycleTimeRollingWindow',
+      message: 'Cycle-time rolling window must be an integer greater than or equal to 1',
     });
   }
 

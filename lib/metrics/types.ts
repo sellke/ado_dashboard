@@ -26,6 +26,7 @@ export interface MetricEngineConfigInput {
   velocityGreenFloor: number;
   velocityAmberFloor: number;
   rollingWindow: number;
+  cycleTimeRollingWindow: number;
 }
 
 /** Defaults that reproduce the pre-configuration metric engine behavior. */
@@ -33,6 +34,7 @@ export const DEFAULT_ENGINE_CONFIG: MetricEngineConfigInput = {
   velocityGreenFloor: 1.0,
   velocityAmberFloor: 0.7,
   rollingWindow: 4,
+  cycleTimeRollingWindow: 4,
 };
 
 export type MetricCategory = 'deliveryPoints' | 'overheadHours';
@@ -73,6 +75,9 @@ export const DEFAULT_METRIC_RULE_CONFIGS: MetricRuleConfigInput[] =
     },
   ]);
 
+export const CYCLE_TIME_WORK_ITEM_TYPES = ['UserStory', 'Spike', 'Bug'] as const;
+export type CycleTimeWorkItemType = (typeof CYCLE_TIME_WORK_ITEM_TYPES)[number];
+
 // ============================================================================
 // Input types for pure calculator functions
 // ============================================================================
@@ -84,6 +89,20 @@ export interface WorkItemInput {
   storyPoints: number | null;
   originalEstimate: number | null;
   completedWork: number | null;
+}
+
+/** Minimal work item shape accepted by pure cycle-time calculators. */
+export interface CycleTimeWorkItemInput {
+  type: string;
+  workstreamId: string | null;
+  adoActivatedDate: Date | null;
+  adoClosedDate: Date | null;
+}
+
+/** Inclusive done-date window used to scope cycle-time calculations. */
+export interface CycleTimeWindow {
+  startDate: Date;
+  endDate: Date;
 }
 
 /** Minimal SprintWorkstream shape for overhead calculation */
@@ -282,6 +301,25 @@ export interface CarryOverResult {
   carryOverPoints: number;
   plannedPoints: number;
   carryOverRate: number;
+}
+
+export interface CycleTimeByType {
+  totalBusinessDays: number;
+  averageBusinessDays: number | null;
+  completedItemCount: number;
+  unavailableItemCount: number;
+}
+
+export type CycleTimeBreakdown = Record<CycleTimeWorkItemType, CycleTimeByType>;
+
+export interface WorkstreamCycleTimeResult {
+  workstreamId: string | null;
+  byType: CycleTimeBreakdown;
+}
+
+export interface CycleTimeResult {
+  program: CycleTimeBreakdown;
+  workstreams: WorkstreamCycleTimeResult[];
 }
 
 /**

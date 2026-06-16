@@ -1,10 +1,14 @@
 import {
+  calculateBusinessDaysElapsed,
   calculateCarryOver,
+  calculateCycleTime,
   calculateOverhead,
   calculatePredictability,
   calculateVelocity,
 } from '@/lib/metrics/calculators';
 import type {
+  CycleTimeWindow,
+  CycleTimeWorkItemInput,
   MetricRuleConfigInput,
   SprintWorkstreamInput,
   WorkItemInput,
@@ -33,6 +37,21 @@ function makeSW(overrides: Partial<SprintWorkstreamInput> = {}): SprintWorkstrea
     ...overrides,
   };
 }
+
+function makeCycleItem(overrides: Partial<CycleTimeWorkItemInput> = {}): CycleTimeWorkItemInput {
+  return {
+    type: 'UserStory',
+    workstreamId: 'ws-1',
+    adoActivatedDate: new Date('2026-01-05T09:00:00Z'),
+    adoClosedDate: new Date('2026-01-07T17:00:00Z'),
+    ...overrides,
+  };
+}
+
+const cycleWindow: CycleTimeWindow = {
+  startDate: new Date('2026-01-01T00:00:00Z'),
+  endDate: new Date('2026-01-31T23:59:59Z'),
+};
 
 const includeBugDeliveryRule: MetricRuleConfigInput[] = [
   { category: 'deliveryPoints', workItemType: 'Bug', included: true },
@@ -590,5 +609,186 @@ describe('calculateCarryOver', () => {
     expect(result!.plannedPoints).toBe(8);
     expect(result!.carryOverPoints).toBe(3);
     expect(result!.carryOverRate).toBe(37.5);
+  });
+});
+
+// ============================================================================
+// calculateBusinessDaysElapsed
+// ============================================================================
+
+describe('calculateBusinessDaysElapsed', () => {
+  it('should count same-day work as one business day', () => {
+    expect(
+      calculateBusinessDaysElapsed(
+        new Date('2026-01-05T09:00:00Z'),
+        new Date('2026-01-05T17:00:00Z')
+      )
+    ).toBe(1);
+  });
+
+  it('should exclude Saturday and Sunday from elapsed business days', () => {
+    expect(
+      calculateBusinessDaysElapsed(
+        new Date('2026-01-09T09:00:00Z'),
+        new Date('2026-01-12T17:00:00Z')
+      )
+    ).toBe(2);
+  });
+
+  it('should return zero for weekend-only spans', () => {
+    expect(
+      calculateBusinessDaysElapsed(
+        new Date('2026-01-10T09:00:00Z'),
+        new Date('2026-01-11T17:00:00Z')
+      )
+    ).toBe(0);
+  });
+
+  it('should return null for missing, invalid, or reversed dates', () => {
+    expect(calculateBusinessDaysElapsed(null, new Date('2026-01-05T17:00:00Z'))).toBeNull();
+    expect(calculateBusinessDaysElapsed(new Date('bad-date'), new Date('2026-01-05'))).toBeNull();
+    expect(
+      calculateBusinessDaysElapsed(
+        new Date('2026-01-06T09:00:00Z'),
+        new Date('2026-01-05T17:00:00Z')
+      )
+    ).toBeNull();
+  });
+});
+
+// ============================================================================
+// calculateCycleTime
+// ============================================================================
+
+describe('calculateCycleTime', () => {
+  it('should aggregate total and average business days by cycle-time type', () => {
+    const result = calculateCycleTime(
+      [
+        makeCycleItem({ type: 'UserStory', adoClosedDate: new Date('2026-01-07T17:00:00Z') }),
+        makeCycleItem({
+          type: 'UserStory',
+          adoActivatedDate: new Date('2026-01-12T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-13T17:00:00Z'),
+        }),
+        makeCycleItem({
+          type: 'Bug',
+          adoActivatedDate: new Date('2026-01-09T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-12T17:00:00Z'),
+        }),
+        makeCycleItem({
+          type: 'Spike',
+          adoActivatedDate: new Date('2026-01-20T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-20T17:00:00Z'),
+        }),
+      ],
+      cycleWindow
+    );
+
+    expect(result.program.UserStory).toEqual({
+      totalBusinessDays: 5,
+      averageBusinessDays: 2.5,
+      completedItemCount: 2,
+      unavailableItemCount: 0,
+    });
+    expect(result.program.Bug).toMatchObject({
+      totalBusinessDays: 2,
+      averageBusinessDays: 2,
+      completedItemCount: 1,
+    });
+    expect(result.program.Spike).toMatchObject({
+      totalBusinessDays: 1,
+      averageBusinessDays: 1,
+      completedItemCount: 1,
+    });
+  });
+
+  it('should count missing or reversed lifecycle dates as unavailable', () => {
+    const result = calculateCycleTime(
+      [
+        makeCycleItem({ adoActivatedDate: null }),
+        makeCycleItem({ type: 'Bug', adoClosedDate: null }),
+        makeCycleItem({
+          type: 'Spike',
+          adoActivatedDate: new Date('2026-01-08T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-07T17:00:00Z'),
+        }),
+      ],
+      cycleWindow
+    );
+
+    expect(result.program.UserStory).toEqual({
+      totalBusinessDays: 0,
+      averageBusinessDays: null,
+      completedItemCount: 0,
+      unavailableItemCount: 1,
+    });
+    expect(result.program.Bug.unavailableItemCount).toBe(1);
+    expect(result.program.Spike.unavailableItemCount).toBe(1);
+  });
+
+  it('should filter completed items by done date and supported type', () => {
+    const result = calculateCycleTime(
+      [
+        makeCycleItem({ type: 'UserStory', adoClosedDate: new Date('2026-02-01T12:00:00Z') }),
+        makeCycleItem({ type: 'Feature' }),
+        makeCycleItem({ type: 'Task' }),
+        makeCycleItem({ type: 'Bug' }),
+      ],
+      cycleWindow
+    );
+
+    expect(result.program.UserStory.completedItemCount).toBe(0);
+    expect(result.program.UserStory.unavailableItemCount).toBe(0);
+    expect(result.program.Bug.completedItemCount).toBe(1);
+    expect(result.program.Spike.completedItemCount).toBe(0);
+  });
+
+  it('should derive program averages from item-level totals instead of workstream averages', () => {
+    const result = calculateCycleTime(
+      [
+        makeCycleItem({
+          workstreamId: 'small',
+          adoActivatedDate: new Date('2026-01-05T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-14T17:00:00Z'),
+        }),
+        makeCycleItem({
+          workstreamId: 'large',
+          adoActivatedDate: new Date('2026-01-05T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-05T17:00:00Z'),
+        }),
+        makeCycleItem({
+          workstreamId: 'large',
+          adoActivatedDate: new Date('2026-01-06T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-06T17:00:00Z'),
+        }),
+        makeCycleItem({
+          workstreamId: 'large',
+          adoActivatedDate: new Date('2026-01-07T09:00:00Z'),
+          adoClosedDate: new Date('2026-01-07T17:00:00Z'),
+        }),
+      ],
+      cycleWindow
+    );
+
+    const small = result.workstreams.find((ws) => ws.workstreamId === 'small')!;
+    const large = result.workstreams.find((ws) => ws.workstreamId === 'large')!;
+
+    expect(small.byType.UserStory.averageBusinessDays).toBe(8);
+    expect(large.byType.UserStory.averageBusinessDays).toBe(1);
+    expect(result.program.UserStory.totalBusinessDays).toBe(11);
+    expect(result.program.UserStory.completedItemCount).toBe(4);
+    expect(result.program.UserStory.averageBusinessDays).toBe(2.75);
+  });
+
+  it('should return null averages for empty inputs while preserving zero counts', () => {
+    const result = calculateCycleTime([], cycleWindow);
+
+    expect(result.program.UserStory).toEqual({
+      totalBusinessDays: 0,
+      averageBusinessDays: null,
+      completedItemCount: 0,
+      unavailableItemCount: 0,
+    });
+    expect(result.workstreams).toEqual([]);
   });
 });

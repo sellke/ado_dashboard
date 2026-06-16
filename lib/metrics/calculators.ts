@@ -6,8 +6,15 @@
 
 import { isIncluded } from './config-rules';
 import {
+  CYCLE_TIME_WORK_ITEM_TYPES,
   DONE_STATES,
   type CarryOverResult,
+  type CycleTimeBreakdown,
+  type CycleTimeByType,
+  type CycleTimeResult,
+  type CycleTimeWindow,
+  type CycleTimeWorkItemInput,
+  type CycleTimeWorkItemType,
   type MetricRuleConfigInput,
   type OverheadResult,
   type PredictabilityResult,
@@ -20,6 +27,39 @@ function deliveryPointItems(
   rules: MetricRuleConfigInput[] = []
 ): WorkItemInput[] {
   return workItems.filter((wi) => isIncluded(rules, 'deliveryPoints', wi.type));
+}
+
+function isCycleTimeWorkItemType(type: string): type is CycleTimeWorkItemType {
+  return (CYCLE_TIME_WORK_ITEM_TYPES as readonly string[]).includes(type);
+}
+
+function emptyCycleTimeByType(): CycleTimeByType {
+  return {
+    totalBusinessDays: 0,
+    averageBusinessDays: null,
+    completedItemCount: 0,
+    unavailableItemCount: 0,
+  };
+}
+
+export function createEmptyCycleTimeBreakdown(): CycleTimeBreakdown {
+  return {
+    UserStory: emptyCycleTimeByType(),
+    Spike: emptyCycleTimeByType(),
+    Bug: emptyCycleTimeByType(),
+  };
+}
+
+function cloneCycleTimeBreakdown(source: CycleTimeBreakdown): CycleTimeBreakdown {
+  return {
+    UserStory: { ...source.UserStory },
+    Spike: { ...source.Spike },
+    Bug: { ...source.Bug },
+  };
+}
+
+function isDateInWindow(date: Date, window: CycleTimeWindow): boolean {
+  return date >= window.startDate && date <= window.endDate;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,4 +212,104 @@ export function calculateCarryOver(
     plannedPoints,
     carryOverRate: (carryOverPoints / plannedPoints) * 100,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Cycle Time
+// ---------------------------------------------------------------------------
+
+/**
+ * Count inclusive Monday-Friday calendar days touched by a lifecycle span.
+ * Returns null when dates are missing, invalid, or reversed.
+ */
+export function calculateBusinessDaysElapsed(start: Date | null, end: Date | null): number | null {
+  if (!start || !end) {
+    return null;
+  }
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+    return null;
+  }
+
+  const cursor = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+  );
+  const endDate = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+  let businessDays = 0;
+
+  while (cursor <= endDate) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      businessDays++;
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return businessDays;
+}
+
+/**
+ * Calculate cycle-time totals and averages by work item type for program and workstreams.
+ *
+ * The configured window is based on done timestamp (`adoClosedDate`). Items with missing
+ * lifecycle dates are counted as unavailable within the pre-queried input scope.
+ */
+export function calculateCycleTime(
+  workItems: CycleTimeWorkItemInput[],
+  window: CycleTimeWindow
+): CycleTimeResult {
+  const program = createEmptyCycleTimeBreakdown();
+  const workstreams = new Map<string, CycleTimeBreakdown>();
+  const workstreamIds = new Map<string, string | null>();
+
+  for (const item of workItems) {
+    if (!isCycleTimeWorkItemType(item.type)) {
+      continue;
+    }
+
+    if (item.adoClosedDate && !isDateInWindow(item.adoClosedDate, window)) {
+      continue;
+    }
+
+    const key = item.workstreamId ?? '__unassigned__';
+    if (!workstreams.has(key)) {
+      workstreams.set(key, createEmptyCycleTimeBreakdown());
+      workstreamIds.set(key, item.workstreamId);
+    }
+
+    const programBucket = program[item.type];
+    const workstreamBucket = workstreams.get(key)![item.type];
+    const businessDays = calculateBusinessDaysElapsed(item.adoActivatedDate, item.adoClosedDate);
+
+    if (businessDays === null) {
+      programBucket.unavailableItemCount++;
+      workstreamBucket.unavailableItemCount++;
+      continue;
+    }
+
+    programBucket.totalBusinessDays += businessDays;
+    programBucket.completedItemCount++;
+    workstreamBucket.totalBusinessDays += businessDays;
+    workstreamBucket.completedItemCount++;
+  }
+
+  finalizeCycleTimeBreakdown(program);
+  for (const breakdown of Array.from(workstreams.values())) {
+    finalizeCycleTimeBreakdown(breakdown);
+  }
+
+  return {
+    program: cloneCycleTimeBreakdown(program),
+    workstreams: Array.from(workstreams.entries()).map(([key, byType]) => ({
+      workstreamId: workstreamIds.get(key) ?? null,
+      byType: cloneCycleTimeBreakdown(byType),
+    })),
+  };
+}
+
+function finalizeCycleTimeBreakdown(breakdown: CycleTimeBreakdown): void {
+  for (const type of CYCLE_TIME_WORK_ITEM_TYPES) {
+    const bucket = breakdown[type];
+    bucket.averageBusinessDays =
+      bucket.completedItemCount === 0 ? null : bucket.totalBusinessDays / bucket.completedItemCount;
+  }
 }

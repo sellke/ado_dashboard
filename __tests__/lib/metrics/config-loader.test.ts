@@ -20,6 +20,7 @@ describe('loadMetricConfig', () => {
           velocityGreenFloor: 1.2,
           velocityAmberFloor: 0.8,
           rollingWindow: 2,
+          cycleTimeRollingWindow: 3,
         }),
       },
       metricRuleConfig: {
@@ -63,6 +64,7 @@ describe('loadMetricConfig', () => {
       velocityGreenFloor: 1.2,
       velocityAmberFloor: 0.8,
       rollingWindow: 2,
+      cycleTimeRollingWindow: 3,
     });
     expect(config.rules).toEqual(
       expect.arrayContaining([

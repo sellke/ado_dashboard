@@ -17,6 +17,8 @@ const ALL_METRIC_IDS: MetricId[] = [
   'deliveryToBugRatio',
   'overheadPercent',
   'carryOverRate',
+  'cycleTimeTotal',
+  'cycleTimeAverage',
   'chartVelocity',
   'chartBugBurndown',
 ];
@@ -27,7 +29,13 @@ const RAG_METRIC_IDS: MetricId[] = [
   'overheadPercent',
   'carryOverRate',
 ];
-const NON_RAG_METRIC_IDS: MetricId[] = ['velocityRate', 'chartVelocity', 'chartBugBurndown'];
+const NON_RAG_METRIC_IDS: MetricId[] = [
+  'velocityRate',
+  'cycleTimeTotal',
+  'cycleTimeAverage',
+  'chartVelocity',
+  'chartBugBurndown',
+];
 
 describe('metric definitions registry', () => {
   describe('METRIC_DEFINITIONS', () => {
@@ -86,6 +94,18 @@ describe('metric definitions registry', () => {
       expect(body).toMatch(/delivery hours/i);
       expect(body).toMatch(/average velocity rate/i);
       expect(body).not.toMatch(/1 SP = 1 hour/);
+    });
+
+    it('reflects cycle-time lifecycle dates, business-day calendar, and unavailable handling', () => {
+      const total = getMetricTooltip('cycleTimeTotal');
+      const average = getMetricTooltip('cycleTimeAverage');
+
+      expect(total).toMatch(/ActivatedDate/i);
+      expect(total).toMatch(/ClosedDate/i);
+      expect(total).toMatch(/Monday-Friday/i);
+      expect(total).toMatch(/unavailable/i);
+      expect(average).toMatch(/item-level totals and counts/i);
+      expect(average).toMatch(/N\/A/i);
     });
   });
 

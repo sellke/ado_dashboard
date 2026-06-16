@@ -65,6 +65,7 @@ describe('metric config validation', () => {
         velocityGreenFloor: 1,
         velocityAmberFloor: 0.7,
         rollingWindow: 4,
+        cycleTimeRollingWindow: 4,
       })
     ).toEqual([]);
 
@@ -73,11 +74,13 @@ describe('metric config validation', () => {
         velocityGreenFloor: 0.7,
         velocityAmberFloor: 1,
         rollingWindow: 0,
+        cycleTimeRollingWindow: 0,
       })
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ field: 'velocityAmberFloor' }),
         expect.objectContaining({ field: 'rollingWindow' }),
+        expect.objectContaining({ field: 'cycleTimeRollingWindow' }),
       ])
     );
   });

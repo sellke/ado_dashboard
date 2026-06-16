@@ -42,6 +42,10 @@ function mergeThresholdDefaults(rows: ThresholdConfigInput[]): ThresholdConfigIn
   );
 }
 
+function positiveIntegerOrDefault(value: number | null | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
 export async function loadMetricConfig(db: PrismaClient = prisma): Promise<MetricConfigInput> {
   const [thresholdRows, engineRow, ruleRows] = await Promise.all([
     db.thresholdConfig.findMany(),
@@ -62,7 +66,14 @@ export async function loadMetricConfig(db: PrismaClient = prisma): Promise<Metri
     engine: {
       velocityGreenFloor: engineRow?.velocityGreenFloor ?? DEFAULT_ENGINE_CONFIG.velocityGreenFloor,
       velocityAmberFloor: engineRow?.velocityAmberFloor ?? DEFAULT_ENGINE_CONFIG.velocityAmberFloor,
-      rollingWindow: engineRow?.rollingWindow ?? DEFAULT_ENGINE_CONFIG.rollingWindow,
+      rollingWindow: positiveIntegerOrDefault(
+        engineRow?.rollingWindow,
+        DEFAULT_ENGINE_CONFIG.rollingWindow
+      ),
+      cycleTimeRollingWindow: positiveIntegerOrDefault(
+        engineRow?.cycleTimeRollingWindow,
+        DEFAULT_ENGINE_CONFIG.cycleTimeRollingWindow
+      ),
     },
     rules: mergeRuleDefaults(
       ruleRows.map((rule) => ({

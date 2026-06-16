@@ -154,8 +154,11 @@ describe('GET /api/metrics', () => {
     expect(data.program).toHaveProperty('prediction.sprint5');
     expect(data.program.metrics.deliveryToBugRatio).toBe(0.15);
     expect(data.program.metrics.deliveryToBugRag).toBe('Green');
+    expect(data.program.cycleTime.UserStory.averageBusinessDays).toBeNull();
+    expect(data.workstreams[0].cycleTime.UserStory.averageBusinessDays).toBeNull();
     expect(data.computedAt).toBe('2026-04-28T18:30:00.000Z');
     expect(data.rollingWindow).toBeDefined();
+    expect(data.cycleTimeWindow).toBeDefined();
     expect(data.rollingWindow.count).toBe(1);
     expect(prisma.sprint.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -175,6 +178,90 @@ describe('GET /api/metrics', () => {
         select: expect.objectContaining({
           completedPoints: true,
           bugHours: true,
+        }),
+      })
+    );
+  });
+
+  it('adds configured cycle-time data at program and workstream levels', async () => {
+    const priorSprint = {
+      id: 'sprint-0',
+      name: 'Sprint 26.25',
+      startDate: new Date('2026-03-30'),
+      endDate: new Date('2026-04-10'),
+    };
+    prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    prisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    prisma.sprint.findMany
+      .mockResolvedValueOnce([mockSprint, priorSprint])
+      .mockResolvedValueOnce([mockSprint, priorSprint]);
+    prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
+    prisma.metricEngineConfig.findUnique.mockResolvedValue({
+      ...DEFAULT_ENGINE_CONFIG,
+      cycleTimeRollingWindow: 2,
+    });
+    prisma.workItem.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          type: 'UserStory',
+          workstreamId: 'ws-1',
+          adoActivatedDate: new Date('2026-04-13T09:00:00Z'),
+          adoClosedDate: new Date('2026-04-15T17:00:00Z'),
+        },
+        {
+          type: 'UserStory',
+          workstreamId: 'ws-1',
+          adoActivatedDate: null,
+          adoClosedDate: new Date('2026-04-16T17:00:00Z'),
+        },
+        {
+          type: 'Bug',
+          workstreamId: 'ws-1',
+          adoActivatedDate: new Date('2026-04-17T09:00:00Z'),
+          adoClosedDate: new Date('2026-04-20T17:00:00Z'),
+        },
+      ]);
+
+    const res = await GET(new Request('http://localhost/api/metrics'));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.cycleTimeWindow).toMatchObject({
+      count: 2,
+      startDate: '2026-03-30T00:00:00.000Z',
+      endDate: '2026-04-24T00:00:00.000Z',
+    });
+    expect(data.workstreams[0].cycleTime.UserStory).toEqual({
+      totalBusinessDays: 3,
+      averageBusinessDays: 3,
+      completedItemCount: 1,
+      unavailableItemCount: 1,
+    });
+    expect(data.program.cycleTime.Bug).toMatchObject({
+      totalBusinessDays: 2,
+      averageBusinessDays: 2,
+      completedItemCount: 1,
+    });
+    expect(prisma.sprint.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 2 }));
+    expect(prisma.workItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: { in: ['UserStory', 'Spike', 'Bug'] },
+          workstreamId: { in: ['ws-1'] },
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              adoClosedDate: null,
+              state: { in: ['Closed', 'Done', 'Resolved'] },
+            }),
+          ]),
+        }),
+        select: expect.objectContaining({
+          adoActivatedDate: true,
+          adoClosedDate: true,
         }),
       })
     );

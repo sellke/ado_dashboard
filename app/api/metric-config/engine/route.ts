@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { loadMetricConfig } from '@/lib/metrics/config-loader';
 import { validateEngineConfig } from '@/lib/metrics/config-validation';
 import {
+  DEFAULT_ENGINE_CONFIG,
   DEFAULT_METRIC_ENGINE_CONFIG_KEY,
   type MetricEngineConfigInput,
 } from '@/lib/metrics/types';
@@ -20,6 +21,8 @@ export async function PUT(request: Request) {
       velocityGreenFloor: body.velocityGreenFloor,
       velocityAmberFloor: body.velocityAmberFloor,
       rollingWindow: body.rollingWindow,
+      cycleTimeRollingWindow:
+        body.cycleTimeRollingWindow ?? DEFAULT_ENGINE_CONFIG.cycleTimeRollingWindow,
     };
     const errors = validateEngineConfig(engine);
 

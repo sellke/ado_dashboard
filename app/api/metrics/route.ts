@@ -18,6 +18,7 @@ import {
   validateScopedWorkstreamIds,
 } from '@/lib/dashboard/workstream-scope';
 import { aggregateToProgram } from '@/lib/metrics/aggregator';
+import { calculateCycleTime, createEmptyCycleTimeBreakdown } from '@/lib/metrics/calculators';
 import { loadMetricConfig } from '@/lib/metrics/config-loader';
 import { assignDeliveryToBugRag } from '@/lib/metrics/rag';
 import {
@@ -26,6 +27,7 @@ import {
   computeBugBurndown,
 } from '@/lib/metrics/trend-service';
 import {
+  CYCLE_TIME_WORK_ITEM_TYPES,
   DONE_STATES,
   type MetricWithRag,
   type ThresholdConfigInput,
@@ -132,6 +134,7 @@ function formatWorkstreamResponse(
       overheadHours: s.overheadHours,
       grossHours: s.grossHours,
     },
+    cycleTime: createEmptyCycleTimeBreakdown(),
     trends: {
       sprints: [] as Array<{
         sprintId: string;
@@ -444,6 +447,57 @@ export async function GET(request: Request) {
     );
     const metricConfig = await loadMetricConfig(prisma);
     const thresholds: ThresholdConfigInput[] = metricConfig.thresholds;
+    const cycleTimeSprints = await prisma.sprint.findMany({
+      where: { startDate: { lte: sprint.startDate } },
+      orderBy: { startDate: 'desc' },
+      take: metricConfig.engine.cycleTimeRollingWindow,
+      select: { id: true, name: true, startDate: true, endDate: true },
+    });
+    const cycleTimeWindowSprints =
+      cycleTimeSprints.length > 0
+        ? cycleTimeSprints
+        : [
+            {
+              id: sprint.id,
+              name: sprint.name,
+              startDate: sprint.startDate,
+              endDate: sprint.endDate,
+            },
+          ];
+    const cycleTimeStartDate = new Date(
+      Math.min(...cycleTimeWindowSprints.map((s) => s.startDate.getTime()))
+    );
+    const cycleTimeEndDate = new Date(
+      Math.max(...cycleTimeWindowSprints.map((s) => s.endDate.getTime()))
+    );
+    const cycleTimeSprintIds = cycleTimeWindowSprints.map((s) => s.id);
+    const cycleTimeItems = await prisma.workItem.findMany({
+      where: {
+        type: { in: [...CYCLE_TIME_WORK_ITEM_TYPES] },
+        ...wsFilter,
+        OR: [
+          { adoClosedDate: { gte: cycleTimeStartDate, lte: cycleTimeEndDate } },
+          {
+            adoClosedDate: null,
+            sprintId: { in: cycleTimeSprintIds },
+            state: { in: [...DONE_STATES] },
+          },
+        ],
+      },
+      select: {
+        type: true,
+        workstreamId: true,
+        adoActivatedDate: true,
+        adoClosedDate: true,
+      },
+    });
+    const cycleTime = calculateCycleTime(cycleTimeItems, {
+      startDate: cycleTimeStartDate,
+      endDate: cycleTimeEndDate,
+    });
+    const cycleTimeByWorkstream = new Map(
+      cycleTime.workstreams.map((ws) => [ws.workstreamId, ws.byType])
+    );
 
     // When the active sprint is current, pull detail fields from the last completed sprint
     // so Planned/Completed/Carry-over reflect a closed sprint rather than mid-sprint partials.
@@ -539,6 +593,8 @@ export async function GET(request: Request) {
 
     const workstreams = snapshots.map((s) => {
       const formatted = formatWorkstreamResponse(s, includeRolling, isCurrentSprint);
+      formatted.cycleTime =
+        cycleTimeByWorkstream.get(s.workstreamId) ?? createEmptyCycleTimeBreakdown();
       if (isCurrentSprint) {
         const prior = priorDetailMap.get(s.workstreamId);
         if (prior) {
@@ -829,6 +885,7 @@ export async function GET(request: Request) {
             milestoneMonthly: { value: null, rag: null },
             milestoneQuarterly: { value: null, rag: null },
           },
+          cycleTime: cycleTime.program,
           trends: {
             sprints: programTrends!.sprints,
           },
@@ -852,6 +909,17 @@ export async function GET(request: Request) {
         currentSprintId:
           rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
         sprints: rollingSprints.map((s) => ({
+          id: s.id,
+          name: s.name,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate.toISOString(),
+        })),
+      },
+      cycleTimeWindow: {
+        count: cycleTimeWindowSprints.length,
+        startDate: cycleTimeStartDate.toISOString(),
+        endDate: cycleTimeEndDate.toISOString(),
+        sprints: cycleTimeWindowSprints.map((s) => ({
           id: s.id,
           name: s.name,
           startDate: s.startDate.toISOString(),

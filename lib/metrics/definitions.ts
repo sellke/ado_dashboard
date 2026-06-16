@@ -19,6 +19,8 @@ export type MetricId =
   | 'deliveryToBugRatio'
   | 'overheadPercent'
   | 'carryOverRate'
+  | 'cycleTimeTotal'
+  | 'cycleTimeAverage'
   | 'chartVelocity'
   | 'chartBugBurndown';
 
@@ -69,6 +71,18 @@ export const METRIC_DEFINITIONS: Record<MetricId, MetricDefinition> = {
     calculation:
       'Carry-over points ÷ planned points × 100; Bugs and Spikes excluded from the point plan. The program tile is a weighted average by planned points across workstreams. N/A when planned points is zero.',
     ragExplanation: 'Green 0–10%, Amber 10.01–25%, Red above 25%.',
+  },
+  cycleTimeTotal: {
+    definition:
+      'Total business days from work start to completion for User Stories, Spikes, and Bugs.',
+    calculation:
+      'Sum of Monday-Friday days from ADO ActivatedDate to ClosedDate for completed items whose ClosedDate is inside the configured rolling window. Items missing either lifecycle date are excluded from totals and counted as unavailable.',
+  },
+  cycleTimeAverage: {
+    definition:
+      'Average business days from work start to completion for User Stories, Spikes, and Bugs.',
+    calculation:
+      'Total cycle-time business days ÷ completed item count by type. Program averages are derived from item-level totals and counts, not by averaging workstream averages. N/A when no completed items have lifecycle dates.',
   },
   chartVelocity: {
     definition: 'Per-sprint completed story points over time.',
