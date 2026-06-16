@@ -126,6 +126,7 @@ export const metricEngineConfigs = [
     velocityGreenFloor: DEFAULT_ENGINE_CONFIG.velocityGreenFloor,
     velocityAmberFloor: DEFAULT_ENGINE_CONFIG.velocityAmberFloor,
     rollingWindow: DEFAULT_ENGINE_CONFIG.rollingWindow,
+    cycleTimeRollingWindow: DEFAULT_ENGINE_CONFIG.cycleTimeRollingWindow,
   },
 ];
 
