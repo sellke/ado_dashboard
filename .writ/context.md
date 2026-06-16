@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-06-12T21:35:00Z
+> Last Updated: 2026-06-16T16:30:00Z
 
 ## Product Mission
 
@@ -8,11 +8,10 @@ LiveLink Health Report automates weekly program health reporting for Medtronic's
 
 ## Active Spec
 
-- **Spec:** 2026-06-05-five-sprint-window-visible-tabs — Visible Tabs Full Five-Sprint Window
-- **Status:** Complete
-- **Story:** 3 of 3 — Tests, regression parity, and sync-cost sanity (Complete)
-- **Progress:** 15/15 implementation tasks completed
-- **Validation:** Changed-file lints clean. `pnpm typecheck` passes. Focused Jest verification passes for `__tests__/lib/sync/iterations.test.ts`, `__tests__/app/api/sprints/stories/route.test.ts`, `__tests__/app/api/metrics/route.test.ts`, `__tests__/lib/metrics/trend-service.test.ts`, and the isolated new `sync-ado` orchestrator coverage test. Full `__tests__/api/sync-ado.test.ts` still has two existing real-sync success expectations that fail outside the isolated test.
+- **Spec:** 2026-06-15-cycle-time-stories-spikes-bugs — Cycle Time for Stories, Spikes, and Bugs
+- **Status:** Completed ✅
+- **Story:** 5 of 5 — Drill Into Unavailable Cycle-Time Items (Completed ✅)
+- **Progress:** 35/35 tasks complete (100%)
 
 ## Open Issues
 
