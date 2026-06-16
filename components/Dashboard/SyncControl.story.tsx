@@ -25,6 +25,18 @@ export const SyncFailure = () => (
   />
 );
 
+export const AuthFailure = () => (
+  <SyncControl
+    onSync={noop}
+    syncInProgress={false}
+    syncError="ADO credentials expired or invalid."
+    syncPartialSuccess={false}
+    isAuthError
+    onUpdateCredentials={noop}
+    onDismissError={noop}
+  />
+);
+
 export const PartialSuccess = () => (
   <SyncControl onSync={noop} syncInProgress={false} syncError={null} syncPartialSuccess />
 );

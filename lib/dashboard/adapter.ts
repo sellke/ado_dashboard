@@ -13,11 +13,14 @@ import type {
   MilestoneWorkstreamBreakdown,
 } from '../milestones/types';
 import type {
+  ApiCycleTimeBreakdown,
   ApiMetric,
   ApiMilestoneMetric,
   ApiOverheadItem,
   ApiResponse,
   ApiTrendSprint,
+  CycleTimeTypeViewModel,
+  CycleTimeWorkItemType,
   DashboardViewModel,
   MetricTileViewModel,
   MilestoneFeatureViewModel,
@@ -298,6 +301,44 @@ function formatDeliveryToBugRatio(
   return value.toFixed(2);
 }
 
+const CYCLE_TIME_TYPES: Array<{ type: CycleTimeWorkItemType; label: string }> = [
+  { type: 'UserStory', label: 'User Stories' },
+  { type: 'Spike', label: 'Spikes' },
+  { type: 'Bug', label: 'Bugs' },
+];
+
+function formatBusinessDays(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  const rounded = Math.round(value * 100) / 100;
+  return `${rounded} ${rounded === 1 ? 'day' : 'days'}`;
+}
+
+export function mapCycleTimeBreakdown(
+  breakdown: ApiCycleTimeBreakdown | null | undefined
+): CycleTimeTypeViewModel[] {
+  return CYCLE_TIME_TYPES.map(({ type, label }) => {
+    const item = breakdown?.[type];
+    const totalBusinessDays = item?.totalBusinessDays ?? 0;
+    const averageBusinessDays = item?.averageBusinessDays ?? null;
+    const completedItemCount = item?.completedItemCount ?? 0;
+    const unavailableItemCount = item?.unavailableItemCount ?? 0;
+
+    return {
+      type,
+      label,
+      totalBusinessDays,
+      averageBusinessDays,
+      completedItemCount,
+      unavailableItemCount,
+      totalLabel: formatBusinessDays(totalBusinessDays),
+      averageLabel: formatBusinessDays(averageBusinessDays),
+      unavailableLabel: unavailableItemCount > 0 ? `${unavailableItemCount} unavailable` : null,
+    };
+  });
+}
+
 /** Format a sprint's name + date range into a compact label, e.g. "Sprint 14 · Jan 6 – Jan 17" */
 function formatSprintLabel(sprint: { name: string; startDate: string; endDate: string }): string {
   const fmt = (iso: string) =>
@@ -482,10 +523,12 @@ export function mapApiResponseToDashboardViewModel(
   if (isEmpty) {
     return {
       state: 'empty',
+      sprintId: null,
       sprintLabel: null,
       rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [],
@@ -493,6 +536,7 @@ export function mapApiResponseToDashboardViewModel(
   }
 
   const sprintLabel = response.sprint?.name ?? null;
+  const sprintId = response.sprint?.id ?? null;
   const rollingWindowLabel = response.rollingWindow
     ? `Rolling ${response.rollingWindow.count} sprints (current + ${Math.max(
         response.rollingWindow.count - 1,
@@ -561,6 +605,9 @@ export function mapApiResponseToDashboardViewModel(
       },
     ];
   }
+  const programCycleTime = response.program
+    ? mapCycleTimeBreakdown(response.program.cycleTime)
+    : null;
 
   const currentSprintName = response.sprint?.name ?? 'Current Sprint';
   const detailSprintLabel = response.detailSprint ? formatSprintLabel(response.detailSprint) : null;
@@ -650,6 +697,7 @@ export function mapApiResponseToDashboardViewModel(
         completedPoints: formatDetailValue(d.completedPoints),
         carryOverPoints: formatDetailValue(d.carryOverPoints),
       },
+      cycleTime: mapCycleTimeBreakdown(ws.cycleTime),
       trendSprints: (ws.trends?.sprints ?? []).map(mapTrendSprint),
       prediction: wsPrediction
         ? {
@@ -687,10 +735,12 @@ export function mapApiResponseToDashboardViewModel(
 
   return {
     state: 'success',
+    sprintId,
     sprintLabel,
     rollingWindowLabel,
     computedAtLabel,
     programMetrics,
+    programCycleTime,
     programTrendSprints,
     sprint5Prediction,
     workstreamCards,
@@ -701,10 +751,12 @@ export function mapApiResponseToDashboardViewModel(
 export function createLoadingViewModel(): DashboardViewModel {
   return {
     state: 'loading',
+    sprintId: null,
     sprintLabel: null,
     rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programCycleTime: null,
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [],
@@ -715,10 +767,12 @@ export function createLoadingViewModel(): DashboardViewModel {
 export function createErrorViewModel(message: string): DashboardViewModel {
   return {
     state: 'error',
+    sprintId: null,
     sprintLabel: null,
     rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programCycleTime: null,
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [],

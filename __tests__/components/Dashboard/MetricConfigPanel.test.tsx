@@ -15,7 +15,12 @@ const configResponse = {
     },
     { metricName: 'agingWipDays', greenMin: 0, greenMax: 5, amberMin: 5.01, amberMax: 10 },
   ],
-  engine: { velocityGreenFloor: 1, velocityAmberFloor: 0.7, rollingWindow: 4 },
+  engine: {
+    velocityGreenFloor: 1,
+    velocityAmberFloor: 0.7,
+    rollingWindow: 4,
+    cycleTimeRollingWindow: 4,
+  },
   rules: [],
 };
 
@@ -213,7 +218,12 @@ describe('MetricConfigPanel', () => {
         status: 200,
         json: () =>
           Promise.resolve({
-            engine: { velocityGreenFloor: 1.2, velocityAmberFloor: 0.8, rollingWindow: 2 },
+            engine: {
+              velocityGreenFloor: 1.2,
+              velocityAmberFloor: 0.8,
+              rollingWindow: 2,
+              cycleTimeRollingWindow: 3,
+            },
           }),
       });
 
@@ -223,6 +233,7 @@ describe('MetricConfigPanel', () => {
     const greenFloor = await screen.findByLabelText('Velocity green floor');
     const amberFloor = await screen.findByLabelText('Velocity amber floor');
     const rollingWindow = await screen.findByLabelText('Rolling window');
+    const cycleTimeWindow = await screen.findByLabelText('Cycle-time window');
 
     await user.clear(greenFloor);
     await user.type(greenFloor, '0.7');
@@ -239,6 +250,8 @@ describe('MetricConfigPanel', () => {
     await user.type(amberFloor, '0.8');
     await user.clear(rollingWindow);
     await user.type(rollingWindow, '2');
+    await user.clear(cycleTimeWindow);
+    await user.type(cycleTimeWindow, '3');
     await user.click(screen.getByRole('button', { name: /save velocity/i }));
 
     await waitFor(() => {

@@ -8,6 +8,8 @@ export interface SyncControlProps {
   syncInProgress: boolean;
   syncError: string | null;
   syncPartialSuccess: boolean;
+  isAuthError?: boolean;
+  onUpdateCredentials?: () => void;
   onDismissError?: () => void;
 }
 
@@ -19,6 +21,8 @@ export function SyncControl({
   syncInProgress,
   syncError,
   syncPartialSuccess,
+  isAuthError = false,
+  onUpdateCredentials,
   onDismissError,
 }: SyncControlProps) {
   return (
@@ -43,7 +47,7 @@ export function SyncControl({
       {syncError && (
         <Alert
           icon={<IconAlertCircle size={16} />}
-          title="Sync failed"
+          title={isAuthError ? 'ADO credentials expired or invalid' : 'Sync failed'}
           color="red"
           variant="light"
           w="100%"
@@ -51,6 +55,11 @@ export function SyncControl({
         >
           <Stack gap="xs">
             <Text size="sm">{syncError}</Text>
+            {isAuthError && onUpdateCredentials && (
+              <Button variant="light" size="xs" color="red" onClick={onUpdateCredentials}>
+                Update ADO credentials
+              </Button>
+            )}
             {onDismissError && (
               <Button variant="subtle" size="xs" color="red" onClick={onDismissError}>
                 Dismiss

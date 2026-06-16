@@ -10,6 +10,7 @@ import type {
   ApiOverheadItemsBySprint,
   ApiResponse,
   ApiWorkstream,
+  CycleTimeTypeViewModel,
   DashboardViewModel,
   MetricTileViewModel,
   OverheadCompositionViewModel,
@@ -17,6 +18,42 @@ import type {
   OverheadSprintViewModel,
   WorkstreamCardViewModel,
 } from '@/lib/dashboard/types';
+
+export const cycleTimeFixture: CycleTimeTypeViewModel[] = [
+  {
+    type: 'UserStory',
+    label: 'User Stories',
+    totalBusinessDays: 12,
+    averageBusinessDays: 4,
+    completedItemCount: 3,
+    unavailableItemCount: 1,
+    totalLabel: '12 days',
+    averageLabel: '4 days',
+    unavailableLabel: '1 unavailable',
+  },
+  {
+    type: 'Spike',
+    label: 'Spikes',
+    totalBusinessDays: 0,
+    averageBusinessDays: null,
+    completedItemCount: 0,
+    unavailableItemCount: 0,
+    totalLabel: '0 days',
+    averageLabel: 'N/A',
+    unavailableLabel: null,
+  },
+  {
+    type: 'Bug',
+    label: 'Bugs',
+    totalBusinessDays: 5,
+    averageBusinessDays: 2.5,
+    completedItemCount: 2,
+    unavailableItemCount: 0,
+    totalLabel: '5 days',
+    averageLabel: '2.5 days',
+    unavailableLabel: null,
+  },
+];
 
 /** Create a MetricTileViewModel with optional overrides. */
 export function createMetricTile(
@@ -129,6 +166,7 @@ export function createWorkstreamCard(
       completedPoints: '45',
       carryOverPoints: '6',
     },
+    cycleTime: cycleTimeFixture,
     trendSprints: [
       {
         sprintId: 's1',
@@ -276,6 +314,7 @@ export function createDashboardViewModel(
       rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [],
@@ -326,6 +365,7 @@ export function createDashboardViewModel(
           metricId: 'carryOverRate',
         }),
       ],
+      programCycleTime: cycleTimeFixture,
       programTrendSprints: [
         {
           sprintId: 's1',
@@ -391,6 +431,7 @@ export function createDashboardViewModel(
       rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [],
@@ -401,6 +442,7 @@ export function createDashboardViewModel(
       rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [],

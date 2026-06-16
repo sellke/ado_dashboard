@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SimpleGrid, Stack, Title } from '@mantine/core';
 import { deriveSprintList } from '@/lib/dashboard/sprint-utils';
 import type { SprintStoryViewModel, WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import type { CycleTimeDrilldownContext } from './CycleTimeBreakdown';
 import { SprintTabSelector } from './SprintTabSelector';
 import { WorkstreamHealthCard } from './WorkstreamHealthCard';
 
@@ -15,6 +16,7 @@ export interface WorkstreamCardsGridProps {
   activeSprintId?: string;
   onActiveSprintChange?: (sprintId: string) => void;
   onCurrentSprintChange?: (sprintId: string | null) => void;
+  cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
 }
 
 export function WorkstreamCardsGrid({
@@ -25,6 +27,7 @@ export function WorkstreamCardsGrid({
   activeSprintId,
   onActiveSprintChange,
   onCurrentSprintChange,
+  cycleTimeDrilldownContext,
 }: WorkstreamCardsGridProps) {
   const [uncontrolledActiveSprintId, setUncontrolledActiveSprintId] = useState<string>('');
 
@@ -86,6 +89,7 @@ export function WorkstreamCardsGrid({
             sprintStories={sprintStoriesMap?.[card.workstreamId]}
             activeSprintId={selectedActiveSprintId}
             currentSprintId={currentSprintId}
+            cycleTimeDrilldownContext={cycleTimeDrilldownContext}
             storiesLoading={storiesLoading}
             storiesError={storiesError}
           />

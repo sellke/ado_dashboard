@@ -223,6 +223,18 @@ describe('WorkstreamHealthCard', () => {
     expect(screen.getByText(/Carry-over: 6 pts/)).toBeInTheDocument();
   });
 
+  it('renders per-workstream cycle-time breakdown with unavailable counts', () => {
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    expect(screen.getByText('Cycle Time')).toBeInTheDocument();
+    expect(screen.getByText('User Stories')).toBeInTheDocument();
+    expect(screen.getByText('Avg 4 days')).toBeInTheDocument();
+    expect(screen.getByText('Total 12 days • 3 completed')).toBeInTheDocument();
+    expect(screen.getByText('1 unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Spikes')).toBeInTheDocument();
+    expect(screen.getByText('Avg N/A')).toBeInTheDocument();
+  });
+
   it('renders VelocityTrendChart when trend data is present', () => {
     render(<WorkstreamHealthCard card={fullDataCard} />);
 

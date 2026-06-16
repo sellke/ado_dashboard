@@ -55,6 +55,26 @@ describe('dashboard adapter', () => {
           overheadHours: 22.8,
           grossHours: 80,
         },
+        cycleTime: {
+          UserStory: {
+            totalBusinessDays: 12,
+            averageBusinessDays: 4,
+            completedItemCount: 3,
+            unavailableItemCount: 1,
+          },
+          Spike: {
+            totalBusinessDays: 0,
+            averageBusinessDays: null,
+            completedItemCount: 0,
+            unavailableItemCount: 0,
+          },
+          Bug: {
+            totalBusinessDays: 5,
+            averageBusinessDays: 2.5,
+            completedItemCount: 2,
+            unavailableItemCount: 0,
+          },
+        },
         trends: {
           sprints: [
             {
@@ -101,6 +121,26 @@ describe('dashboard adapter', () => {
           formula: 'average velocity rate × current sprint net capacity hours',
         },
       },
+      cycleTime: {
+        UserStory: {
+          totalBusinessDays: 30,
+          averageBusinessDays: 5,
+          completedItemCount: 6,
+          unavailableItemCount: 2,
+        },
+        Spike: {
+          totalBusinessDays: 0,
+          averageBusinessDays: null,
+          completedItemCount: 0,
+          unavailableItemCount: 1,
+        },
+        Bug: {
+          totalBusinessDays: 9,
+          averageBusinessDays: 3,
+          completedItemCount: 3,
+          unavailableItemCount: 0,
+        },
+      },
     },
     computedAt: '2026-04-28T18:30:00.000Z',
     rollingWindow: {
@@ -126,6 +166,7 @@ describe('dashboard adapter', () => {
       expect(vm.rollingWindowLabel).toBe('Rolling 5 sprints (current + 4 prior)');
       expect(vm.computedAtLabel).toBeTruthy();
       expect(vm.programMetrics).toHaveLength(5);
+      expect(vm.programCycleTime).toHaveLength(3);
       expect(vm.workstreamCards).toHaveLength(1);
 
       const programVelocity = vm.programMetrics?.find((m) => m.label === 'Avg Total Velocity');
@@ -163,6 +204,17 @@ describe('dashboard adapter', () => {
 
       const ws = vm.workstreamCards[0];
       expect(ws.workstreamName).toBe('Action Tracker');
+      expect(ws.cycleTime?.[0]).toMatchObject({
+        label: 'User Stories',
+        averageLabel: '4 days',
+        totalLabel: '12 days',
+        unavailableLabel: '1 unavailable',
+      });
+      expect(ws.cycleTime?.[1]).toMatchObject({
+        label: 'Spikes',
+        averageLabel: 'N/A',
+        unavailableLabel: null,
+      });
       expect(ws.detail.plannedPoints).toBe('40');
       expect(ws.detail.completedPoints).toBe('34');
       expect(ws.trendSprints).toHaveLength(1);
@@ -191,6 +243,12 @@ describe('dashboard adapter', () => {
         rawVelocity: 130,
         sprintLabel: 'Sprint 27.1',
         isPredicted: true,
+      });
+      expect(vm.programCycleTime?.[0]).toMatchObject({
+        label: 'User Stories',
+        averageLabel: '5 days',
+        totalLabel: '30 days',
+        unavailableLabel: '2 unavailable',
       });
     });
 

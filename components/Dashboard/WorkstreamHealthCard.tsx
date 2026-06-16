@@ -10,6 +10,7 @@ import type {
 } from '@/lib/dashboard/types';
 import { getRagTooltip } from '@/lib/metrics/definitions';
 import { BugBurndownChart } from './BugBurndownChart';
+import { CycleTimeBreakdown, type CycleTimeDrilldownContext } from './CycleTimeBreakdown';
 import { MetricDefinitionHint } from './MetricDefinitionHint';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
@@ -24,6 +25,7 @@ export interface WorkstreamHealthCardProps {
   activeSprintId?: string;
   /** The current (in-flight) sprint ID — used to skip trend-sprint overrides for the default view. */
   currentSprintId?: string;
+  cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
   storiesLoading?: boolean;
   storiesError?: string | null;
 }
@@ -60,6 +62,7 @@ export function WorkstreamHealthCard({
   sprintStories,
   activeSprintId,
   currentSprintId,
+  cycleTimeDrilldownContext,
   storiesLoading,
   storiesError,
 }: WorkstreamHealthCardProps) {
@@ -67,6 +70,7 @@ export function WorkstreamHealthCard({
     workstreamName,
     metrics,
     detail,
+    cycleTime = [],
     detailSprintLabel,
     trendSprints = [],
     prediction,
@@ -192,10 +196,7 @@ export function WorkstreamHealthCard({
                 {m.value}
                 {m.mode === 'projected' ? ' (Projected)' : ''}
               </Text>
-              <RagBadge
-                rag={m.rag}
-                ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null}
-              />
+              <RagBadge rag={m.rag} ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null} />
             </Group>
           </Group>
         ))}
@@ -218,6 +219,22 @@ export function WorkstreamHealthCard({
                 Carry-over: {displayDetail.carryOverPoints} pts
               </Text>
             </Stack>
+
+            {cycleTime.length > 0 ? (
+              <CycleTimeBreakdown
+                title="Cycle Time"
+                items={cycleTime}
+                drilldownContext={
+                  cycleTimeDrilldownContext
+                    ? {
+                        ...cycleTimeDrilldownContext,
+                        workstreamId: card.workstreamId,
+                        scopeLabel: card.workstreamName,
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
 
             <Stack
               gap="xs"

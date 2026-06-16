@@ -3,7 +3,7 @@
  */
 
 import { SyncControl } from '@/components/Dashboard/SyncControl';
-import { render, screen, userEvent } from '@/test-utils';
+import { render, screen, userEvent, within } from '@/test-utils';
 
 describe('SyncControl', () => {
   it('renders Sync Now button when idle', () => {
@@ -22,12 +22,7 @@ describe('SyncControl', () => {
 
   it('shows Syncing… and disables button when in progress', () => {
     render(
-      <SyncControl
-        onSync={() => {}}
-        syncInProgress={true}
-        syncError={null}
-        syncPartialSuccess={false}
-      />
+      <SyncControl onSync={() => {}} syncInProgress syncError={null} syncPartialSuccess={false} />
     );
 
     const button = screen.getByRole('button', { name: /syncing/i });
@@ -51,14 +46,49 @@ describe('SyncControl', () => {
     expect(screen.getByText(/sync failed/i)).toBeInTheDocument();
   });
 
-  it('shows partial-success alert when sync succeeds but metrics refetch fails', () => {
+  it('shows auth-specific CTA when sync fails because ADO credentials are invalid', async () => {
+    const onUpdateCredentials = jest.fn();
     render(
       <SyncControl
         onSync={() => {}}
         syncInProgress={false}
-        syncError={null}
-        syncPartialSuccess={true}
+        syncError="ADO credentials expired or invalid"
+        syncPartialSuccess={false}
+        isAuthError
+        onUpdateCredentials={onUpdateCredentials}
       />
+    );
+
+    expect(
+      within(screen.getByTestId('sync-error-alert')).getAllByText(
+        /ADO credentials expired or invalid/i
+      ).length
+    ).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole('button', { name: /update ado credentials/i }));
+
+    expect(onUpdateCredentials).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show credentials CTA for generic sync failures', () => {
+    render(
+      <SyncControl
+        onSync={() => {}}
+        syncInProgress={false}
+        syncError="Database unavailable"
+        syncPartialSuccess={false}
+        isAuthError={false}
+      />
+    );
+
+    expect(screen.getByText(/sync failed/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /update ado credentials/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows partial-success alert when sync succeeds but metrics refetch fails', () => {
+    render(
+      <SyncControl onSync={() => {}} syncInProgress={false} syncError={null} syncPartialSuccess />
     );
 
     expect(screen.getByTestId('sync-partial-success-alert')).toBeInTheDocument();
@@ -84,12 +114,7 @@ describe('SyncControl', () => {
   it('does not call onSync when disabled (in progress)', async () => {
     const onSync = jest.fn();
     render(
-      <SyncControl
-        onSync={onSync}
-        syncInProgress={true}
-        syncError={null}
-        syncPartialSuccess={false}
-      />
+      <SyncControl onSync={onSync} syncInProgress syncError={null} syncPartialSuccess={false} />
     );
 
     const button = screen.getByRole('button', { name: /syncing/i });

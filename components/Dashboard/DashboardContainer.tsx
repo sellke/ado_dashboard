@@ -29,6 +29,7 @@ import type {
   ApiMilestoneWithProgress,
   ApiProgramMilestoneRollup,
 } from '@/lib/milestones/types';
+import { AdoCredentialsModal } from './AdoCredentialsModal';
 import { DashboardShell } from './DashboardShell';
 import { ExportControl } from './ExportControl';
 import { MetricConfigPanel } from './MetricConfigPanel';
@@ -37,6 +38,9 @@ import { WorkstreamRegistryPanel } from './WorkstreamRegistryPanel';
 import { WorkstreamScopeModal } from './WorkstreamScopeModal';
 
 const SYNC_ENDPOINT = '/api/sync/ado';
+const ADO_AUTH_FAILURE_CODE = 'ADO_AUTH_FAILURE';
+const ADO_AUTH_ERROR_PATTERN =
+  /ADO_PAT|ADO_ORG|ADO credentials|Azure DevOps PAT|Azure DevOps.*\b(302|401|403)\b|ADO .*\b(302|401|403)\b/i;
 
 export interface DashboardContainerProps {
   dashboard?: DashboardId;
@@ -61,12 +65,14 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [storiesError, setStoriesError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncAuthError, setSyncAuthError] = useState(false);
   const [syncPartialSuccess, setSyncPartialSuccess] = useState(false);
   const [exportInProgress, setExportInProgress] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [scopeModalOpened, setScopeModalOpened] = useState(false);
   const [registryOpened, setRegistryOpened] = useState(false);
   const [metricConfigOpened, setMetricConfigOpened] = useState(false);
+  const [adoCredentialsOpened, setAdoCredentialsOpened] = useState(false);
   const [allWorkstreams, setAllWorkstreams] = useState<WorkstreamScopeOption[]>([]);
   const [workstreamsLoading, setWorkstreamsLoading] = useState(true);
   const [workstreamsError, setWorkstreamsError] = useState<string | null>(null);
@@ -132,7 +138,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   useEffect(() => {
     const savedIds = loadDashboardWorkstreamScope(window.localStorage, dashboardId);
     setStoredScopeIds(savedIds);
-    setActiveScopedIds(savedIds);
+    setActiveScopedIds(null);
   }, [dashboardId]);
 
   useEffect(() => {
@@ -164,6 +170,15 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     }
     return mapApiResponseToDashboardViewModel(rawMetrics);
   }, [metricsViewState, metricsError, rawMetrics]);
+
+  const cycleTimeDrilldownContext = useMemo(
+    () => ({
+      dashboard: dashboardId,
+      sprintId: rawMetrics?.sprint?.id ?? null,
+      workstreamIds: activeScopedIds,
+    }),
+    [activeScopedIds, dashboardId, rawMetrics?.sprint?.id]
+  );
 
   const milestoneQuarterGroups = useMemo(() => groupMilestonesByQuarter(milestones), [milestones]);
 
@@ -259,6 +274,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics and milestones. */
   const handleSync = useCallback(async () => {
     setSyncError(null);
+    setSyncAuthError(false);
     setSyncPartialSuccess(false);
     setSyncInProgress(true);
 
@@ -271,6 +287,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
       const data = (await res.json()) as {
         success?: boolean;
         error?: string;
+        errorCode?: string;
         summary?: { errorMessage?: string | null };
       };
 
@@ -283,6 +300,9 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
               ? `Request failed: ${res.status}`
               : 'Sync finished with errors');
         setSyncError(msg);
+        setSyncAuthError(
+          data.errorCode === ADO_AUTH_FAILURE_CODE || ADO_AUTH_ERROR_PATTERN.test(msg)
+        );
         return;
       }
 
@@ -290,6 +310,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sync request failed';
       setSyncError(message);
+      setSyncAuthError(false);
     } finally {
       setSyncInProgress(false);
     }
@@ -430,10 +451,23 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
             syncInProgress={syncInProgress}
             syncError={syncError}
             syncPartialSuccess={syncPartialSuccess}
-            onDismissError={() => setSyncError(null)}
+            isAuthError={syncAuthError}
+            onUpdateCredentials={() => setAdoCredentialsOpened(true)}
+            onDismissError={() => {
+              setSyncError(null);
+              setSyncAuthError(false);
+            }}
           />
         </Group>
       </Group>
+      <AdoCredentialsModal
+        opened={adoCredentialsOpened}
+        onClose={() => setAdoCredentialsOpened(false)}
+        onSaved={() => {
+          setSyncError(null);
+          setSyncAuthError(false);
+        }}
+      />
       <WorkstreamScopeModal
         opened={scopeModalOpened}
         workstreams={allWorkstreams}
@@ -471,6 +505,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         activeSprintId={activeSprintId}
         onActiveSprintChange={setActiveSprintId}
         onCurrentSprintChange={handleCurrentSprintChange}
+        cycleTimeDrilldownContext={cycleTimeDrilldownContext}
       />
     </Stack>
   );

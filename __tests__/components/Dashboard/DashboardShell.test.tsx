@@ -36,6 +36,7 @@ describe('DashboardShell', () => {
     rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programCycleTime: null,
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [],
@@ -56,6 +57,7 @@ describe('DashboardShell', () => {
         avgLabel: '120.5 pts',
       },
     ],
+    programCycleTime: [],
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [
@@ -68,6 +70,7 @@ describe('DashboardShell', () => {
           completedPoints: '34',
           carryOverPoints: '6',
         },
+        cycleTime: [],
         trendSprints: [],
         prediction: null,
         overheadComposition: [],
@@ -82,6 +85,7 @@ describe('DashboardShell', () => {
     rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programCycleTime: null,
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [],
@@ -93,6 +97,7 @@ describe('DashboardShell', () => {
     rollingWindowLabel: null,
     computedAtLabel: null,
     programMetrics: null,
+    programCycleTime: null,
     programTrendSprints: [],
     sprint5Prediction: null,
     workstreamCards: [],
@@ -159,11 +164,7 @@ describe('DashboardShell', () => {
 
   it('forwards milestonesLoading to ProgramSummarySection', () => {
     render(
-      <DashboardShell
-        viewModel={successViewModel}
-        onRetry={onRetry}
-        milestonesLoading={true}
-      />
+      <DashboardShell viewModel={successViewModel} onRetry={onRetry} milestonesLoading={true} />
     );
 
     expect(screen.getByText(/loading milestone data/i)).toBeInTheDocument();
@@ -189,6 +190,7 @@ describe('DashboardShell', () => {
       rollingWindowLabel: null,
       computedAtLabel: null,
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [

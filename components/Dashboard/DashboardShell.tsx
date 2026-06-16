@@ -8,6 +8,7 @@ import type {
   SprintStoryViewModel,
 } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import type { CycleTimeDrilldownContext } from './CycleTimeBreakdown';
 import { ProgramSummarySection } from './ProgramSummarySection';
 import { WorkstreamCardsGrid } from './WorkstreamCardsGrid';
 
@@ -24,6 +25,7 @@ export interface DashboardShellProps {
   activeSprintId?: string;
   onActiveSprintChange?: (sprintId: string) => void;
   onCurrentSprintChange?: (sprintId: string | null) => void;
+  cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
 }
 
 function WorkstreamSection({
@@ -34,6 +36,7 @@ function WorkstreamSection({
   activeSprintId,
   onActiveSprintChange,
   onCurrentSprintChange,
+  cycleTimeDrilldownContext,
 }: {
   viewModel: DashboardViewModel;
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
@@ -42,6 +45,7 @@ function WorkstreamSection({
   activeSprintId?: string;
   onActiveSprintChange?: (sprintId: string) => void;
   onCurrentSprintChange?: (sprintId: string | null) => void;
+  cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
 }) {
   if (viewModel.state !== 'success') {
     return null;
@@ -59,6 +63,7 @@ function WorkstreamSection({
       activeSprintId={activeSprintId}
       onActiveSprintChange={onActiveSprintChange}
       onCurrentSprintChange={onCurrentSprintChange}
+      cycleTimeDrilldownContext={cycleTimeDrilldownContext}
     />
   );
 }
@@ -134,6 +139,7 @@ export function DashboardShell({
   activeSprintId,
   onActiveSprintChange,
   onCurrentSprintChange,
+  cycleTimeDrilldownContext,
 }: DashboardShellProps) {
   if (viewModel.state === 'loading') {
     return <LoadingSkeletons />;
@@ -155,6 +161,7 @@ export function DashboardShell({
         milestoneQuarterGroups={milestoneQuarterGroups}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
+        cycleTimeDrilldownContext={cycleTimeDrilldownContext}
       />
       <WorkstreamSection
         viewModel={viewModel}
@@ -164,6 +171,7 @@ export function DashboardShell({
         activeSprintId={activeSprintId}
         onActiveSprintChange={onActiveSprintChange}
         onCurrentSprintChange={onCurrentSprintChange}
+        cycleTimeDrilldownContext={cycleTimeDrilldownContext}
       />
     </Stack>
   );

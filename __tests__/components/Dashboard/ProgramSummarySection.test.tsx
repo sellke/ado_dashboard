@@ -78,6 +78,41 @@ describe('ProgramSummarySection', () => {
         avgLabel: null,
       },
     ],
+    programCycleTime: [
+      {
+        type: 'UserStory',
+        label: 'User Stories',
+        totalBusinessDays: 12,
+        averageBusinessDays: 4,
+        completedItemCount: 3,
+        unavailableItemCount: 1,
+        totalLabel: '12 days',
+        averageLabel: '4 days',
+        unavailableLabel: '1 unavailable',
+      },
+      {
+        type: 'Spike',
+        label: 'Spikes',
+        totalBusinessDays: 0,
+        averageBusinessDays: null,
+        completedItemCount: 0,
+        unavailableItemCount: 0,
+        totalLabel: '0 days',
+        averageLabel: 'N/A',
+        unavailableLabel: null,
+      },
+      {
+        type: 'Bug',
+        label: 'Bugs',
+        totalBusinessDays: 5,
+        averageBusinessDays: 2.5,
+        completedItemCount: 2,
+        unavailableItemCount: 0,
+        totalLabel: '5 days',
+        averageLabel: '2.5 days',
+        unavailableLabel: null,
+      },
+    ],
     programTrendSprints: [
       {
         sprintId: 's1',
@@ -163,6 +198,18 @@ describe('ProgramSummarySection', () => {
 
     expect(screen.getAllByText('G').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('A')).toBeInTheDocument();
+  });
+
+  it('renders program cycle-time totals, averages, N/A, and unavailable counts', () => {
+    render(<ProgramSummarySection viewModel={populatedViewModel} />);
+
+    expect(screen.getByText('Program Cycle Time')).toBeInTheDocument();
+    expect(screen.getByText('User Stories')).toBeInTheDocument();
+    expect(screen.getByText('Avg 4 days')).toBeInTheDocument();
+    expect(screen.getByText('Total 12 days • 3 completed')).toBeInTheDocument();
+    expect(screen.getByText('1 unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Spikes')).toBeInTheDocument();
+    expect(screen.getByText('Avg N/A')).toBeInTheDocument();
   });
 
   it('renders velocity chart with predicted sprint and bug burndown', () => {
@@ -386,6 +433,7 @@ describe('ProgramSummarySection', () => {
       rollingWindowLabel: null,
       computedAtLabel: '1/1/2026',
       programMetrics: null,
+      programCycleTime: null,
       programTrendSprints: [],
       sprint5Prediction: null,
       workstreamCards: [],
@@ -413,6 +461,7 @@ describe('ProgramSummarySection', () => {
           rollingWindowLabel: null,
           computedAtLabel: null,
           programMetrics: null,
+          programCycleTime: null,
           programTrendSprints: [],
           sprint5Prediction: null,
           workstreamCards: [],

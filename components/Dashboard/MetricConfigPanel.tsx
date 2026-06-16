@@ -87,6 +87,7 @@ function toEditableEngine(engine: MetricEngineConfigInput): EditableEngine {
     velocityGreenFloor: String(engine.velocityGreenFloor),
     velocityAmberFloor: String(engine.velocityAmberFloor),
     rollingWindow: String(engine.rollingWindow),
+    cycleTimeRollingWindow: String(engine.cycleTimeRollingWindow),
   };
 }
 
@@ -97,6 +98,7 @@ function parseEditableEngine(engine: EditableEngine): MetricEngineConfigInput {
     velocityGreenFloor: parseNumber(engine.velocityGreenFloor),
     velocityAmberFloor: parseNumber(engine.velocityAmberFloor),
     rollingWindow: parseNumber(engine.rollingWindow),
+    cycleTimeRollingWindow: parseNumber(engine.cycleTimeRollingWindow),
   };
 }
 
@@ -498,9 +500,9 @@ export function MetricConfigPanel({
             <Stack gap="md">
               <Text size="sm" c="dimmed">
                 Defaults match current behavior: Green at 1.0x rolling average, Amber at 0.7x, using
-                a 4-sprint rolling window.
+                a 4-sprint rolling window. Cycle time uses its own rolling sprint window.
               </Text>
-              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md">
                 <TextInput
                   label="Velocity green floor"
                   value={engine.velocityGreenFloor}
@@ -525,6 +527,15 @@ export function MetricConfigPanel({
                   inputMode="numeric"
                   error={errorFor(validationErrors, 'rollingWindow')}
                   onChange={(event) => updateEngine('rollingWindow', event.currentTarget.value)}
+                />
+                <TextInput
+                  label="Cycle-time window"
+                  value={engine.cycleTimeRollingWindow}
+                  inputMode="numeric"
+                  error={errorFor(validationErrors, 'cycleTimeRollingWindow')}
+                  onChange={(event) =>
+                    updateEngine('cycleTimeRollingWindow', event.currentTarget.value)
+                  }
                 />
               </SimpleGrid>
               <Group justify="flex-end">

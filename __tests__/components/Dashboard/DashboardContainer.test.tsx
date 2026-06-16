@@ -171,6 +171,121 @@ describe('DashboardContainer', () => {
     expect(await screen.findByText('Overhead percent')).toBeInTheDocument();
   });
 
+  it('opens ADO credential modal from auth-specific sync failure', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/sync/ado')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              success: false,
+              error: 'ADO credentials expired or invalid.',
+              errorCode: 'ADO_AUTH_FAILURE',
+            }),
+        });
+      }
+      if (url.includes('/api/ado/credentials')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              configured: true,
+              org: 'Operations-Innovation',
+              patHint: '7890',
+            }),
+        });
+      }
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ workstreams: [] }) });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    await user.click(await screen.findByRole('button', { name: /sync now/i }));
+    await waitFor(() => {
+      expect(screen.getAllByText(/ADO credentials expired or invalid/i).length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByRole('button', { name: /update ado credentials/i }));
+
+    expect(await screen.findByDisplayValue('Operations-Innovation')).toBeInTheDocument();
+    expect(screen.getByText(/Current saved PAT ends in 7890/i)).toBeInTheDocument();
+  });
+
+  it('keeps generic sync alert for non-auth invalid sync failures', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/sync/ado')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              success: false,
+              error: 'Invalid workstream configuration.',
+            }),
+        });
+      }
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ workstreams: [] }) });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    await user.click(await screen.findByRole('button', { name: /sync now/i }));
+
+    expect(await screen.findByText(/Invalid workstream configuration/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sync failed/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /update ado credentials/i })
+    ).not.toBeInTheDocument();
+  });
+
   it('shows empty state when API returns empty payload', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
@@ -184,7 +299,7 @@ describe('DashboardContainer', () => {
 
   it('shows error state and retry when API fails', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
+      if (url.includes('/api/milestones') && !url.includes('/api/milestones/')) {
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -199,6 +314,7 @@ describe('DashboardContainer', () => {
               },
             }),
         });
+      }
       return Promise.resolve({
         ok: false,
         status: 500,
@@ -224,13 +340,15 @@ describe('DashboardContainer', () => {
 
   it('shows quarterly milestone panel when milestones have workstreamBreakdown', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/milestones'))
+      if (url.includes('/api/milestones')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockMilestonesWithBreakdown),
         });
-      if (url.includes('/api/sprints/stories'))
+      }
+      if (url.includes('/api/sprints/stories')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
     });
 
@@ -241,9 +359,12 @@ describe('DashboardContainer', () => {
 
   it('shows "Loading milestone data..." when milestones are still loading', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/milestones')) return new Promise(() => {}); // never resolves
-      if (url.includes('/api/sprints/stories'))
+      if (url.includes('/api/milestones')) {
+        return new Promise(() => {});
+      } // never resolves
+      if (url.includes('/api/sprints/stories')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
     });
 
@@ -254,14 +375,16 @@ describe('DashboardContainer', () => {
 
   it('shows milestones error when milestones API returns an error', async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/milestones'))
+      if (url.includes('/api/milestones')) {
         return Promise.resolve({
           ok: false,
           status: 500,
           json: () => Promise.resolve({ error: 'Milestones unavailable' }),
         });
-      if (url.includes('/api/sprints/stories'))
+      }
+      if (url.includes('/api/sprints/stories')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
     });
 
@@ -373,6 +496,53 @@ describe('DashboardContainer', () => {
       );
       expect(global.fetch).toHaveBeenCalledWith('/api/sprints/stories?workstreamId=ws-2');
     });
+  });
+
+  it('ignores stale saved workstream scope ids until they are validated against the registry', async () => {
+    window.localStorage.setItem(
+      'dashboardWorkstreamScope:v1:main',
+      JSON.stringify({
+        includedWorkstreamIds: ['stale-ws'],
+        updatedAt: '2026-05-27T00:00:00.000Z',
+      })
+    );
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockMilestonesWithBreakdown),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSuccessResponse) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText('Action Tracker')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/workstreams');
+    });
+
+    const requestedUrls = (global.fetch as jest.Mock).mock.calls
+      .map(([url]) => String(url))
+      .filter((url) => url.startsWith('/api/metrics') || url.startsWith('/api/milestones'));
+    expect(requestedUrls.some((url) => url.includes('stale-ws'))).toBe(false);
   });
 
   it('refetches metrics with sprintId for previous sprint tabs and omits it for current sprint', async () => {

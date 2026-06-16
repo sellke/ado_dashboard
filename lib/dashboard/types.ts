@@ -73,6 +73,17 @@ export interface ApiMetric {
   mode?: 'actual' | 'projected';
 }
 
+export type CycleTimeWorkItemType = 'UserStory' | 'Spike' | 'Bug';
+
+export interface ApiCycleTimeByType {
+  totalBusinessDays: number;
+  averageBusinessDays: number | null;
+  completedItemCount: number;
+  unavailableItemCount: number;
+}
+
+export type ApiCycleTimeBreakdown = Record<CycleTimeWorkItemType, ApiCycleTimeByType>;
+
 export interface ApiOverheadComposition {
   ceremonyHours: number | null;
   bugHours: number | null;
@@ -166,6 +177,7 @@ export interface ApiWorkstream {
     formula: string;
   };
   overheadItemsBySprint?: ApiOverheadItemsBySprint[];
+  cycleTime?: ApiCycleTimeBreakdown;
 }
 
 export interface ApiMilestoneMetric {
@@ -189,6 +201,7 @@ export interface ApiResponse {
       milestoneMonthly?: ApiMilestoneMetric | null;
       milestoneQuarterly?: ApiMilestoneMetric | null;
     };
+    cycleTime?: ApiCycleTimeBreakdown;
     trends?: {
       sprints: ApiTrendSprint[];
     };
@@ -220,6 +233,18 @@ export interface MetricTileViewModel {
   mode?: 'actual' | 'projected';
   /** Stable metric identifier for definition/RAG tooltips. Optional for backward compat. */
   metricId?: MetricId;
+}
+
+export interface CycleTimeTypeViewModel {
+  type: CycleTimeWorkItemType;
+  label: string;
+  totalBusinessDays: number;
+  averageBusinessDays: number | null;
+  completedItemCount: number;
+  unavailableItemCount: number;
+  totalLabel: string;
+  averageLabel: string;
+  unavailableLabel: string | null;
 }
 
 export interface OverheadCompositionViewModel {
@@ -257,6 +282,7 @@ export interface WorkstreamCardViewModel {
     completedPoints: string;
     carryOverPoints: string;
   };
+  cycleTime?: CycleTimeTypeViewModel[];
   trendSprints: TrendSprintViewModel[];
   prediction: {
     velocity: string;
@@ -322,10 +348,12 @@ export interface TrendSprintViewModel {
 
 export interface DashboardViewModel {
   state: ViewState;
+  sprintId?: string | null;
   sprintLabel: string | null;
   rollingWindowLabel: string | null;
   computedAtLabel: string | null;
   programMetrics: MetricTileViewModel[] | null;
+  programCycleTime: CycleTimeTypeViewModel[] | null;
   programTrendSprints: TrendSprintViewModel[];
   sprint5Prediction: {
     velocity: string;

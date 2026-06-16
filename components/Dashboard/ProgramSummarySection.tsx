@@ -1,15 +1,16 @@
 'use client';
 
-import { AppLineChart, ChartLegend } from '@/lib/charts';
 import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { AppLineChart, ChartLegend } from '@/lib/charts';
 import type {
   DashboardViewModel,
   MilestoneQuarterGroup,
   TrendSprintViewModel,
 } from '@/lib/dashboard/types';
-import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { getRagTooltip } from '@/lib/metrics/definitions';
+import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
 import { BugBurndownChart } from './BugBurndownChart';
+import { CycleTimeBreakdown, type CycleTimeDrilldownContext } from './CycleTimeBreakdown';
 import { MetricDefinitionHint } from './MetricDefinitionHint';
 import { MilestoneQuarterlyPanel } from './MilestoneQuarterlyPanel';
 import { RagBadge } from './RagBadge';
@@ -22,6 +23,7 @@ export interface ProgramSummarySectionProps {
   milestoneQuarterGroups?: MilestoneQuarterGroup[];
   milestonesLoading?: boolean;
   milestonesError?: string | null;
+  cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
 }
 
 function buildVelocityChartData(
@@ -72,6 +74,7 @@ export function ProgramSummarySection({
   milestoneQuarterGroups = [],
   milestonesLoading,
   milestonesError,
+  cycleTimeDrilldownContext,
 }: ProgramSummarySectionProps) {
   if (viewModel.state !== 'success') {
     return null;
@@ -82,6 +85,7 @@ export function ProgramSummarySection({
     rollingWindowLabel,
     computedAtLabel,
     programMetrics,
+    programCycleTime,
     programTrendSprints,
     sprint5Prediction,
   } = viewModel;
@@ -137,6 +141,18 @@ export function ProgramSummarySection({
         </Text>
       )}
 
+      {programCycleTime && programCycleTime.length > 0 ? (
+        <CycleTimeBreakdown
+          title="Program Cycle Time"
+          items={programCycleTime}
+          drilldownContext={
+            cycleTimeDrilldownContext
+              ? { ...cycleTimeDrilldownContext, scopeLabel: 'Program' }
+              : undefined
+          }
+        />
+      ) : null}
+
       <Stack gap="xs">
         <Text fw={600}>ADP Milestones</Text>
         <MilestoneQuarterlyPanel
@@ -159,36 +175,36 @@ export function ProgramSummarySection({
                   <MetricDefinitionHint metricId="chartVelocity" label="Velocity (Points)" />
                 </Group>
                 <div style={{ overflow: 'visible', padding: '12px 16px 4px 4px' }}>
-                <AppLineChart
-                  height={220}
-                  data={buildVelocityChartData(programTrendSprints, sprint5Prediction)}
-                  dataKey="sprint"
-                  withDots
-                  connectNulls={false}
-                  curveType="linear"
-                  series={[
-                    { name: 'Completed Points', color: 'blue.6' },
-                    { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
-                  ]}
-                  xAxisProps={{
-                    interval: 0,
-                    tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
-                    angle: -20,
-                    textAnchor: 'end',
-                    height: 52,
-                    tickMargin: 10,
-                  }}
-                  yAxisProps={{ domain: [0, 'auto'] }}
-                  tooltipProps={{
-                    offset: 0,
-                    isAnimationActive: false,
-                  }}
-                  referenceLines={
-                    avgVelocity !== null
-                      ? [{ y: avgVelocity, color: 'gray.5', label: `Avg: ${avgVelocity}` }]
-                      : []
-                  }
-                />
+                  <AppLineChart
+                    height={220}
+                    data={buildVelocityChartData(programTrendSprints, sprint5Prediction)}
+                    dataKey="sprint"
+                    withDots
+                    connectNulls={false}
+                    curveType="linear"
+                    series={[
+                      { name: 'Completed Points', color: 'blue.6' },
+                      { name: 'Forecasted', color: 'blue.4', strokeDasharray: '5 5' },
+                    ]}
+                    xAxisProps={{
+                      interval: 0,
+                      tickFormatter: (v: string) => v.replace(/^Sprint\s*/i, ''),
+                      angle: -20,
+                      textAnchor: 'end',
+                      height: 52,
+                      tickMargin: 10,
+                    }}
+                    yAxisProps={{ domain: [0, 'auto'] }}
+                    tooltipProps={{
+                      offset: 0,
+                      isAnimationActive: false,
+                    }}
+                    referenceLines={
+                      avgVelocity !== null
+                        ? [{ y: avgVelocity, color: 'gray.5', label: `Avg: ${avgVelocity}` }]
+                        : []
+                    }
+                  />
                 </div>
                 <ChartLegend
                   items={[
