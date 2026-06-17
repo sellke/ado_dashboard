@@ -14,8 +14,9 @@ jest.mock('@/components/Dashboard/BurnupChart', () => ({
   BurnupChart: () => null,
 }));
 
-import { renderChartToPng } from '@/lib/export/render/chart-image';
 import { buildPresentation } from '@/lib/export/builder';
+import { MDT_LAYOUT } from '@/lib/export/mdt-theme';
+import { renderChartToPng } from '@/lib/export/render/chart-image';
 import type { ExportInput } from '@/lib/export/types';
 import type {
   WorkstreamCardViewModel,
@@ -181,20 +182,21 @@ beforeEach(() => {
 });
 
 describe('buildPresentation', () => {
-  it('produces 1 + (workstreams × 4) slides for 5 workstreams', async () => {
+  it('produces layered deck slides for 5 workstreams (snapshots + detail)', async () => {
     const prs = await buildPresentation(
       MockPptxGenJS as unknown as typeof import('pptxgenjs').default,
       makeInput(5)
     );
-    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(21);
+    // 1 program snapshot + 2 workstream snapshot pages + 1 program summary + 20 detail
+    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(24);
   });
 
-  it('produces 1 slide (program summary only) when workstreams is empty', async () => {
+  it('produces program snapshot + summary when workstreams is empty', async () => {
     const prs = await buildPresentation(
       MockPptxGenJS as unknown as typeof import('pptxgenjs').default,
       makeInput(0)
     );
-    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(1);
+    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(2);
   });
 
   it('sets layout to LAYOUT_WIDE', async () => {
@@ -203,6 +205,20 @@ describe('buildPresentation', () => {
       makeInput(1)
     );
     expect((prs as unknown as { layout: string }).layout).toBe('LAYOUT_WIDE');
+  });
+
+  it('footer page numbers follow slide plan totals for multiple workstreams', async () => {
+    const prs = await buildPresentation(
+      MockPptxGenJS as unknown as typeof import('pptxgenjs').default,
+      makeInput(3)
+    );
+    const slides = (prs as unknown as MockPptxGenJS)._slides;
+    const pageNumbers = slides.map((s) =>
+      s.addText.mock.calls.find((c) => c[1]?.x === MDT_LAYOUT.footerPageX)?.[0]
+    );
+    expect(pageNumbers[0]).toBe('1');
+    expect(pageNumbers[pageNumbers.length - 1]).toBe('15');
+    expect(slides.length).toBe(15);
   });
 
   it('does not throw with null programMetrics and empty milestones', async () => {
@@ -219,8 +235,8 @@ describe('buildPresentation', () => {
       makeInput(1)
     );
     const slides = (prs as unknown as MockPptxGenJS)._slides;
-    // Index 0 is the program summary slide. The first workstream's slides occupy indices 1–4.
-    const titles = slides.slice(1, 5).map((s) => s.addText.mock.calls[0][0]);
+    // Index 0 program snapshot, 1 workstream snapshot, 2 program summary, then detail.
+    const titles = slides.slice(3, 7).map((s) => s.addText.mock.calls[0][0]);
     expect(titles).toEqual([
       'Workstream 0 — Velocity',
       'Workstream 0 — Bug Burndown',
@@ -247,17 +263,17 @@ describe('buildPresentation', () => {
       input
     );
 
-    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(21);
+    expect((prs as unknown as MockPptxGenJS).slideCount).toBe(24);
 
     const slides = (prs as unknown as MockPptxGenJS)._slides;
-    // The failing slide is the velocity slide for workstream 0 — slide index 1.
-    const velocitySlide = slides[1];
+    // Velocity slide for workstream 0 — after snapshot slides and program summary.
+    const velocitySlide = slides[4];
     const textCalls = velocitySlide.addText.mock.calls.map((c) => String(c[0]));
     expect(textCalls).toContain('Chart unavailable');
 
     // Every other slide in the deck had its chart capture succeed — sum of addImage
     // calls across the remaining 20 slides should match the non-failing capture count.
-    const otherSlides = slides.filter((_, i) => i !== 1);
+    const otherSlides = slides.filter((_, i) => i !== 4);
     const totalImages = otherSlides.reduce(
       (sum, s) => sum + s.addImage.mock.calls.length,
       0

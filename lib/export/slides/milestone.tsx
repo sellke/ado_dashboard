@@ -3,6 +3,7 @@ import { BurnupChart } from '@/components/Dashboard/BurnupChart';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import type { ApiMilestoneWithProgress } from '@/lib/milestones/types';
 import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
+import { addChartUnavailablePlaceholder } from '../placeholders';
 import { renderChartToPng } from '../render/chart-image';
 import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
 import type { ExportInput } from '../types';
@@ -105,15 +106,12 @@ export async function buildMilestoneSlide(
         `[pptx-export] milestone burnup capture failed for "${ws.workstreamName}" / "${milestone.title}":`,
         err
       );
-      slide.addText('Chart unavailable', {
+      addChartUnavailablePlaceholder(slide, {
         x: CHART_X,
-        y: y + 0.22,
+        y: y + 0.2,
         w: CHART_W,
-        h: 0.5,
-        fontFace: MDT_FONT,
-        fontSize: 12,
-        color: MDT_COLORS.bodyMuted,
-        align: 'center',
+        h: CHART_H - 0.25,
+        detail: `Burnup for "${milestone.title}" could not be captured.`,
       });
     }
   }

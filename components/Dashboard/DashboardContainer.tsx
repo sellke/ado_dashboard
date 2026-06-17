@@ -23,7 +23,7 @@ import {
   saveDashboardWorkstreamScope,
   type WorkstreamScopeOption,
 } from '@/lib/dashboard/workstream-scope';
-import { buildPresentation, type ExportInput } from '@/lib/export';
+import { buildPresentation, enrichExportInput, type ExportInput } from '@/lib/export';
 import type {
   ApiMilestonesResponse,
   ApiMilestoneWithProgress,
@@ -125,7 +125,8 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         return;
       }
 
-      setAllWorkstreams(data.workstreams ?? []);
+      const loaded = data.workstreams ?? [];
+      setAllWorkstreams(loaded);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load workstreams';
       setWorkstreamsError(message);
@@ -143,7 +144,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   useEffect(() => {
     fetchAllWorkstreams();
-  }, [fetchAllWorkstreams]);
+  }, [fetchAllWorkstreams, dashboardId]);
 
   useEffect(() => {
     if (allWorkstreams.length === 0) {
@@ -339,17 +340,21 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
     setExportInProgress(true);
     try {
       const PptxGenJS = (await import('pptxgenjs')).default;
-      const input: ExportInput = {
-        sprintName: rawMetrics?.sprint?.name ?? 'Unknown Sprint',
-        computedAt: rawMetrics?.computedAt ?? null,
-        programMetrics: viewModel.programMetrics,
-        programRollup,
-        programTrendSprints: viewModel.programTrendSprints,
-        sprint5Prediction: viewModel.sprint5Prediction,
-        workstreams: viewModel.workstreamCards,
-        rawWorkstreams: rawMetrics?.workstreams ?? [],
-        milestones,
-      };
+      const input: ExportInput = enrichExportInput(
+        {
+          sprintName: rawMetrics?.sprint?.name ?? 'Unknown Sprint',
+          computedAt: rawMetrics?.computedAt ?? null,
+          programMetrics: viewModel.programMetrics,
+          programRollup,
+          programTrendSprints: viewModel.programTrendSprints,
+          sprint5Prediction: viewModel.sprint5Prediction,
+          workstreams: viewModel.workstreamCards,
+          rawWorkstreams: rawMetrics?.workstreams ?? [],
+          milestones,
+        },
+        viewModel,
+        programRollup
+      );
       const prs = await buildPresentation(PptxGenJS, input);
       const date = new Date().toISOString().slice(0, 10);
       await prs.writeFile({ fileName: `LiveLink-Health-Report-${date}.pptx` });
@@ -506,6 +511,8 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
         onActiveSprintChange={setActiveSprintId}
         onCurrentSprintChange={handleCurrentSprintChange}
         cycleTimeDrilldownContext={cycleTimeDrilldownContext}
+        workstreamCount={allWorkstreams.length}
+        workstreamsLoading={workstreamsLoading}
       />
     </Stack>
   );

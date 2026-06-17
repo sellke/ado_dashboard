@@ -28,7 +28,7 @@ export const MDT_TYPO = {
   statusLabelPt: 10,
 } as const;
 
-/** `LAYOUT_WIDE` — positions in inches (see mdt_slides.md) */
+/** `LAYOUT_WIDE` (13.33×7.5 in) — see `EXPORT_PRESENTATION_LAYOUT` in builder.ts for canvas decision. */
 export const MDT_LAYOUT = {
   title: { x: 0.7, y: 0.35, w: 10, h: 0.6 },
   subtitle: { x: 0.7, y: 0.95, w: 10, h: 0.35 },

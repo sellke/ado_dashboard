@@ -2,6 +2,7 @@ import type PptxGenJS from 'pptxgenjs';
 import { OverheadCompositionChart } from '@/components/Dashboard/OverheadCompositionChart';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
+import { addChartUnavailablePlaceholder, addEmptyDataPanel } from '../placeholders';
 import { renderChartToPng } from '../render/chart-image';
 import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
 import type { ExportInput } from '../types';
@@ -30,15 +31,8 @@ export async function buildOverheadSlide(
   const composition = ws.overheadComposition;
 
   if (composition.length === 0) {
-    slide.addText('No overhead data available', {
-      x: 1,
+    addEmptyDataPanel(slide, 'Overhead composition data is not available for this workstream.', {
       y: contentTop + 1.5,
-      w: 11,
-      h: 1,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
     });
     addMdtFooter(slide, ctx, input);
     return;
@@ -57,15 +51,12 @@ export async function buildOverheadSlide(
     slide.addImage({ data: dataUrl, x: 0.3, y: CHART_Y, w: CHART_W, h: CHART_H });
   } catch (err) {
     console.error(`[pptx-export] overhead chart capture failed for "${ws.workstreamName}":`, err);
-    slide.addText('Chart unavailable', {
+    addChartUnavailablePlaceholder(slide, {
       x: 0.3,
       y: CHART_Y,
       w: CHART_W,
       h: CHART_H,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
+      detail: 'Overhead chart could not be captured from the dashboard.',
     });
   }
 

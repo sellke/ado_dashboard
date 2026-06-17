@@ -2,6 +2,7 @@ import type PptxGenJS from 'pptxgenjs';
 import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
+import { addChartUnavailablePlaceholder, addEmptyDataPanel } from '../placeholders';
 import { renderChartToPng } from '../render/chart-image';
 import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
 import type { ExportInput } from '../types';
@@ -30,15 +31,8 @@ export async function buildVelocitySlide(
   const sprints = ws.trendSprints;
 
   if (sprints.length === 0) {
-    slide.addText('No trend data available', {
-      x: 1,
+    addEmptyDataPanel(slide, 'Velocity trend data is not available for this workstream.', {
       y: contentTop + 1.5,
-      w: 11,
-      h: 1,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
     });
     addMdtFooter(slide, ctx, input);
     return;
@@ -58,15 +52,12 @@ export async function buildVelocitySlide(
     slide.addImage({ data: dataUrl, x: 0.3, y: CHART_Y, w: CHART_W, h: CHART_H });
   } catch (err) {
     console.error(`[pptx-export] velocity chart capture failed for "${ws.workstreamName}":`, err);
-    slide.addText('Chart unavailable', {
+    addChartUnavailablePlaceholder(slide, {
       x: 0.3,
       y: CHART_Y,
       w: CHART_W,
       h: CHART_H,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
+      detail: 'Velocity chart could not be captured from the dashboard.',
     });
   }
 
@@ -102,7 +93,7 @@ export async function buildVelocitySlide(
       w: PANEL_W,
       h: 0.3,
       fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.statusLabelPt,
+      fontSize: MDT_TYPO.bodyPt,
       color: MDT_COLORS.bodyMuted,
       bold: false,
     });

@@ -374,7 +374,7 @@ describe('buildProgramSummarySlide', () => {
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(textCalls).toContain('No program trend data available');
+    expect(textCalls.some((t) => t.includes('Program trend charts are not available'))).toBe(true);
   });
 
   it('falls back to "Chart unavailable" text when velocity capture rejects', async () => {

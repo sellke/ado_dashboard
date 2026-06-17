@@ -4,6 +4,7 @@ import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
 import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
 import { ragColor } from '../rag-colors';
+import { addChartUnavailablePlaceholder, addEmptyDataPanel } from '../placeholders';
 import { renderChartToPng } from '../render/chart-image';
 import { addMdtFooter, addMdtTitleBlock, type MdtSlideContext } from '../slide-frame';
 import type { ExportInput } from '../types';
@@ -106,15 +107,8 @@ export async function buildProgramSummarySlide(
   const CHART_Y = TILE_Y + TILE_H + 0.2;
 
   if (!input.programMetrics) {
-    slide.addText('No data available', {
-      x: 1,
+    addEmptyDataPanel(slide, 'Program metrics are not available for this export.', {
       y: contentTop + 1.2,
-      w: 11,
-      h: 1,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
     });
     addMdtFooter(slide, ctx, input);
     return;
@@ -175,15 +169,9 @@ export async function buildProgramSummarySlide(
   const trendSprints = input.programTrendSprints;
 
   if (trendSprints.length === 0) {
-    slide.addText('No program trend data available', {
-      x: 0.3,
+    addEmptyDataPanel(slide, 'Program trend charts are not available for this sprint window.', {
       y: CHART_Y + 0.5,
       w: 12.7,
-      h: 1.0,
-      fontFace: MDT_FONT,
-      fontSize: MDT_TYPO.bodyPt,
-      color: MDT_COLORS.bodyMuted,
-      align: 'center',
     });
   } else {
     try {
@@ -206,15 +194,12 @@ export async function buildProgramSummarySlide(
       });
     } catch (err) {
       console.error('[pptx-export] program velocity chart capture failed:', err);
-      slide.addText('Chart unavailable', {
+      addChartUnavailablePlaceholder(slide, {
         x: VELOCITY_CHART_X,
         y: CHART_Y,
         w: CHART_W,
         h: 3.7,
-        fontFace: MDT_FONT,
-        fontSize: MDT_TYPO.bodyPt,
-        color: MDT_COLORS.bodyMuted,
-        align: 'center',
+        detail: 'Program velocity trend unavailable.',
       });
     }
 
@@ -237,15 +222,12 @@ export async function buildProgramSummarySlide(
       });
     } catch (err) {
       console.error('[pptx-export] program bug burndown chart capture failed:', err);
-      slide.addText('Chart unavailable', {
+      addChartUnavailablePlaceholder(slide, {
         x: BUG_CHART_X,
         y: CHART_Y,
         w: CHART_W,
         h: 3.7,
-        fontFace: MDT_FONT,
-        fontSize: MDT_TYPO.bodyPt,
-        color: MDT_COLORS.bodyMuted,
-        align: 'center',
+        detail: 'Program bug burndown unavailable.',
       });
     }
   }

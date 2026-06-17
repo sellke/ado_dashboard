@@ -218,7 +218,7 @@ describe('buildBugBurndownSlide', () => {
     expect(mockRenderChartToPng).not.toHaveBeenCalled();
     expect(prs._slide.addImage).not.toHaveBeenCalled();
     const textCalls: string[] = prs._slide.addText.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(textCalls).toContain('No bug data available');
+    expect(textCalls.some((t) => t.includes('Bug burndown data is not available'))).toBe(true);
   });
 
   it('falls back to "Chart unavailable" text when capture rejects', async () => {
