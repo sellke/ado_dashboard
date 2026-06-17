@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.6.1] - 2026-06-17
+
+### Added
+
+- **Database auto-bootstrap** — restores default workstreams, sync program config, and metric
+  configuration when the workstreams table is empty. Runs on `GET /api/workstreams`, Sync Now,
+  and via `pnpm db:bootstrap` / `pnpm db:migrate:deploy`.
+
+### Changed
+
+- **Dashboard empty state** — notes that defaults are created automatically on Sync Now.
+- **`seedOperationalDefaults`** — shared between full seed and bootstrap paths.
+
+### Fixed
+
+- **Sync after migrate/reset** — sync no longer fails with "No workstreams configured" on a
+  fresh database that has migrations but no registry rows.
+
+### Internal
+
+- `lib/db/bootstrap.ts`, `scripts/bootstrap-if-empty.ts`, and regression tests for bootstrap
+  idempotency.
+
 ## [0.6.0] - 2026-06-17
 
 ### Added

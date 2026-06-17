@@ -6,7 +6,7 @@
 ## Project
 
 - **Name:** LiveLink Health Report
-- **Version:** 0.6.0
+- **Version:** 0.6.1
 - **Type:** Next.js 15 App Router monolith
 - **Purpose:** Automated health reporting for the Unified LiveLink program
 

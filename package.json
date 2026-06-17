@@ -1,6 +1,6 @@
 {
   "name": "mantine-next-template",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "scripts": {
     "dev": "node scripts/clean-next-dev.mjs && next dev",
@@ -24,9 +24,11 @@
     "db:down": "docker-compose down",
     "db:reset": "docker-compose down -v && docker-compose up -d postgres",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy && pnpm db:bootstrap",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:bootstrap": "tsx scripts/bootstrap-if-empty.ts",
     "db:push": "prisma db push",
     "postinstall": "prisma generate"
   },
