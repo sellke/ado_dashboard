@@ -15,8 +15,11 @@ Automate the release lifecycle: generate changelogs from completed stories, bump
 | `/release minor` | Explicit | Force a minor release (0.X.0) |
 | `/release major` | Explicit | Force a major release (X.0.0) |
 | `/release --dry-run` | Preview | Show gate preview + what would happen without making changes |
+| `/release --merge` | Merge then release | Merge current branch into **Default Branch** (from `.writ/config.md`), then run release on that branch |
 | `/release --no-tag` | Changelog only | Generate changelog and bump version, skip git tag + GitHub release |
 | `/release --skip-gate` | Bypass validation | Skip spec validation, build verification, and test suite (use when CI already validated) |
+
+**Flag combinations:** `--merge` composes with version qualifiers and other flags (e.g. `/release patch --merge`, `/release --merge --dry-run`). Resolve **Default Branch** from `.writ/config.md` first, then `git remote show origin` HEAD branch, then ask the user — never hardcode `main`.
 
 ## Command Process
 
@@ -284,6 +287,30 @@ AskQuestion({
 })
 ```
 
+### Phase 2.5: Integration Branch (`--merge` only)
+
+> **Runs after** Phase 2 confirm (or dry-run preview) and **before** Phase 3 version bump. Skipped when `--dry-run` is set (preview only).
+
+When `--merge` is **not** set and the current branch is not **Default Branch**, emit a one-line note before Phase 3: *"Not on ${DEFAULT_BRANCH}. Tags will be created on the current branch unless you abort and re-run with `--merge`."* Do not block unless the user is on a detached HEAD.
+
+When `--merge` **is** set:
+
+1. Resolve `${DEFAULT_BRANCH}` from Step 1.1.
+2. Record `${SOURCE_BRANCH}` = current branch.
+3. If `${SOURCE_BRANCH}` equals `${DEFAULT_BRANCH}`: continue silently (already on integration branch).
+4. Otherwise:
+   ```bash
+   git fetch origin
+   git checkout ${DEFAULT_BRANCH}
+   git pull origin ${DEFAULT_BRANCH}
+   git merge ${SOURCE_BRANCH}   # use merge strategy from config; do not rebase unless user passed --rebase elsewhere
+   git push origin ${DEFAULT_BRANCH}
+   ```
+5. **On clean merge:** Continue to Phase 3 on `${DEFAULT_BRANCH}`.
+6. **On conflict:** Stop. Show conflicting files. Do not bump version or tag until resolved. Offer: resolve manually and re-run `/release --merge`, or abort with `git merge --abort`.
+
+**After `/ship`:** Use `/release --merge` when release commits landed on a feature branch and you want the version tag on **Default Branch** without a separate manual merge step.
+
 ### Phase 3: Version Bump
 
 #### Step 3.1: Update Version Files
@@ -370,6 +397,7 @@ Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERS
 
 ## Summary
 - **Version:** ${PREVIOUS} → ${VERSION}
+- **Branch:** ${DEFAULT_BRANCH} / merged from ${SOURCE_BRANCH} (when `--merge` used)
 - **Changelog:** Updated with ${N} entries
 - **README:** ✅ Current / 🔧 Updated (N fixes)
 - **Tag:** v${VERSION} pushed to origin
@@ -391,7 +419,8 @@ ${changelog_summary}
 When `--dry-run` is specified, the command:
 1. ✅ Gathers all context (versions, commits, specs)
 2. ✅ **Previews the release gate** — spec checks that would run, build commands that would run, and whether the **test suite would run or be skipped** (HEAD vs last merged PR via `gh`, or full suite if `gh` unavailable)
-3. ✅ Runs README freshness check (read-only assessment)
+3. ✅ **Previews `--merge`** — whether merge into **Default Branch** would run (current branch ≠ default)
+4. ✅ Runs README freshness check (read-only assessment)
 4. ✅ Generates the changelog entry (display only)
 5. ✅ Shows the version bump proposal
 6. ✅ Displays exactly what files would change
@@ -406,6 +435,7 @@ Release gate preview:
 - Spec metadata (same as `/verify-spec` checks 1–6): would run on [N] spec(s); auto-fix where applicable
 - Build verification: typecheck/lint/format where configured — would run
 - Tests: would run | would skip (HEAD matches last merged PR SHA …) | would run (gh unavailable — safe default)
+- Merge (`--merge`): would merge [source-branch] → [default-branch] | skipped (already on default) | not requested
 
 Current version: 1.2.3
 Proposed version: 1.3.0 (minor — new features detected)
@@ -420,6 +450,8 @@ Files that would be modified:
 - package.json (version: 1.2.3 → 1.3.0)
 
 Commands that would run:
+[If --merge and not on default branch:]
+- git fetch origin && git checkout [default-branch] && git pull && git merge [source-branch] && git push origin [default-branch]
 - git add -A
 - git commit -m "chore: release v1.3.0 ..."
 - git tag -a v1.3.0 -m "..."
@@ -465,15 +497,18 @@ Each package gets its own version bump and changelog entry. Tags follow the patt
 | Command | Relationship |
 |---------|-------------|
 | `/implement-spec` | Finishes implementation and per-story tests; often followed by `/ship` |
-| `/ship` | Opens the PR; default path toward merging |
+| `/ship` | Ships a feature branch; follow with `/release --merge` when the release commit is on that branch |
 | `/verify-spec` | **Optional** metadata diagnostic — not a prerequisite; `/release` re-runs the same checks internally |
 | `/status` | Quick check before releasing |
 
 **Recommended release flow:**
 ```
-/release --dry-run             # Preview gate + changelog + version
-/release                       # Execute (gate runs again for real unless --skip-gate)
+/ship                          # Branch → commit → push (PR optional)
+/release --dry-run --merge     # Preview gate + merge + changelog
+/release --merge               # Merge to Default Branch, then bump/tag/push
 ```
+
+**Do not** run `/release` and `/ship` in parallel (`/release | /ship`) — ship first, then release on the integration branch (use `--merge` when release work is still on a feature branch).
 
 Run `/verify-spec` when you want a **standalone** spec hygiene pass without cutting a release.
 
@@ -502,6 +537,29 @@ Options:
 1. Stash changes, release, then restore
 2. Commit changes first, then release
 3. Cancel
+```
+
+**Merge conflict (`--merge`):**
+```
+⚠️ Merge conflict merging ${SOURCE_BRANCH} into ${DEFAULT_BRANCH}.
+
+Conflicting files:
+${git_diff --name-only --diff-filter=U}
+
+Resolve conflicts, commit on ${DEFAULT_BRANCH}, then re-run /release --merge --skip-gate
+(if gate already passed) or /release --merge from the start.
+
+Options:
+1. Abort merge — git merge --abort, fix on feature branch, retry
+2. Cancel release
+```
+
+**Not on Default Branch (without `--merge`):**
+```
+ℹ️ You are on ${CURRENT_BRANCH}, not ${DEFAULT_BRANCH}.
+
+Release will tag ${CURRENT_BRANCH} at HEAD. Re-run with --merge to integrate first,
+or checkout ${DEFAULT_BRANCH} if the work is already merged.
 ```
 
 **No version source found:**

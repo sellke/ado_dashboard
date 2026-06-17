@@ -12,7 +12,7 @@
 
 ## Conventions
 
-- **Default Branch:** mdt-branch
+- **Default Branch:** main
 - **Package Manager:** pnpm (workspace)
 - **Test Runner:** pnpm jest
 - **Full Test Suite:** pnpm test (prettier → lint → typecheck → jest)

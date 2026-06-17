@@ -19,3 +19,25 @@
 
 **Scope:** Local only
 **Target file:** .cursor/commands/create-spec.md
+
+## 2026-06-17 — /release refreshed
+
+**Source:** Conversation context (`/release | /ship` on v0.6.1 bootstrap work)
+**Signals found:** 4 total, 4 actionable
+**Amendments applied:** 6 of 6 proposed
+
+**Changes:**
+- Add `--merge` mode to Modes table and flag-combination note (Confidence: High, applied)
+- Add Phase 2.5 Integration Branch merge step before version bump (Confidence: High, applied)
+- Warn when not on Default Branch without `--merge` (Confidence: High, applied)
+- Update dry-run preview for `--merge` (Confidence: High, applied)
+- Revise Integration with Writ — ship → release --merge flow; discourage parallel `/release | /ship` (Confidence: High, applied)
+- Add merge conflict and off-default-branch error handling (Confidence: High, applied)
+
+**Not applied:**
+- None
+
+**Friction addressed:** Release commits on a feature branch required a manual "merge to main" step before tags landed on the integration branch. User set Default Branch to `main` in `.writ/config.md`.
+
+**Scope:** Local only
+**Target file:** .cursor/commands/release.md
