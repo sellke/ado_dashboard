@@ -1,8 +1,25 @@
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 
-const projectName = path.basename(process.cwd()).toLowerCase();
+const projectRoot = process.cwd();
+const projectName = path.basename(projectRoot).toLowerCase();
 const nextServerFragment = 'next\\dist\\server\\lib\\start-server.js';
+const nextCacheDir = path.join(projectRoot, '.next');
+
+/** OneDrive-synced repos often corrupt .next symlinks (EINVAL on readlink). */
+function shouldPurgeNextCache() {
+  return process.platform === 'win32' && projectRoot.includes('OneDrive');
+}
+
+function purgeNextCache() {
+  if (!fs.existsSync(nextCacheDir)) {
+    return false;
+  }
+  fs.rmSync(nextCacheDir, { recursive: true, force: true });
+  console.log('clean-next-dev: removed .next cache (OneDrive-safe dev startup).');
+  return true;
+}
 
 function safeExec(command) {
   try {
@@ -58,5 +75,9 @@ const killed =
   process.platform === 'win32'
     ? killWindowsNextDevProcesses()
     : killUnixNextDevProcesses();
+
+if (shouldPurgeNextCache()) {
+  purgeNextCache();
+}
 
 console.log(`clean-next-dev: killed ${killed} stale Next.js dev process(es).`);
