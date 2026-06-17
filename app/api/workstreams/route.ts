@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { bootstrapDefaultDataIfEmpty } from '@/lib/db/bootstrap';
 import { prisma } from '@/lib/prisma';
 import { validateWorkstreamRegistryInput } from '@/lib/sync/workstream-validation';
 
@@ -76,6 +77,8 @@ export async function GET(request: Request) {
         error: probeErr instanceof Error ? probeErr.message : String(probeErr),
       });
     }
+
+    await bootstrapDefaultDataIfEmpty(prisma);
 
     const workstreams = await prisma.workstream.findMany({
       where: includeDisabled ? undefined : { syncEnabled: true },

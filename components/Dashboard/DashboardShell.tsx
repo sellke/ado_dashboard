@@ -112,7 +112,7 @@ function EmptyState({
       </Text>
       <Text size="sm" c="dimmed" maw={480} ta="center">
         {needsSeed
-          ? 'The database has no workstreams yet. Run `pnpm db:seed` locally, or add workstreams in Workstream Registry, then click Sync Now.'
+          ? 'The database has no workstreams yet. Defaults are created automatically on Sync Now, or run `pnpm db:bootstrap` / `pnpm db:seed` manually.'
           : 'Run Sync Now to pull Azure DevOps data and compute metrics for the current sprint.'}
       </Text>
     </Stack>

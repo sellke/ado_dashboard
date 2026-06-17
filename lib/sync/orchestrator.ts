@@ -7,6 +7,7 @@
  * Work item sync (Story 3) fetches, maps, and upserts per workstream.
  */
 
+import { bootstrapDefaultDataIfEmpty } from '@/lib/db/bootstrap';
 import { prisma } from '@/lib/prisma';
 import { fetchTeamIterations } from './ado-client';
 import { syncCapacityForAllWorkstreams } from './capacity';
@@ -45,7 +46,11 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     input.iterationsFetcher ??
     (() => fetchTeamIterations(programConfig.adoProject, programConfig.iterationTeamId));
 
-  const workstreams = await loadSyncWorkstreams(prisma);
+  let workstreams = await loadSyncWorkstreams(prisma);
+  if (workstreams.length === 0 && (await prisma.workstream.count()) === 0) {
+    await bootstrapDefaultDataIfEmpty(prisma);
+    workstreams = await loadSyncWorkstreams(prisma);
+  }
 
   // 1. Create SyncLog with status Running
   const syncLog = await prisma.syncLog.create({
@@ -69,7 +74,7 @@ export async function runSync(input: SyncOrchestratorInput = {}): Promise<SyncOr
     const totalWorkstreams = await prisma.workstream.count();
     if (totalWorkstreams === 0) {
       errorMessages.push(
-        'No workstreams configured. Add workstreams in Settings → Workstream Registry, or run pnpm db:seed to restore defaults.'
+        'No workstreams configured. Add workstreams in Settings → Workstream Registry, or run pnpm db:bootstrap to restore defaults.'
       );
     } else {
       errorMessages.push(

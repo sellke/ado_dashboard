@@ -4,8 +4,16 @@
 
 import { GET, POST } from '@/app/api/workstreams/route';
 
+jest.mock('@/lib/db/bootstrap', () => ({
+  bootstrapDefaultDataIfEmpty: jest.fn().mockResolvedValue({
+    bootstrapped: false,
+    workstreamsCreated: 0,
+  }),
+}));
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     workstream: {
       create: jest.fn(),
       findFirst: jest.fn(),

@@ -40,13 +40,20 @@ This project uses PostgreSQL 16 with Prisma 6 ORM. The database runs in a Docker
    pnpm run db:migrate
    ```
 
-5. **Seed the database**
+5. **Bootstrap default data** (optional if you will use Sync Now immediately)
+
+   ```bash
+   pnpm run db:bootstrap
+   ```
+
+   Or seed everything including sample sprints:
 
    ```bash
    pnpm run db:seed
    ```
 
-   This creates:
+   Bootstrap (also runs automatically on first Sync Now or workstreams API call when the
+   workstreams table is empty) creates:
    - 5 workstreams (Streams, Pitch Tracker, Action Tracker, KPI Services, UCM)
    - 5 RAG threshold configs (sprintPredictability, carryOverRate, overheadPercent, agingWipDays, scopeCreepIndex)
    - 6 sprints (5 historical Q3 FY26 + current Sprint 1 Q4 FY26)
@@ -59,8 +66,10 @@ This project uses PostgreSQL 16 with Prisma 6 ORM. The database runs in a Docker
 | `pnpm run db:down`     | Stop all containers                              |
 | `pnpm run db:reset`    | Reset database (removes all data)                |
 | `pnpm run db:migrate`  | Run database migrations                          |
+| `pnpm run db:migrate:deploy` | Apply migrations in CI/prod and bootstrap defaults |
 | `pnpm run db:generate` | Generate Prisma client                           |
 | `pnpm run db:studio`   | Open Prisma Studio (database GUI)                |
+| `pnpm run db:bootstrap`| Restore default workstreams/config when table is empty |
 | `pnpm run db:seed`     | Seed database with workstreams, thresholds, sprints |
 | `pnpm run db:push`     | Push schema changes to database (dev only)       |
 

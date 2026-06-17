@@ -70,13 +70,14 @@ Automated health reporting tool for the Unified LiveLink program. Built with [Ne
    pnpm run db:migrate
    ```
 
-5. **Seed the database**
+5. **Bootstrap or seed the database**
 
    ```bash
-   pnpm run db:seed
+   pnpm run db:bootstrap
    ```
 
-   Seeds 4 workstreams, 5 RAG threshold configs, and 6 sprints (5 historical + current).
+   Defaults are also created automatically on first Sync Now when workstreams are missing.
+   For sample sprints too, run `pnpm run db:seed`.
 
 6. **Start the development server**
    ```bash
@@ -98,8 +99,10 @@ Automated health reporting tool for the Unified LiveLink program. Built with [Ne
 - `db:down` – stop all Docker containers
 - `db:reset` – reset database (removes all data and restarts container)
 - `db:migrate` – run database migrations
+- `db:migrate:deploy` – apply migrations and bootstrap defaults (CI/prod)
 - `db:generate` – generate Prisma client
-- `db:seed` – seed database with initial data
+- `db:bootstrap` – restore default workstreams when table is empty
+- `db:seed` – seed workstreams, thresholds, and sprints
 - `db:push` – push schema changes to database (development only)
 
 ### Testing

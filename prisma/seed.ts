@@ -185,10 +185,10 @@ export const sprints = [
 // Seed Function
 // ---------------------------------------------------------------------------
 
-export async function seedDatabase(client: PrismaClient = prisma) {
+/** Default sync targets and metric config. Safe to call repeatedly (upserts). */
+export async function seedOperationalDefaults(client: PrismaClient) {
   const programConfig = getDefaultSyncProgramConfig();
 
-  // --- Program sync config (singleton key → upsert) ---
   await client.syncProgramConfig.upsert({
     where: { key: programConfig.key },
     update: {
@@ -199,9 +199,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
     },
     create: programConfig,
   });
-  console.log('Created sync program config');
 
-  // --- Workstreams (no unique constraint on name → findFirst pattern) ---
   for (const ws of workstreams) {
     const existing = await client.workstream.findFirst({ where: { name: ws.name } });
     if (existing) {
@@ -210,9 +208,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
       await client.workstream.create({ data: ws });
     }
   }
-  console.log(`Created ${workstreams.length} workstreams`);
 
-  // --- Threshold configs (metricName is unique → upsert) ---
   for (const config of thresholdConfigs) {
     await client.thresholdConfig.upsert({
       where: { metricName: config.metricName },
@@ -227,9 +223,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
       create: config,
     });
   }
-  console.log(`Created ${thresholdConfigs.length} threshold configs`);
 
-  // --- Metric engine config (singleton key → upsert) ---
   for (const config of metricEngineConfigs) {
     await client.metricEngineConfig.upsert({
       where: { key: config.key },
@@ -241,9 +235,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
       create: config,
     });
   }
-  console.log(`Created ${metricEngineConfigs.length} metric engine configs`);
 
-  // --- Metric rule configs (category + workItemType unique → upsert) ---
   for (const config of metricRuleConfigs) {
     await client.metricRuleConfig.upsert({
       where: {
@@ -256,6 +248,14 @@ export async function seedDatabase(client: PrismaClient = prisma) {
       create: config,
     });
   }
+}
+
+export async function seedDatabase(client: PrismaClient = prisma) {
+  await seedOperationalDefaults(client);
+  console.log('Created sync program config');
+  console.log(`Created ${workstreams.length} workstreams`);
+  console.log(`Created ${thresholdConfigs.length} threshold configs`);
+  console.log(`Created ${metricEngineConfigs.length} metric engine configs`);
   console.log(`Created ${metricRuleConfigs.length} metric rule configs`);
 
   // --- Sprints (canonical key: adoIterationPath; match by path to avoid naming collision with ADO) ---
