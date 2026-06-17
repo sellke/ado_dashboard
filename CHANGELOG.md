@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.6.2] - 2026-06-17
+
+### Changed
+
+- **Writ `/release` command** — adds `--merge` to integrate a feature branch into Default Branch
+  before version bump and tag; documents ship-then-release flow.
+
+### Internal
+
+- Project config Default Branch set to `main`; refresh log updated.
+
 ## [0.6.1] - 2026-06-17
 
 ### Added
