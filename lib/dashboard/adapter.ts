@@ -7,11 +7,7 @@
 import { buildAdoWorkItemUrl } from '../ado/urls';
 import type { MetricId } from '../metrics/definitions';
 import { BUG_RESOLVED_STATES, DONE_STATES } from '../metrics/types';
-import type {
-  ApiMilestoneWithProgress,
-  ApiProgramMilestoneRollup,
-  MilestoneWorkstreamBreakdown,
-} from '../milestones/types';
+import type { ApiMilestoneWithProgress, ApiProgramMilestoneRollup } from '../milestones/types';
 import type {
   ApiCycleTimeBreakdown,
   ApiMetric,
@@ -34,6 +30,9 @@ import type {
   OverheadItemViewModel,
   OverheadSprintViewModel,
   RagStatus,
+  RollingMetricDetailViewModel,
+  RollingMetricId,
+  RollingMetricRowViewModel,
   TrendBugViewModel,
   TrendSprintViewModel,
   WorkstreamCardViewModel,
@@ -155,7 +154,9 @@ export function groupMilestonesByQuarter(
   const quarterMap = new Map<string, MilestoneFeatureViewModel[]>();
 
   for (const m of milestones) {
-    if (!m.quarter) continue;
+    if (!m.quarter) {
+      continue;
+    }
     const quarter = m.quarter;
     const breakdowns = m.workstreamBreakdown ?? [];
 
@@ -301,6 +302,99 @@ function formatDeliveryToBugRatio(
   return value.toFixed(2);
 }
 
+function formatFixedPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  return `${value.toFixed(2)}%`;
+}
+
+function isZeroBugDeliverySprint(sprint: TrendSprintViewModel): boolean {
+  return (
+    sprint.rawDeliveryToBugRatio === null &&
+    sprint.deliveryToBugHours === 0 &&
+    (sprint.deliveryToBugCompletedPoints ?? null) !== null &&
+    (sprint.deliveryToBugCompletedPoints ?? 0) > 0
+  );
+}
+
+function buildRollingMetricRow(
+  sprint: TrendSprintViewModel,
+  metricId: RollingMetricId
+): RollingMetricRowViewModel {
+  if (metricId === 'velocityRate') {
+    return {
+      sprintId: sprint.sprintId,
+      sprintName: sprint.sprintName,
+      value: formatVelocityRate(sprint.rawVelocityRate),
+      rawValue: sprint.rawVelocityRate,
+      rollingAverageValue: null,
+      rawRollingAverageValue: null,
+    };
+  }
+
+  if (metricId === 'overheadPercent') {
+    return {
+      sprintId: sprint.sprintId,
+      sprintName: sprint.sprintName,
+      value: formatFixedPercent(sprint.rawOverheadPercent),
+      rawValue: sprint.rawOverheadPercent,
+      rollingAverageValue: formatFixedPercent(sprint.overheadPercentAvg),
+      rawRollingAverageValue: sprint.overheadPercentAvg,
+    };
+  }
+
+  if (metricId === 'carryOverRate') {
+    return {
+      sprintId: sprint.sprintId,
+      sprintName: sprint.sprintName,
+      value: formatFixedPercent(sprint.rawCarryOverRate),
+      rawValue: sprint.rawCarryOverRate,
+      rollingAverageValue: formatFixedPercent(sprint.carryOverRateAvg),
+      rawRollingAverageValue: sprint.carryOverRateAvg,
+    };
+  }
+
+  return {
+    sprintId: sprint.sprintId,
+    sprintName: sprint.sprintName,
+    value: formatDeliveryToBugRatio(
+      sprint.rawDeliveryToBugRatio,
+      isZeroBugDeliverySprint(sprint) ? 'Green' : null
+    ),
+    rawValue: sprint.rawDeliveryToBugRatio ?? null,
+    rollingAverageValue: null,
+    rawRollingAverageValue: null,
+  };
+}
+
+function buildRollingMetricDetail(params: {
+  metric: MetricTileViewModel;
+  metricId: RollingMetricId;
+  title: string;
+  scope: 'program' | 'workstream';
+  scopeLabel: string;
+  rollingWindowLabel: string | null;
+  trendSprints: TrendSprintViewModel[];
+}): RollingMetricDetailViewModel {
+  const { metric, metricId, title, scope, scopeLabel, rollingWindowLabel, trendSprints } = params;
+  const rows = trendSprints.map((sprint) => buildRollingMetricRow(sprint, metricId));
+  return {
+    metricId,
+    definitionMetricId: metric.metricId ?? metricId,
+    title,
+    scope,
+    scopeLabel,
+    summaryValue: metric.value,
+    rawSummaryValue: metric.rawValue,
+    unit: metric.unit,
+    rag: metric.rag,
+    rollingWindowLabel,
+    rows,
+    emptyMessage: `No sprint history is available for ${title}.`,
+  };
+}
+
 const CYCLE_TIME_TYPES: Array<{ type: CycleTimeWorkItemType; label: string }> = [
   { type: 'UserStory', label: 'User Stories' },
   { type: 'Spike', label: 'Spikes' },
@@ -432,6 +526,9 @@ function mapTrendSprint(sprint: ApiTrendSprint): TrendSprintViewModel {
     completedPoints: sprint.completedPoints ?? null,
     carryOverPoints: sprint.carryOverPoints ?? null,
     grossHours: sprint.grossHours ?? null,
+    rawDeliveryToBugRatio: sprint.deliveryToBugRatio ?? null,
+    deliveryToBugCompletedPoints: sprint.deliveryToBugCompletedPoints ?? null,
+    deliveryToBugHours: sprint.deliveryToBugHours ?? null,
     rawOverheadPercent:
       sprint.overheadComposition?.overheadPercent != null
         ? Math.round(sprint.overheadComposition.overheadPercent * 100) / 100
@@ -512,7 +609,7 @@ function formatDetailValue(value: number | null): string {
 /** Map API response to full DashboardViewModel (success or empty) */
 export function mapApiResponseToDashboardViewModel(
   response: ApiResponse,
-  today: Date = new Date()
+  _today: Date = new Date()
 ): DashboardViewModel {
   const isEmpty =
     response.sprint === null &&
@@ -547,6 +644,7 @@ export function mapApiResponseToDashboardViewModel(
     ? new Date(response.computedAt).toLocaleString()
     : null;
 
+  const programTrendSprints = (response.program?.trends?.sprints ?? []).map(mapTrendSprint);
   let programMetrics: MetricTileViewModel[] | null = null;
   if (response.program?.metrics) {
     const m = response.program.metrics;
@@ -557,7 +655,7 @@ export function mapApiResponseToDashboardViewModel(
     const roundedCarryOver = rawCarryOver !== null ? Math.round(rawCarryOver * 100) / 100 : null;
     const rawOverhead = m.overheadPercent?.avg ?? null;
     const roundedOverhead = rawOverhead !== null ? Math.round(rawOverhead * 100) / 100 : null;
-    programMetrics = [
+    const baseProgramMetrics: MetricTileViewModel[] = [
       {
         label: 'Avg Total Velocity',
         value: formatMetricValue(m.velocity?.avg ?? null, 'pts'),
@@ -604,6 +702,65 @@ export function mapApiResponseToDashboardViewModel(
         metricId: 'carryOverRate',
       },
     ];
+    programMetrics = baseProgramMetrics.map((metric) => {
+      if (metric.label === 'Avg Total Velocity Rate') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'velocityRate',
+            title: metric.label,
+            scope: 'program',
+            scopeLabel: 'Program',
+            rollingWindowLabel,
+            trendSprints: programTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Avg Total Delivery/Bug') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'deliveryToBugRatio',
+            title: metric.label,
+            scope: 'program',
+            scopeLabel: 'Program',
+            rollingWindowLabel,
+            trendSprints: programTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Avg Total Overhead %') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'overheadPercent',
+            title: metric.label,
+            scope: 'program',
+            scopeLabel: 'Program',
+            rollingWindowLabel,
+            trendSprints: programTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Avg Total Carry-Over %') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'carryOverRate',
+            title: metric.label,
+            scope: 'program',
+            scopeLabel: 'Program',
+            rollingWindowLabel,
+            trendSprints: programTrendSprints,
+          }),
+        };
+      }
+      return metric;
+    });
   }
   const programCycleTime = response.program
     ? mapCycleTimeBreakdown(response.program.cycleTime)
@@ -613,9 +770,10 @@ export function mapApiResponseToDashboardViewModel(
   const detailSprintLabel = response.detailSprint ? formatSprintLabel(response.detailSprint) : null;
 
   const workstreamCards: WorkstreamCardViewModel[] = (response.workstreams ?? []).map((ws) => {
-    const metrics = METRIC_LABELS.map(({ key, label, unit, isPercent, metricId }) =>
+    let metrics = METRIC_LABELS.map(({ key, label, unit, isPercent, metricId }) =>
       mapApiMetricToTile(ws.metrics[key], label, unit, isPercent, metricId)
     );
+    const mappedTrendSprints = (ws.trends?.sprints ?? []).map(mapTrendSprint);
 
     // Override velocity tile to display the rolling average instead of the current/projected value.
     const velocityIdx = metrics.findIndex((m) => m.label === 'Velocity');
@@ -684,6 +842,66 @@ export function mapApiResponseToDashboardViewModel(
       };
     }
 
+    metrics = metrics.map((metric) => {
+      if (metric.label === 'Velocity Rate') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'velocityRate',
+            title: metric.label,
+            scope: 'workstream',
+            scopeLabel: ws.workstreamName ?? 'Unknown',
+            rollingWindowLabel,
+            trendSprints: mappedTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Delivery/Bug') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'deliveryToBugRatio',
+            title: metric.label,
+            scope: 'workstream',
+            scopeLabel: ws.workstreamName ?? 'Unknown',
+            rollingWindowLabel,
+            trendSprints: mappedTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Overhead %') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'overheadPercent',
+            title: metric.label,
+            scope: 'workstream',
+            scopeLabel: ws.workstreamName ?? 'Unknown',
+            rollingWindowLabel,
+            trendSprints: mappedTrendSprints,
+          }),
+        };
+      }
+      if (metric.label === 'Carry-Over %') {
+        return {
+          ...metric,
+          rollingMetric: buildRollingMetricDetail({
+            metric,
+            metricId: 'carryOverRate',
+            title: metric.label,
+            scope: 'workstream',
+            scopeLabel: ws.workstreamName ?? 'Unknown',
+            rollingWindowLabel,
+            trendSprints: mappedTrendSprints,
+          }),
+        };
+      }
+      return metric;
+    });
+
     const d = ws.detail ?? {};
     const wsPrediction = ws.prediction;
 
@@ -698,7 +916,7 @@ export function mapApiResponseToDashboardViewModel(
         carryOverPoints: formatDetailValue(d.carryOverPoints),
       },
       cycleTime: mapCycleTimeBreakdown(ws.cycleTime),
-      trendSprints: (ws.trends?.sprints ?? []).map(mapTrendSprint),
+      trendSprints: mappedTrendSprints,
       prediction: wsPrediction
         ? {
             velocity: formatMetricValue(wsPrediction.velocity, 'pts'),
@@ -721,7 +939,6 @@ export function mapApiResponseToDashboardViewModel(
     };
   });
 
-  const programTrendSprints = (response.program?.trends?.sprints ?? []).map(mapTrendSprint);
   const sprint5PredictionValue = response.program?.prediction?.sprint5?.velocity ?? null;
   const sprint5Prediction =
     response.program?.prediction?.sprint5 !== undefined

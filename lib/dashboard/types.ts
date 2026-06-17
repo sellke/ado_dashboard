@@ -9,6 +9,38 @@ import type { StatusGroup } from '../sprints/status-mapping';
 
 export type RagStatus = 'Green' | 'Amber' | 'Red' | null;
 
+export type RollingMetricId =
+  | 'velocityRate'
+  | 'overheadPercent'
+  | 'carryOverRate'
+  | 'deliveryToBugRatio';
+
+export type RollingMetricScope = 'program' | 'workstream';
+
+export interface RollingMetricRowViewModel {
+  sprintId: string;
+  sprintName: string;
+  value: string;
+  rawValue: number | null;
+  rollingAverageValue: string | null;
+  rawRollingAverageValue: number | null;
+}
+
+export interface RollingMetricDetailViewModel {
+  metricId: RollingMetricId;
+  definitionMetricId: MetricId;
+  title: string;
+  scope: RollingMetricScope;
+  scopeLabel: string;
+  summaryValue: string;
+  rawSummaryValue: number | null;
+  unit: string;
+  rag: RagStatus;
+  rollingWindowLabel: string | null;
+  rows: RollingMetricRowViewModel[];
+  emptyMessage: string;
+}
+
 /** Re-export for adapter use */
 export type { ApiBurnupPoint, ApiProgramMilestoneRollup } from '../milestones/types';
 export type { ApiMilestoneWithProgress as ApiMilestoneProgress } from '../milestones/types';
@@ -145,6 +177,12 @@ export interface ApiTrendSprint {
   carryOverPoints?: number | null;
   /** Gross hours for this sprint (from MetricSnapshot). */
   grossHours?: number | null;
+  /** Program/workstream delivery-to-bug ratio for this trend sprint. */
+  deliveryToBugRatio?: number | null;
+  /** Completed delivery points used for delivery-to-bug for this trend sprint. */
+  deliveryToBugCompletedPoints?: number | null;
+  /** Bug hours used for delivery-to-bug for this trend sprint. */
+  deliveryToBugHours?: number | null;
 }
 
 export interface ApiWorkstream {
@@ -233,6 +271,8 @@ export interface MetricTileViewModel {
   mode?: 'actual' | 'projected';
   /** Stable metric identifier for definition/RAG tooltips. Optional for backward compat. */
   metricId?: MetricId;
+  /** Display-ready rolling drilldown data for supported metrics. */
+  rollingMetric?: RollingMetricDetailViewModel;
 }
 
 export interface CycleTimeTypeViewModel {
@@ -339,6 +379,12 @@ export interface TrendSprintViewModel {
   carryOverPoints: number | null;
   /** Gross hours for this sprint. */
   grossHours: number | null;
+  /** Delivery-to-bug ratio for this sprint. */
+  rawDeliveryToBugRatio?: number | null;
+  /** Completed points used for delivery-to-bug for this sprint. */
+  deliveryToBugCompletedPoints?: number | null;
+  /** Bug hours used for delivery-to-bug for this sprint. */
+  deliveryToBugHours?: number | null;
 
   /** Actual overhead % for this sprint (from overheadComposition, not rolling avg). */
   rawOverheadPercent: number | null;

@@ -151,6 +151,9 @@ function formatWorkstreamResponse(
         completedPoints: number | null;
         carryOverPoints: number | null;
         grossHours: number | null;
+        deliveryToBugRatio: number | null;
+        deliveryToBugCompletedPoints: number | null;
+        deliveryToBugHours: number | null;
         overheadComposition: {
           ceremonyHours: number | null;
           bugHours: number | null;
@@ -849,6 +852,58 @@ export async function GET(request: Request) {
             sprint.activeBugs = bd.activeBugs;
             sprint.bugsClosed = bd.bugsClosed;
           }
+        }
+        for (const trendSprint of programTrends!.sprints) {
+          const sprintId = trendSprint.sprintId;
+          const sprintSnapshots = trendSnapshots.filter((ts) => ts.sprintId === sprintId);
+          const grossHours = sprintSnapshots.reduce((sum, ts) => sum + (ts.grossHours ?? 0), 0);
+          const plannedPoints = sprintSnapshots.reduce(
+            (sum, ts) => sum + (ts.plannedPoints ?? 0),
+            0
+          );
+          const completedPoints = sprintSnapshots.reduce(
+            (sum, ts) => sum + (ts.completedPoints ?? 0),
+            0
+          );
+          const carryOverPoints = sprintSnapshots.reduce(
+            (sum, ts) => sum + (ts.carryOverPoints ?? 0),
+            0
+          );
+          const meetingHours = trendSprintWorkstreams
+            .filter((sw) => sw.sprintId === sprintId)
+            .reduce(
+              (sum, sw) =>
+                sum +
+                MEETING_HOURS_PER_ELIGIBLE_MEMBER_PER_SPRINT *
+                  (sw.meetingOverheadMemberCount ?? sw.fteCount ?? 0),
+              0
+            );
+          const spikeHours = trendSpikes
+            .filter((sp) => sp.sprintId === sprintId)
+            .reduce((sum, sp) => sum + (sp.storyPoints ?? 0), 0);
+          const bugHoursBreakdown = trendBugs
+            .filter((b) => b.sprintId === sprintId)
+            .reduce((sum, b) => sum + (b.completedWork ?? b.originalEstimate ?? 0), 0);
+          const supportHoursBreakdown = trendSupport
+            .filter((sv) => sv.sprintId === sprintId)
+            .reduce((sum, sv) => sum + (sv.completedWork ?? sv.originalEstimate ?? 0), 0);
+          const totalOverheadHours =
+            meetingHours + spikeHours + bugHoursBreakdown + supportHoursBreakdown;
+
+          Object.assign(trendSprint, {
+            plannedPoints: sprintSnapshots.length > 0 ? plannedPoints : null,
+            completedPoints: sprintSnapshots.length > 0 ? completedPoints : null,
+            carryOverPoints: sprintSnapshots.length > 0 ? carryOverPoints : null,
+            grossHours: sprintSnapshots.length > 0 ? grossHours : null,
+            overheadComposition: {
+              ceremonyHours: meetingHours,
+              bugHours: bugHoursBreakdown,
+              spikeHours,
+              supportHours: supportHoursBreakdown,
+              totalOverheadHours,
+              overheadPercent: grossHours > 0 ? (totalOverheadHours / grossHours) * 100 : null,
+            },
+          });
         }
 
         const toMetric = (m: MetricWithRag, inc: boolean) => {

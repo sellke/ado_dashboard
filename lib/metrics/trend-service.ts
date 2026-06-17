@@ -29,6 +29,9 @@ export interface TrendSprintMetrics {
   sprintName: string;
   velocity: number | null;
   velocityRate: number | null;
+  deliveryToBugRatio: number | null;
+  deliveryToBugCompletedPoints: number | null;
+  deliveryToBugHours: number | null;
   activeBugs: number;
   bugsClosed: number;
   mode: 'actual' | 'current';
@@ -263,6 +266,8 @@ export function buildTrendSeries(params: {
       sprintSnapshots.map((s) => calculateNetCapacityHours(s.grossHours, s.overheadHours))
     );
     const velocityRate = calculateVelocityRate(sprintVelocity, sprintNetCapacity);
+    const deliveryToBugCompletedPoints = sumNullable(sprintSnapshots.map((s) => s.completedPoints));
+    const deliveryToBugHours = sumNullable(sprintSnapshots.map((s) => s.bugHours));
 
     const sprintBugs = scopeBugs.filter((b) => b.sprintId === sprint.id);
     const bugsClosed = sprintBugs.filter((b) =>
@@ -277,6 +282,9 @@ export function buildTrendSeries(params: {
       sprintName: sprint.name,
       velocity: sprintVelocity,
       velocityRate,
+      deliveryToBugRatio: null,
+      deliveryToBugCompletedPoints,
+      deliveryToBugHours,
       activeBugs,
       bugsClosed,
       mode: 'actual',
@@ -313,6 +321,13 @@ export function buildTrendSeries(params: {
     deliveryToBugHours,
     averageVelocityRate
   );
+  for (const sprint of sprints) {
+    sprint.deliveryToBugRatio = calculateDeliveryToBugRatio(
+      sprint.deliveryToBugCompletedPoints,
+      sprint.deliveryToBugHours,
+      averageVelocityRate
+    );
+  }
 
   const prediction: SprintPrediction = {
     velocity:
@@ -332,6 +347,9 @@ export function buildTrendSeries(params: {
       sprintName: currentRef.name,
       velocity: currentVelocity,
       velocityRate: currentVelocityRate,
+      deliveryToBugRatio: null,
+      deliveryToBugCompletedPoints: sumNullable(currentSnapshots.map((s) => s.completedPoints)),
+      deliveryToBugHours: sumNullable(currentSnapshots.map((s) => s.bugHours)),
       activeBugs: 0,
       bugsClosed: 0,
       mode: 'current',

@@ -60,6 +60,30 @@ describe('ProgramSummarySection', () => {
         unit: '',
         rag: 'Green',
         avgLabel: null,
+        metricId: 'deliveryToBugRatio',
+        rollingMetric: {
+          metricId: 'deliveryToBugRatio',
+          definitionMetricId: 'deliveryToBugRatio',
+          title: 'Avg Total Delivery/Bug',
+          scope: 'program',
+          scopeLabel: 'Program',
+          summaryValue: '0.12',
+          rawSummaryValue: 0.12,
+          unit: '',
+          rag: 'Green',
+          rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
+          emptyMessage: 'No sprint history is available for Avg Total Delivery/Bug.',
+          rows: [
+            {
+              sprintId: 's1',
+              sprintName: 'Sprint 1',
+              value: '0.10',
+              rawValue: 0.1,
+              rollingAverageValue: null,
+              rawRollingAverageValue: null,
+            },
+          ],
+        },
       },
       {
         label: 'Avg Total Overhead %',
@@ -134,6 +158,9 @@ describe('ProgramSummarySection', () => {
         completedPoints: null,
         carryOverPoints: null,
         grossHours: null,
+        rawDeliveryToBugRatio: null,
+        deliveryToBugCompletedPoints: null,
+        deliveryToBugHours: null,
         rawOverheadPercent: null,
         rawCarryOverRate: null,
       },
@@ -157,6 +184,9 @@ describe('ProgramSummarySection', () => {
         completedPoints: null,
         carryOverPoints: null,
         grossHours: null,
+        rawDeliveryToBugRatio: null,
+        deliveryToBugCompletedPoints: null,
+        deliveryToBugHours: null,
         rawOverheadPercent: null,
         rawCarryOverRate: null,
       },
@@ -198,6 +228,22 @@ describe('ProgramSummarySection', () => {
 
     expect(screen.getAllByText('G').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('A')).toBeInTheDocument();
+  });
+
+  it('opens rolling metric details for supported program metrics', async () => {
+    const user = userEvent.setup();
+    render(<ProgramSummarySection viewModel={populatedViewModel} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Open rolling details for Avg Total Delivery/Bug' })
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Avg Total Delivery/Bug' })).toBeInTheDocument();
+    expect(screen.getByText('Scope: Program')).toBeInTheDocument();
+    expect(
+      screen.getAllByText((_, element) => element?.textContent === 'Sprint 1: 0.10').length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/rolling average/i)).not.toBeInTheDocument();
   });
 
   it('renders program cycle-time totals, averages, N/A, and unavailable counts', () => {

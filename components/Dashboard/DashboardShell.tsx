@@ -26,6 +26,8 @@ export interface DashboardShellProps {
   onActiveSprintChange?: (sprintId: string) => void;
   onCurrentSprintChange?: (sprintId: string | null) => void;
   cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
+  workstreamCount?: number;
+  workstreamsLoading?: boolean;
 }
 
 function WorkstreamSection({
@@ -94,14 +96,24 @@ function LoadingSkeletons() {
 }
 
 /** Empty state message */
-function EmptyState() {
+function EmptyState({
+  workstreamCount = 0,
+  workstreamsLoading = false,
+}: {
+  workstreamCount?: number;
+  workstreamsLoading?: boolean;
+}) {
+  const needsSeed = !workstreamsLoading && workstreamCount === 0;
+
   return (
     <Stack gap="md" align="center" py="xl">
       <Text size="lg" c="dimmed">
-        No metrics data available
+        {needsSeed ? 'Dashboard setup required' : 'No metrics data available'}
       </Text>
-      <Text size="sm" c="dimmed" maw={400} ta="center">
-        Run a sync and compute metrics to see program health here.
+      <Text size="sm" c="dimmed" maw={480} ta="center">
+        {needsSeed
+          ? 'The database has no workstreams yet. Run `pnpm db:seed` locally, or add workstreams in Workstream Registry, then click Sync Now.'
+          : 'Run Sync Now to pull Azure DevOps data and compute metrics for the current sprint.'}
       </Text>
     </Stack>
   );
@@ -140,6 +152,8 @@ export function DashboardShell({
   onActiveSprintChange,
   onCurrentSprintChange,
   cycleTimeDrilldownContext,
+  workstreamCount,
+  workstreamsLoading,
 }: DashboardShellProps) {
   if (viewModel.state === 'loading') {
     return <LoadingSkeletons />;
@@ -150,7 +164,12 @@ export function DashboardShell({
   }
 
   if (viewModel.state === 'empty') {
-    return <EmptyState />;
+    return (
+      <EmptyState
+        workstreamCount={workstreamCount}
+        workstreamsLoading={workstreamsLoading}
+      />
+    );
   }
 
   return (

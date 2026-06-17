@@ -56,6 +56,9 @@ const enrichedDefaults = {
   completedPoints: null as number | null,
   carryOverPoints: null as number | null,
   grossHours: null as number | null,
+  rawDeliveryToBugRatio: null as number | null,
+  deliveryToBugCompletedPoints: null as number | null,
+  deliveryToBugHours: null as number | null,
   rawOverheadPercent: null as number | null,
   rawCarryOverRate: null as number | null,
 };
@@ -65,13 +68,65 @@ const fullDataCard: WorkstreamCardViewModel = createWorkstreamCard({
   workstreamName: 'Platform',
   metrics: [
     createMetricTile({ label: 'Velocity', value: '45 pts', rawValue: 45, rag: 'Green' }),
-    createMetricTile({ label: 'Velocity Rate', value: '0.85 pts/hr', rawValue: 0.85, rag: null }),
+    createMetricTile({
+      label: 'Velocity Rate',
+      value: '0.85 pts/hr',
+      rawValue: 0.85,
+      rag: null,
+      metricId: 'velocityRate',
+      rollingMetric: {
+        metricId: 'velocityRate',
+        definitionMetricId: 'velocityRate',
+        title: 'Velocity Rate',
+        scope: 'workstream',
+        scopeLabel: 'Platform',
+        summaryValue: '0.85 pts/hr',
+        rawSummaryValue: 0.85,
+        unit: 'pts/hr',
+        rag: null,
+        rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
+        emptyMessage: 'No sprint history is available for Velocity Rate.',
+        rows: [
+          {
+            sprintId: 's1',
+            sprintName: 'Sprint 1',
+            value: '0.17 pts/hr',
+            rawValue: 0.17,
+            rollingAverageValue: null,
+            rawRollingAverageValue: null,
+          },
+        ],
+      },
+    }),
     createMetricTile({
       label: 'Delivery/Bug',
       value: '0.12',
       rawValue: 0.12,
       rag: 'Green',
       metricId: 'deliveryToBugRatio',
+      rollingMetric: {
+        metricId: 'deliveryToBugRatio',
+        definitionMetricId: 'deliveryToBugRatio',
+        title: 'Delivery/Bug',
+        scope: 'workstream',
+        scopeLabel: 'Platform',
+        summaryValue: '0.12',
+        rawSummaryValue: 0.12,
+        unit: '',
+        rag: 'Green',
+        rollingWindowLabel: 'Rolling 5 sprints (current + 4 prior)',
+        emptyMessage: 'No sprint history is available for Delivery/Bug.',
+        rows: [
+          {
+            sprintId: 's1',
+            sprintName: 'Sprint 1',
+            value: '0.12',
+            rawValue: 0.12,
+            rollingAverageValue: null,
+            rawRollingAverageValue: null,
+          },
+        ],
+      },
     }),
     createMetricTile({ label: 'Overhead %', value: '28%', rawValue: 28, rag: 'Green' }),
     createMetricTile({ label: 'Carry-Over %', value: '12%', rawValue: 12, rag: 'Green' }),
@@ -194,6 +249,37 @@ describe('WorkstreamHealthCard', () => {
     // Velocity Rate has rag: null so no badge; 4 G badges from Velocity, Delivery/Bug, Overhead %, Carry-Over %
     const gBadges = screen.getAllByText('G');
     expect(gBadges.length).toBe(4);
+  });
+
+  it('opens rolling metric details for supported workstream metrics', async () => {
+    const user = userEvent.setup();
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Open rolling details for Velocity Rate in Platform' })
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Velocity Rate' })).toBeInTheDocument();
+    expect(screen.getByText('Scope: Platform')).toBeInTheDocument();
+    expect(
+      screen.getAllByText((_, element) => element?.textContent === 'Sprint 1: 0.17 pts/hr').length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/rolling average/i)).not.toBeInTheDocument();
+  });
+
+  it('opens rolling metric details for workstream Delivery/Bug', async () => {
+    const user = userEvent.setup();
+    render(<WorkstreamHealthCard card={fullDataCard} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Open rolling details for Delivery/Bug in Platform' })
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Delivery/Bug' })).toBeInTheDocument();
+    expect(screen.getByText('Scope: Platform')).toBeInTheDocument();
+    expect(
+      screen.getAllByText((_, element) => element?.textContent === 'Sprint 1: 0.12').length
+    ).toBeGreaterThan(0);
   });
 
   it('renders N/A for null metric values', () => {

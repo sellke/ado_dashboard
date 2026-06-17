@@ -2,9 +2,10 @@
 
 import { useId, useMemo, useState } from 'react';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
-import { ActionIcon, Card, Group, Stack, Text } from '@mantine/core';
+import { ActionIcon, Button, Card, Group, Stack, Text } from '@mantine/core';
 import type {
   MetricTileViewModel,
+  RollingMetricDetailViewModel,
   SprintStoryViewModel,
   WorkstreamCardViewModel,
 } from '@/lib/dashboard/types';
@@ -14,6 +15,7 @@ import { CycleTimeBreakdown, type CycleTimeDrilldownContext } from './CycleTimeB
 import { MetricDefinitionHint } from './MetricDefinitionHint';
 import { OverheadBreakdownPanel } from './OverheadBreakdownPanel';
 import { RagBadge } from './RagBadge';
+import { RollingMetricDetailModal } from './RollingMetricDetailModal';
 import { SprintBugList } from './SprintBugList';
 import { SprintStoryListPanel } from './SprintStoryListPanel';
 import { VelocityTrendChart } from './VelocityTrendChart';
@@ -76,6 +78,8 @@ export function WorkstreamHealthCard({
     prediction,
   } = card;
   const [isExpanded, setIsExpanded] = useState(true);
+  const [selectedRollingMetric, setSelectedRollingMetric] =
+    useState<RollingMetricDetailViewModel | null>(null);
   const detailRegionId = useId();
 
   const isNonCurrentSprint =
@@ -158,6 +162,13 @@ export function WorkstreamHealthCard({
     (s.overheadBreakdown ?? []).some((item) => item.hours > 0)
   );
 
+  const openRollingMetric = (metric: MetricTileViewModel) => {
+    if (!metric.rollingMetric) {
+      return;
+    }
+    setSelectedRollingMetric(metric.rollingMetric);
+  };
+
   return (
     <Card
       withBorder
@@ -197,6 +208,18 @@ export function WorkstreamHealthCard({
                 {m.mode === 'projected' ? ' (Projected)' : ''}
               </Text>
               <RagBadge rag={m.rag} ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null} />
+              {m.rollingMetric ? (
+                <Button
+                  type="button"
+                  variant="subtle"
+                  size="xs"
+                  px={4}
+                  onClick={() => openRollingMetric(m)}
+                  aria-label={`Open rolling details for ${m.label} in ${workstreamName}`}
+                >
+                  Details
+                </Button>
+              ) : null}
             </Group>
           </Group>
         ))}
@@ -300,6 +323,11 @@ export function WorkstreamHealthCard({
           </Stack>
         )}
       </Stack>
+      <RollingMetricDetailModal
+        opened={selectedRollingMetric !== null}
+        metric={selectedRollingMetric}
+        onClose={() => setSelectedRollingMetric(null)}
+      />
     </Card>
   );
 }

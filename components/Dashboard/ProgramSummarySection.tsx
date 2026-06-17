@@ -1,10 +1,12 @@
 'use client';
 
-import { Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { useState } from 'react';
+import { Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { AppLineChart, ChartLegend } from '@/lib/charts';
 import type {
   DashboardViewModel,
   MilestoneQuarterGroup,
+  RollingMetricDetailViewModel,
   TrendSprintViewModel,
 } from '@/lib/dashboard/types';
 import { getRagTooltip } from '@/lib/metrics/definitions';
@@ -14,6 +16,7 @@ import { CycleTimeBreakdown, type CycleTimeDrilldownContext } from './CycleTimeB
 import { MetricDefinitionHint } from './MetricDefinitionHint';
 import { MilestoneQuarterlyPanel } from './MilestoneQuarterlyPanel';
 import { RagBadge } from './RagBadge';
+import { RollingMetricDetailModal } from './RollingMetricDetailModal';
 
 export interface ProgramSummarySectionProps {
   viewModel: DashboardViewModel;
@@ -70,12 +73,15 @@ function averageVelocity(sprints: TrendSprintViewModel[]): number | null {
 
 export function ProgramSummarySection({
   viewModel,
-  programRollup,
+  programRollup: _programRollup,
   milestoneQuarterGroups = [],
   milestonesLoading,
   milestonesError,
   cycleTimeDrilldownContext,
 }: ProgramSummarySectionProps) {
+  const [selectedRollingMetric, setSelectedRollingMetric] =
+    useState<RollingMetricDetailViewModel | null>(null);
+
   if (viewModel.state !== 'success') {
     return null;
   }
@@ -131,6 +137,18 @@ export function ProgramSummarySection({
                     {m.avgLabel}
                   </Text>
                 )}
+                {m.rollingMetric ? (
+                  <Button
+                    type="button"
+                    variant="subtle"
+                    size="xs"
+                    px={0}
+                    onClick={() => setSelectedRollingMetric(m.rollingMetric ?? null)}
+                    aria-label={`Open rolling details for ${m.label}`}
+                  >
+                    View rolling details
+                  </Button>
+                ) : null}
               </Stack>
             </Card>
           ))}
@@ -228,6 +246,12 @@ export function ProgramSummarySection({
           </SimpleGrid>
         </Stack>
       )}
+
+      <RollingMetricDetailModal
+        opened={selectedRollingMetric !== null}
+        metric={selectedRollingMetric}
+        onClose={() => setSelectedRollingMetric(null)}
+      />
     </Stack>
   );
 }

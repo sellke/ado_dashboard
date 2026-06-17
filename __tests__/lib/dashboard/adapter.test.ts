@@ -82,6 +82,9 @@ describe('dashboard adapter', () => {
               sprintName: 'Sprint 1',
               velocity: 30,
               velocityRate: 0.5,
+              deliveryToBugRatio: 0.11,
+              deliveryToBugCompletedPoints: 30,
+              deliveryToBugHours: 11,
               activeBugs: 2,
               bugsClosed: 3,
               mode: 'actual',
@@ -108,9 +111,25 @@ describe('dashboard adapter', () => {
             sprintName: 'Sprint 1',
             velocity: 120,
             velocityRate: 1.2,
+            deliveryToBugRatio: 0.14,
+            deliveryToBugCompletedPoints: 120,
+            deliveryToBugHours: 14,
             activeBugs: 11,
             bugsClosed: 16,
             mode: 'actual',
+            overheadComposition: {
+              ceremonyHours: 30,
+              bugHours: 14,
+              spikeHours: 8,
+              supportHours: 6,
+              totalOverheadHours: 58,
+              overheadPercent: 29,
+            },
+            overheadPercentAvg: 29,
+            carryOverRateAvg: 13.5,
+            plannedPoints: 140,
+            completedPoints: 120,
+            carryOverPoints: 20,
           },
         ],
       },
@@ -191,6 +210,19 @@ describe('dashboard adapter', () => {
       expect(programDeliveryToBug?.rawValue).toBe(0.15);
       expect(programDeliveryToBug?.rag).toBe('Amber');
       expect(programDeliveryToBug?.metricId).toBe('deliveryToBugRatio');
+      expect(programDeliveryToBug?.rollingMetric).toMatchObject({
+        metricId: 'deliveryToBugRatio',
+        scope: 'program',
+        scopeLabel: 'Program',
+        summaryValue: '0.15',
+        rows: [
+          {
+            sprintId: 'sprint-a',
+            value: '0.14',
+            rawValue: 0.14,
+          },
+        ],
+      });
 
       const programOverhead = vm.programMetrics?.find((m) => m.label === 'Avg Total Overhead %');
       expect(programOverhead?.value).toBe('29.00%');
@@ -229,6 +261,18 @@ describe('dashboard adapter', () => {
         rawActiveBugs: 2,
         rawBugsClosed: 3,
       });
+      expect(ws.metrics.find((m) => m.label === 'Velocity Rate')?.rollingMetric).toMatchObject({
+        metricId: 'velocityRate',
+        scope: 'workstream',
+        scopeLabel: 'Action Tracker',
+        rows: [{ sprintId: 'sprint-a', value: '0.50 pts/hr', rawValue: 0.5 }],
+      });
+      expect(ws.metrics.find((m) => m.label === 'Delivery/Bug')?.rollingMetric).toMatchObject({
+        metricId: 'deliveryToBugRatio',
+        scope: 'workstream',
+        scopeLabel: 'Action Tracker',
+        rows: [{ sprintId: 'sprint-a', value: '0.11', rawValue: 0.11 }],
+      });
       expect(vm.programTrendSprints).toHaveLength(1);
       expect(vm.programTrendSprints[0]).toMatchObject({
         sprintId: 'sprint-a',
@@ -249,6 +293,63 @@ describe('dashboard adapter', () => {
         averageLabel: '5 days',
         totalLabel: '30 days',
         unavailableLabel: '2 unavailable',
+      });
+    });
+
+    it('maps enriched trend values into display-ready rolling metric details', () => {
+      const responseWithRollingRows: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [
+          {
+            ...fullApiResponse.workstreams[0]!,
+            trends: {
+              sprints: [
+                {
+                  sprintId: 'sprint-a',
+                  sprintName: 'Sprint 1',
+                  velocity: 30,
+                  velocityRate: 0.5,
+                  activeBugs: 2,
+                  bugsClosed: 3,
+                  mode: 'actual' as const,
+                  overheadComposition: {
+                    ceremonyHours: 10,
+                    bugHours: 5,
+                    spikeHours: 2,
+                    supportHours: 3,
+                    totalOverheadHours: 20,
+                    overheadPercent: 28.5,
+                  },
+                  overheadPercentAvg: 26.2,
+                  carryOverRateAvg: 11,
+                  plannedPoints: 40,
+                  completedPoints: 34,
+                  carryOverPoints: 6,
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(responseWithRollingRows);
+      const ws = vm.workstreamCards[0];
+
+      expect(
+        ws.metrics.find((m) => m.label === 'Overhead %')?.rollingMetric?.rows[0]
+      ).toMatchObject({
+        value: '28.50%',
+        rawValue: 28.5,
+        rollingAverageValue: '26.20%',
+        rawRollingAverageValue: 26.2,
+      });
+      expect(
+        ws.metrics.find((m) => m.label === 'Carry-Over %')?.rollingMetric?.rows[0]
+      ).toMatchObject({
+        value: '15.00%',
+        rawValue: 15,
+        rollingAverageValue: '11.00%',
+        rawRollingAverageValue: 11,
       });
     });
 
