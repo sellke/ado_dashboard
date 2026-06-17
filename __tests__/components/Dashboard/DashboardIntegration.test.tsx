@@ -135,6 +135,15 @@ describe('DashboardContainer integration', () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
         return mockMilestonesEmpty();
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [{ id: 'ws-1', name: 'Platform', syncEnabled: true }],
+            }),
+        });
+      }
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(emptyResponse),
@@ -145,7 +154,7 @@ describe('DashboardContainer integration', () => {
 
     expect(await screen.findByText(/no metrics data/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Run a sync and compute metrics to see program health here/i)
+      screen.getByText(/Run Sync Now to pull Azure DevOps data/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: /dashboard/i })).toBeInTheDocument();
   });
@@ -201,6 +210,15 @@ describe('DashboardContainer integration', () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/api/milestones') && !url.includes('/api/milestones/'))
         return mockMilestonesEmpty();
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [{ id: 'ws-1', name: 'Platform', syncEnabled: true }],
+            }),
+        });
+      }
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve(emptyResponse),
@@ -213,7 +231,7 @@ describe('DashboardContainer integration', () => {
     expect(emptyText).toBeInTheDocument();
     expect(emptyText).toHaveTextContent(/no metrics data/i);
 
-    const syncText = screen.getByText(/Run a sync and compute metrics to see program health here/i);
+    const syncText = screen.getByText(/Run Sync Now to pull Azure DevOps data/i);
     expect(syncText).toBeInTheDocument();
 
     const heading = screen.getByRole('heading', { level: 1 });

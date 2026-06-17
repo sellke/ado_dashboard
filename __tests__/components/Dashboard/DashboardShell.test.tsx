@@ -128,7 +128,14 @@ describe('DashboardShell', () => {
   });
 
   it('renders empty state message when no data', () => {
-    render(<DashboardShell viewModel={emptyViewModel} onRetry={onRetry} />);
+    render(
+      <DashboardShell
+        viewModel={emptyViewModel}
+        onRetry={onRetry}
+        workstreamCount={1}
+        workstreamsLoading={false}
+      />
+    );
 
     expect(screen.getByText(/no metrics data/i)).toBeInTheDocument();
   });

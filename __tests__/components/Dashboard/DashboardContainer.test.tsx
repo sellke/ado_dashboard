@@ -287,9 +287,20 @@ describe('DashboardContainer', () => {
   });
 
   it('shows empty state when API returns empty payload', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockEmptyResponse),
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [{ id: 'ws-1', name: 'Action Tracker', syncEnabled: true }],
+            }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockEmptyResponse),
+      });
     });
 
     render(<DashboardContainer />);

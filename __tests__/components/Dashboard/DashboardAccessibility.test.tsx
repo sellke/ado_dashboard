@@ -94,13 +94,20 @@ describe('Dashboard accessibility', () => {
 
   it('empty state text is readable and present', () => {
     const viewModel = createDashboardViewModel('empty');
-    render(<DashboardShell viewModel={viewModel} onRetry={() => {}} />);
+    render(
+      <DashboardShell
+        viewModel={viewModel}
+        onRetry={() => {}}
+        workstreamCount={1}
+        workstreamsLoading={false}
+      />
+    );
 
     const emptyText = screen.getByText(/no metrics data/i);
     expect(emptyText).toBeInTheDocument();
     expect(emptyText.textContent?.trim().length).toBeGreaterThan(0);
 
-    const syncText = screen.getByText(/Run a sync and compute metrics to see program health here/i);
+    const syncText = screen.getByText(/Run Sync Now to pull Azure DevOps data/i);
     expect(syncText).toBeInTheDocument();
   });
 
