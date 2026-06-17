@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.6.0] - 2026-06-17
+
+### Added
+
+- **Cycle time metrics** — lifecycle date ingest, cycle time calculators, configurable
+  thresholds and inclusion rules, dashboard presentation with unavailable drilldown, and
+  cycle-time API endpoints. (Cycle Time Stories/Spikes/Bugs spec, Stories 1–5)
+- **ADO PAT credential management** — DB-backed credential store, credentials API, and
+  in-dashboard PAT update modal when sync auth fails. (Update Expired ADO PAT spec,
+  Stories 1–3)
+- **Rolling metrics detail modal** — opens from supported dashboard metric tiles to show
+  per-sprint values and rolling averages for velocity, overhead, carry-over, and program
+  delivery/bug ratio. (Rolling Metrics Detail Modal spec, Stories 1–3)
+- **PowerPoint export visualizations** — slide plan contract, program and workstream
+  snapshot slides, appendix detail charts, and export adapter enrichment for layered
+  executive decks. (PowerPoint Export Visualizations spec, Stories 1–4)
+
+### Changed
+
+- **Dashboard empty state** — distinguishes setup-required (no workstreams) from
+  no-metrics-available when workstreams exist but sync has not run.
+- **`/api/metrics`** — enriches program trend sprints with delivery/bug ratio and overhead
+  composition for rolling metric drilldown.
+
+### Fixed
+
+- **Dev startup on OneDrive** — `clean-next-dev.mjs` purges corrupted `.next` cache on
+  Windows OneDrive paths before starting Next.js dev.
+
+### Internal
+
+- Prisma migrations for lifecycle dates, cycle time fields, and ADO credentials table.
+- Regression coverage across rolling metrics modal, export slide plan, and dashboard
+  empty-state behavior.
+
 ## [0.5.0] - 2026-06-12
 
 ### Added
