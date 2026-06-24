@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.7.0] - 2026-06-22
+
+### Added
+
+- **Accurate current sprint** — persist ADO `isCurrent` on `Sprint` at sync; shared
+  `resolveCurrentSprint()` with flag, date-range, and fallback rules; metrics API, stories
+  API, and snapshot computation use the resolver for default and current-sprint detection.
+  (Accurate Current Sprint spec, Stories 1–5)
+- **Cookie-persisted dashboard scope** — workstream selection stored in HTTP cookies with
+  one-time localStorage migration and SSR initial scope on dashboard pages.
+  (Cookie-Persisted Dashboard Settings spec, Stories 1–4)
+
+### Changed
+
+- **Cycle time dashboard presentation** — program summary and workstream cards integrate
+  cycle-time tiles; export slides and metric definitions updated for rolling overhead copy.
+- **Workstream registry API** — removed debug instrumentation from sync and registry panel.
+
+### Internal
+
+- Prisma migration adding `Sprint.isCurrent`; regression coverage for resolver, sync,
+  API read paths, and orchestrator default-sprint behavior.
+
 ## [0.6.2] - 2026-06-17
 
 ### Changed
