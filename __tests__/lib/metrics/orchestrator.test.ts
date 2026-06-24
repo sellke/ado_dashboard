@@ -9,6 +9,18 @@ import { computeAllMetrics } from '@/lib/metrics/orchestrator';
 import { computeWorkstreamMetrics } from '@/lib/metrics/snapshot';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
 
+async function seedGlobalActiveSprint(): Promise<void> {
+  const now = new Date();
+  await prisma.sprint.create({
+    data: {
+      name: 'Global Active Sprint',
+      startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      isCurrent: true,
+    },
+  });
+}
+
 describe('computeAllMetrics', () => {
   let sprintId: string;
   let ws1Id: string;
@@ -41,6 +53,8 @@ describe('computeAllMetrics', () => {
       data: { name: 'Pitch Tracker', adoAreaPath: 'Project\\Pitch Tracker' },
     });
     ws2Id = ws2.id;
+
+    await seedGlobalActiveSprint();
   });
 
   afterAll(async () => {
@@ -277,10 +291,15 @@ describe('computeAllMetrics', () => {
       },
     });
 
+    const activeSprint = await prisma.sprint.findFirst({
+      where: { name: 'Global Active Sprint' },
+    });
+
     const result = await computeAllMetrics(undefined, prisma);
 
-    expect(result.sprintId).toBe(sprintId);
+    expect(result.sprintId).toBe(activeSprint!.id);
     expect(result.sprintId).not.toBe(olderSprint.id);
+    expect(result.sprintId).not.toBe(sprintId);
   });
 
   it('should throw when sprint not found', async () => {

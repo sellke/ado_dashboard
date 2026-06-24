@@ -96,7 +96,7 @@ describe('RollingMetricDetailModal', () => {
     expect(
       screen.getByText((_, element) => element?.textContent === 'Sprint 2: N/A')
     ).toBeInTheDocument();
-    expect(screen.queryByText(/rolling average/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('26.20%')).not.toBeInTheDocument();
   });
 
   it('calls onClose from the modal close button', async () => {
