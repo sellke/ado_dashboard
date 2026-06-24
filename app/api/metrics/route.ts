@@ -2,7 +2,7 @@
  * GET /api/metrics – Fetch computed metrics for a sprint
  *
  * Query params:
- * - sprintId (optional): defaults to latest sprint with snapshots
+ * - sprintId (optional): defaults to resolver-identified current sprint; falls back to latest snapshot when resolver returns null
  * - workstreamId (optional): filter by workstream
  * - includeRolling (boolean, default true): include avg in metric objects
  * - includeProgram (boolean, default true): include program aggregate
@@ -34,6 +34,7 @@ import {
   type WorkstreamMetrics,
 } from '@/lib/metrics/types';
 import { prisma } from '@/lib/prisma';
+import { resolveCurrentSprintId } from '@/lib/sprint/resolve-current';
 import { ROLLING_WINDOW_DEPTH } from '@/lib/sync/window';
 
 /** Synthetic meeting hours per eligible member (dev / QA / BA) per sprint — dashboard charts only. */
@@ -205,20 +206,31 @@ export async function GET(request: Request) {
     let sprintId = sprintIdParam;
     const now = new Date();
 
+    const pastSprintsForCurrent = await prisma.sprint.findMany({
+      where: { startDate: { lte: now } },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, startDate: true, endDate: true, isCurrent: true },
+    });
+    const globalCurrentSprintId = resolveCurrentSprintId(pastSprintsForCurrent, now);
+
     if (!sprintId) {
-      const latestWithSnapshot = await prisma.metricSnapshot.findFirst({
-        orderBy: { computedAt: 'desc' },
-        select: { sprintId: true },
-      });
-      if (!latestWithSnapshot) {
-        return NextResponse.json({
-          sprint: null,
-          workstreams: [],
-          program: null,
-          computedAt: null,
+      if (globalCurrentSprintId) {
+        sprintId = globalCurrentSprintId;
+      } else {
+        const latestWithSnapshot = await prisma.metricSnapshot.findFirst({
+          orderBy: { computedAt: 'desc' },
+          select: { sprintId: true },
         });
+        if (!latestWithSnapshot) {
+          return NextResponse.json({
+            sprint: null,
+            workstreams: [],
+            program: null,
+            computedAt: null,
+          });
+        }
+        sprintId = latestWithSnapshot.sprintId;
       }
-      sprintId = latestWithSnapshot.sprintId;
     }
 
     const sprint = await prisma.sprint.findUnique({
@@ -237,10 +249,10 @@ export async function GET(request: Request) {
       where: { startDate: { lte: sprint.startDate } },
       orderBy: { startDate: 'desc' },
       take: ROLLING_WINDOW_DEPTH,
-      select: { id: true, name: true, startDate: true, endDate: true },
+      select: { id: true, name: true, startDate: true, endDate: true, isCurrent: true },
     });
 
-    const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
+    const isCurrentSprint = globalCurrentSprintId === sprint.id;
 
     const allowedWorkstreams = await prisma.workstream.findMany({
       where: { name: { in: dashboardConfig.workstreamNames } },
@@ -282,8 +294,7 @@ export async function GET(request: Request) {
         },
         rollingWindow: {
           count: rollingSprints.length,
-          currentSprintId:
-            rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+          currentSprintId: globalCurrentSprintId,
           sprints: rollingSprints.map((s) => ({
             id: s.id,
             name: s.name,
@@ -300,8 +311,7 @@ export async function GET(request: Request) {
       return NextResponse.json(payload);
     }
 
-    const currentRollingSprintId =
-      rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null;
+    const currentRollingSprintId = globalCurrentSprintId;
     const rollingSprintIds = rollingSprints.map((s) => s.id);
     const wsFilter = workstreamIdParam
       ? { workstreamId: workstreamIdParam }
@@ -961,8 +971,7 @@ export async function GET(request: Request) {
       detailSprint,
       rollingWindow: {
         count: rollingSprints.length,
-        currentSprintId:
-          rollingSprints.find((s) => s.startDate <= now && s.endDate >= now)?.id ?? null,
+        currentSprintId: globalCurrentSprintId,
         sprints: rollingSprints.map((s) => ({
           id: s.id,
           name: s.name,

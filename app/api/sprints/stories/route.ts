@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 
 import { mapStateToStatusGroup } from '@/lib/sprints/status-mapping';
 import { prisma } from '@/lib/prisma';
+import { resolveCurrentSprintId } from '@/lib/sprint/resolve-current';
 import { VISIBLE_SPRINT_TABS } from '@/lib/sync/window';
 
 export async function GET(request: Request) {
@@ -32,12 +33,14 @@ export async function GET(request: Request) {
     const rollingSprints = await prisma.sprint.findMany({
       orderBy: { startDate: 'desc' },
       take: VISIBLE_SPRINT_TABS,
-      select: { id: true, name: true, startDate: true, endDate: true },
+      select: { id: true, name: true, startDate: true, endDate: true, isCurrent: true },
     });
 
     if (rollingSprints.length === 0) {
       return NextResponse.json({ sprints: [] });
     }
+
+    const currentId = resolveCurrentSprintId(rollingSprints, now);
 
     const rollingSprintIds = rollingSprints.map((s) => s.id);
 
@@ -83,7 +86,7 @@ export async function GET(request: Request) {
         name: sprint.name,
         startDate: sprint.startDate.toISOString(),
         endDate: sprint.endDate.toISOString(),
-        isCurrent: sprint.startDate <= now && sprint.endDate >= now,
+        isCurrent: sprint.id === currentId,
         stories,
       };
     });

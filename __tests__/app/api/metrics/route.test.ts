@@ -95,6 +95,30 @@ jest.mock('@/lib/metrics/orchestrator', () => ({
 const { prisma } = require('@/lib/prisma');
 const { computeAllMetrics } = require('@/lib/metrics/orchestrator');
 
+/** Route calls findMany twice: global current resolution (asc) then rolling window (desc). */
+function mockSprintFindMany(
+  pastSprintsForCurrent: Array<Record<string, unknown>>,
+  rollingSprints?: Array<Record<string, unknown>>
+) {
+  const rolling = rollingSprints ?? pastSprintsForCurrent;
+  prisma.sprint.findMany.mockImplementation(
+    (args: { orderBy?: { startDate?: 'asc' | 'desc' } }) => {
+      if (args.orderBy?.startDate === 'asc') {
+        return Promise.resolve(pastSprintsForCurrent);
+      }
+      return Promise.resolve(rolling);
+    }
+  );
+}
+
+const globalActiveSprint = {
+  id: 'global-current',
+  name: 'Global Current',
+  startDate: new Date('2020-01-01'),
+  endDate: new Date('2100-01-01'),
+  isCurrent: true,
+};
+
 describe('GET /api/metrics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -106,14 +130,12 @@ describe('GET /api/metrics', () => {
     prisma.thresholdConfig.findMany.mockResolvedValue(mockThresholds);
     prisma.metricEngineConfig.findUnique.mockResolvedValue(DEFAULT_ENGINE_CONFIG);
     prisma.metricRuleConfig.findMany.mockResolvedValue(DEFAULT_METRIC_RULE_CONFIGS);
+    mockSprintFindMany([]);
   });
 
   it('should return formatted metrics on happy path', async () => {
-    prisma.metricSnapshot.findFirst.mockResolvedValue({
-      sprintId: mockSprint.id,
-    });
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
 
     const req = new Request('http://localhost/api/metrics');
@@ -183,6 +205,37 @@ describe('GET /api/metrics', () => {
     );
   });
 
+  it('defaults to resolver current sprint instead of latest snapshot when sprintId is omitted', async () => {
+    const resolverCurrent = {
+      id: 'resolver-current',
+      name: 'Resolver Current',
+      startDate: new Date('2020-01-01'),
+      endDate: new Date('2100-01-01'),
+      isCurrent: true,
+    };
+    const staleSnapshotSprint = {
+      ...mockSprint,
+      id: 'stale-snapshot',
+      name: 'Recently Recomputed Past Sprint',
+      startDate: new Date('2025-01-01'),
+      endDate: new Date('2025-01-14'),
+    };
+
+    mockSprintFindMany([resolverCurrent, staleSnapshotSprint], [resolverCurrent]);
+    prisma.sprint.findUnique.mockResolvedValue(resolverCurrent);
+    prisma.metricSnapshot.findMany.mockResolvedValue([{ ...mockSnapshot, sprintId: resolverCurrent.id }]);
+
+    const req = new Request('http://localhost/api/metrics');
+    const res = await GET(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.sprint.id).toBe('resolver-current');
+    expect(prisma.sprint.findUnique).toHaveBeenCalledWith({ where: { id: 'resolver-current' } });
+    expect(prisma.metricSnapshot.findFirst).not.toHaveBeenCalled();
+    expect(data.rollingWindow.currentSprintId).toBe('resolver-current');
+  });
+
   it('adds configured cycle-time data at program and workstream levels', async () => {
     const priorSprint = {
       id: 'sprint-0',
@@ -191,10 +244,8 @@ describe('GET /api/metrics', () => {
       endDate: new Date('2026-04-10'),
     };
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
+    mockSprintFindMany([globalActiveSprint, mockSprint, priorSprint], [mockSprint, priorSprint]);
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany
-      .mockResolvedValueOnce([mockSprint, priorSprint])
-      .mockResolvedValueOnce([mockSprint, priorSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.metricEngineConfig.findUnique.mockResolvedValue({
       ...DEFAULT_ENGINE_CONFIG,
@@ -274,7 +325,7 @@ describe('GET /api/metrics', () => {
     ];
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue(rolling);
+    mockSprintFindMany([globalActiveSprint, mockSprint], rolling);
     prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
       {
         sprintId: 'sprint-0',
@@ -347,7 +398,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([wsOne, wsTwo])
       .mockResolvedValueOnce([wsOne, wsTwo]);
@@ -375,7 +426,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([zeroBugSnapshot])
       .mockResolvedValueOnce([zeroBugSnapshot]);
@@ -408,7 +459,7 @@ describe('GET /api/metrics', () => {
   it('should filter by sprintId when provided', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 'sprint-2' });
     prisma.sprint.findUnique.mockResolvedValue({ ...mockSprint, id: 'sprint-2' });
-    prisma.sprint.findMany.mockResolvedValue([{ ...mockSprint, id: 'sprint-2' }]);
+    mockSprintFindMany([globalActiveSprint, { ...mockSprint, id: 'sprint-2' }], [{ ...mockSprint, id: 'sprint-2' }]);
     prisma.metricSnapshot.findMany.mockResolvedValue([]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -462,7 +513,7 @@ describe('GET /api/metrics', () => {
     ];
 
     prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
       .mockResolvedValueOnce([]);
@@ -513,7 +564,7 @@ describe('GET /api/metrics', () => {
     ];
 
     prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
       .mockResolvedValueOnce([]);
@@ -548,7 +599,7 @@ describe('GET /api/metrics', () => {
       const selectedSprint = rollingSprints[0]!;
 
       prisma.sprint.findUnique.mockResolvedValue(selectedSprint);
-      prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+      mockSprintFindMany(rollingSprints, rollingSprints);
       prisma.metricSnapshot.findMany
         .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: selectedSprint.id }])
         .mockResolvedValueOnce([]);
@@ -604,7 +655,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: currentSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(currentSprint);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: currentSprint.id }])
       .mockResolvedValueOnce([
@@ -637,11 +688,11 @@ describe('GET /api/metrics', () => {
   it('should filter by workstreamId when provided', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
-    const req = new Request('http://localhost/api/metrics?workstreamId=ws-1');
+    const req = new Request('http://localhost/api/metrics?workstreamId=ws-1&sprintId=sprint-1');
     const res = await GET(req);
 
     expect(res.status).toBe(200);
@@ -662,7 +713,7 @@ describe('GET /api/metrics', () => {
     };
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.workstream.findMany
       .mockResolvedValueOnce([{ id: 'ws-1' }])
       .mockResolvedValueOnce([{ id: 'ws-2' }]);
@@ -671,7 +722,7 @@ describe('GET /api/metrics', () => {
       .mockResolvedValueOnce([scopedSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
-    const req = new Request('http://localhost/api/metrics?workstreamIds=ws-2,stale');
+    const req = new Request('http://localhost/api/metrics?workstreamIds=ws-2,stale&sprintId=sprint-1');
     const res = await GET(req);
     const data = await res.json();
 
@@ -697,7 +748,7 @@ describe('GET /api/metrics', () => {
   it('should omit program when includeProgram=false', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
 
     const req = new Request('http://localhost/api/metrics?includeProgram=false');
@@ -711,7 +762,7 @@ describe('GET /api/metrics', () => {
   it('should omit avg when includeRolling=false', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
@@ -747,9 +798,9 @@ describe('GET /api/metrics', () => {
       },
     ];
 
+    mockSprintFindMany([globalActiveSprint, ...rollingSprints], rollingSprints);
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's3' }])
       .mockResolvedValueOnce([
@@ -759,7 +810,7 @@ describe('GET /api/metrics', () => {
       ]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 
-    const req = new Request('http://localhost/api/metrics');
+    const req = new Request('http://localhost/api/metrics?sprintId=s3');
     const res = await GET(req);
     const data = await res.json();
 
@@ -798,7 +849,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's3' }])
       .mockResolvedValueOnce([
@@ -880,7 +931,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2', workstreamId: 'ws-1' }])
       .mockResolvedValueOnce([
@@ -919,7 +970,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2', workstreamId: 'ws-1' }])
       .mockResolvedValueOnce([
@@ -990,7 +1041,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2', workstreamId: 'ws-1' }])
       .mockResolvedValueOnce([
@@ -1116,7 +1167,7 @@ describe('GET /api/metrics', () => {
   it('returns empty arrays for all categories when workstream has no overhead items', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
       {
         sprintId: mockSprint.id,
@@ -1149,7 +1200,7 @@ describe('GET /api/metrics', () => {
   it('uses completedWork for hours when present, falls back to originalEstimate, then null', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
       {
         sprintId: mockSprint.id,
@@ -1217,7 +1268,7 @@ describe('GET /api/metrics', () => {
   it('items within overheadItemsBySprint arrays are ordered by adoId ascending', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValueOnce([mockSnapshot]).mockResolvedValueOnce([
       {
         sprintId: mockSprint.id,
@@ -1322,7 +1373,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's3' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's3' }])
       .mockResolvedValueOnce([
@@ -1374,7 +1425,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: 's2' });
     prisma.sprint.findUnique.mockResolvedValue(rollingSprints[0]);
-    prisma.sprint.findMany.mockResolvedValue(rollingSprints);
+    mockSprintFindMany(rollingSprints, rollingSprints);
     prisma.metricSnapshot.findMany
       .mockResolvedValueOnce([{ ...mockSnapshot, sprintId: 's2' }])
       .mockResolvedValueOnce([
@@ -1444,7 +1495,7 @@ describe('GET /api/metrics', () => {
   it('returns all 4 overhead categories with hours=0 when no overhead work items exist', async () => {
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([mockSnapshot]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
     // All work item and sprintWorkstream queries return empty
@@ -1472,7 +1523,7 @@ describe('GET /api/metrics', () => {
 
     prisma.metricSnapshot.findFirst.mockResolvedValue({ sprintId: mockSprint.id });
     prisma.sprint.findUnique.mockResolvedValue(mockSprint);
-    prisma.sprint.findMany.mockResolvedValue([mockSprint]);
+    mockSprintFindMany([globalActiveSprint, mockSprint], [mockSprint]);
     prisma.metricSnapshot.findMany.mockResolvedValue([snapshotWithGrossHours]);
     prisma.thresholdConfig.findMany.mockResolvedValue([]);
 

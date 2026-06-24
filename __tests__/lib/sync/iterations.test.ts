@@ -19,6 +19,8 @@ describe('selectRollingSprints with visible tab depth', () => {
   const base = 'Project\\Team\\Iteration';
 
   it('should return exactly 5 sprints including current when enough iterations exist', () => {
+    jest.useFakeTimers({ now: new Date('2025-12-15T12:00:00.000Z') });
+    try {
     const iterations: AdoIteration[] = [
       {
         path: `${base}\\Sprint 1`,
@@ -59,19 +61,20 @@ describe('selectRollingSprints with visible tab depth', () => {
       },
     ];
 
-    const { sprints: result } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
+    const { sprints: result, currentSprint } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
     expect(result).toHaveLength(5);
     // Spec: sorted by startDate descending (most recent first)
     expect(result.map((r) => r.path)).toEqual([
+      `${base}\\Sprint 6`,
       `${base}\\Sprint 5`,
       `${base}\\Sprint 4`,
       `${base}\\Sprint 3`,
       `${base}\\Sprint 2`,
-      `${base}\\Sprint 1`,
     ]);
-    expect(result.find((r) => r.isCurrent)).toEqual(
-      expect.objectContaining({ path: `${base}\\Sprint 3` })
-    );
+    expect(currentSprint?.path).toBe(`${base}\\Sprint 6`);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should include current sprint in selection', () => {
@@ -302,8 +305,10 @@ describe('upsertSprintsFromIterations', () => {
     expect(sprints).toHaveLength(2);
     expect(sprints[0]!.adoIterationPath).toBe('Project\\Iteration\\Sprint 1');
     expect(sprints[0]!.name).toBe('Sprint 1');
+    expect(sprints[0]!.isCurrent).toBe(false);
     expect(sprints[1]!.adoIterationPath).toBe('Project\\Iteration\\Sprint 2');
     expect(sprints[1]!.name).toBe('Sprint 2');
+    expect(sprints[1]!.isCurrent).toBe(true);
   });
 
   it('should update existing sprints by iteration path', async () => {
@@ -395,7 +400,7 @@ describe('upsertSprintsFromIterations', () => {
     expect(result.sprintIds.get('P\\S2')).toBe(result.currentSprintId);
   });
 
-  it('should return null currentSprintId when currentPath not in selected iterations', async () => {
+  it('should resolve currentSprintId from resolver when currentPath param does not match', async () => {
     const iterations: AdoIteration[] = [
       {
         path: 'P\\S1',
@@ -407,8 +412,11 @@ describe('upsertSprintsFromIterations', () => {
 
     const result = await upsertSprintsFromIterations(iterations, 'P\\Other');
 
-    expect(result.currentSprintId).toBeNull();
-    expect(result.currentSprintPath).toBe('P\\Other');
+    expect(result.currentSprintId).toBe(result.sprintIds.get('P\\S1'));
+    expect(result.currentSprintPath).toBe('P\\S1');
+
+    const sprint = await prisma.sprint.findUnique({ where: { adoIterationPath: 'P\\S1' } });
+    expect(sprint!.isCurrent).toBe(true);
   });
 
   it('should skip iterations without path or dates', async () => {
@@ -457,5 +465,65 @@ describe('upsertSprintsFromIterations', () => {
       where: { adoIterationPath: 'Project\\Iteration\\Sprint Idempotent' },
     });
     expect(count).toBe(1);
+  });
+
+  it('should clear isCurrent on update when sprint is no longer the resolver winner', async () => {
+    const path = 'Project\\Iteration\\Former Current';
+    await prisma.sprint.create({
+      data: {
+        name: 'Former Current',
+        adoIterationPath: path,
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-01-14'),
+        isCurrent: true,
+      },
+    });
+
+    const iterations: AdoIteration[] = [
+      {
+        path,
+        name: 'Former Current',
+        startDate: new Date('2026-01-01'),
+        finishDate: new Date('2026-01-14'),
+      },
+      {
+        path: 'Project\\Iteration\\New Current',
+        name: 'New Current',
+        startDate: new Date('2026-01-15'),
+        finishDate: new Date('2026-01-28'),
+        isCurrent: true,
+      },
+    ];
+
+    await upsertSprintsFromIterations(iterations, 'Project\\Iteration\\New Current');
+
+    const former = await prisma.sprint.findUnique({ where: { adoIterationPath: path } });
+    const current = await prisma.sprint.findUnique({
+      where: { adoIterationPath: 'Project\\Iteration\\New Current' },
+    });
+    expect(former!.isCurrent).toBe(false);
+    expect(current!.isCurrent).toBe(true);
+  });
+
+  it('should return currentSprint consistent with resolver when ADO flag and date-range disagree', () => {
+    const iterations: AdoIteration[] = [
+      {
+        path: 'P\\Past',
+        name: 'Past',
+        startDate: new Date('2024-01-01'),
+        finishDate: new Date('2024-01-14'),
+        isCurrent: true,
+      },
+      {
+        path: 'P\\Active',
+        name: 'Active',
+        startDate: new Date('2024-01-15'),
+        finishDate: new Date('2030-01-28'),
+      },
+    ];
+
+    const { currentSprint, sprints } = selectRollingSprints(iterations, VISIBLE_SPRINT_TABS);
+    expect(currentSprint?.path).toBe('P\\Active');
+    expect(sprints.some((s) => s.path === 'P\\Active')).toBe(true);
   });
 });

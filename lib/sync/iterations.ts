@@ -9,6 +9,7 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { resolveCurrentSprint } from '@/lib/sprint/resolve-current';
 import type { AdoIterationInput } from './types';
 import { VISIBLE_SPRINT_TABS } from './window';
 
@@ -28,6 +29,13 @@ export interface SprintUpsertResult {
 export interface RollingSprintSelection {
   sprints: AdoIterationInput[];
   currentSprint: AdoIterationInput | null;
+}
+
+/** Map ADO iteration dates to resolver input shape (`finishDate` → `endDate`). */
+function toResolverInput(
+  iteration: AdoIterationInput & { startDate: Date; finishDate: Date }
+): AdoIterationInput & { startDate: Date; finishDate: Date; endDate: Date } {
+  return { ...iteration, endDate: iteration.finishDate };
 }
 
 /**
@@ -57,14 +65,11 @@ export function selectRollingSprints(
 
   const sorted = [...pastAndCurrent].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
-  // Prefer explicit isCurrent flag, fall back to date-range match, then last sprint
-  let currentIdx = sorted.findIndex((i) => i.isCurrent === true);
-  if (currentIdx < 0) {
-    currentIdx = sorted.findIndex((i) => now >= i.startDate && now <= i.finishDate);
-  }
-  if (currentIdx < 0) {
-    currentIdx = sorted.length - 1;
-  }
+  const resolverInputs = sorted.map(toResolverInput);
+  const currentResolved = resolveCurrentSprint(resolverInputs, now);
+  const currentIdx = currentResolved
+    ? sorted.findIndex((i) => i.path === currentResolved.path)
+    : sorted.length - 1;
 
   const startIdx = Math.max(0, currentIdx - (count - 1));
   const endIdx = Math.min(sorted.length, startIdx + count);
@@ -72,7 +77,9 @@ export function selectRollingSprints(
 
   // Sort most recent first (descending by startDate)
   const sprints = [...selected].sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
-  const currentSprint = selected.find((s) => s.isCurrent) ?? selected[selected.length - 1] ?? null;
+  const currentSprint = currentResolved
+    ? (sorted.find((s) => s.path === currentResolved.path) ?? null)
+    : null;
 
   return { sprints, currentSprint };
 }
@@ -97,6 +104,14 @@ export async function upsertSprintsFromIterations(
   let created = 0;
   let updated = 0;
 
+  const resolverInputs = iterations
+    .filter((i): i is AdoIterationInput & { startDate: Date; finishDate: Date } =>
+      Boolean(i.path && i.startDate && i.finishDate)
+    )
+    .map(toResolverInput);
+  const currentResolved = resolveCurrentSprint(resolverInputs, new Date());
+  const currentPathResolved = currentResolved?.path ?? null;
+
   for (const it of iterations) {
     if (!it.path || !it.startDate || !it.finishDate) {
       continue;
@@ -113,6 +128,7 @@ export async function upsertSprintsFromIterations(
           name: it.name,
           startDate: it.startDate,
           endDate: it.finishDate,
+          isCurrent: it.path === currentPathResolved,
         },
       });
       sprintIds.set(it.path, existing.id);
@@ -124,6 +140,7 @@ export async function upsertSprintsFromIterations(
           adoIterationPath: it.path,
           startDate: it.startDate,
           endDate: it.finishDate,
+          isCurrent: it.path === currentPathResolved,
         },
       });
       sprintIds.set(it.path, sprint.id);
@@ -131,14 +148,16 @@ export async function upsertSprintsFromIterations(
     }
   }
 
-  const currentSprintId = currentPath ? (sprintIds.get(currentPath) ?? null) : null;
+  const currentSprintId = currentPathResolved
+    ? (sprintIds.get(currentPathResolved) ?? null)
+    : null;
 
   return {
     created,
     updated,
     sprintIds,
     currentSprintId: currentSprintId ?? null,
-    currentSprintPath: currentPath,
+    currentSprintPath: currentPathResolved ?? currentPath,
   };
 }
 

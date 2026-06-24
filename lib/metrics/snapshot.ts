@@ -6,6 +6,7 @@
 
 import type { PrismaClient, WorkItem } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { resolveCurrentSprint } from '@/lib/sprint/resolve-current';
 import {
   calculateCarryOver,
   calculateOverhead,
@@ -53,7 +54,7 @@ export async function computeWorkstreamMetrics(
   // Validate sprint and workstream exist (invalid IDs → throw)
   const sprint = await db.sprint.findUnique({
     where: { id: sprintId },
-    select: { id: true, startDate: true, endDate: true },
+    select: { id: true, startDate: true, endDate: true, isCurrent: true },
   });
   if (!sprint) {
     throw new Error(`Sprint not found: ${sprintId}`);
@@ -68,7 +69,12 @@ export async function computeWorkstreamMetrics(
   }
 
   const now = new Date();
-  const isCurrentSprint = sprint.startDate <= now && sprint.endDate >= now;
+  const pastSprints = await db.sprint.findMany({
+    where: { startDate: { lte: now } },
+    orderBy: { startDate: 'asc' },
+    select: { id: true, startDate: true, endDate: true, isCurrent: true },
+  });
+  const isCurrentSprint = resolveCurrentSprint(pastSprints, now)?.id === sprint.id;
 
   // 1. Fetch work items
   const workItems = await db.workItem.findMany({

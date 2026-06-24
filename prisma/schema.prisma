@@ -62,6 +62,7 @@ model Sprint {
   adoIterationPath String?  @unique
   startDate        DateTime
   endDate          DateTime
+  isCurrent        Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

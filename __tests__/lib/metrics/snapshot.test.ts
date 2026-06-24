@@ -9,6 +9,18 @@ import { computeWorkstreamMetrics } from '@/lib/metrics/snapshot';
 import { DEFAULT_ENGINE_CONFIG, DEFAULT_METRIC_RULE_CONFIGS } from '@/lib/metrics/types';
 import { cleanupTestData, prisma } from '../../prisma/helpers';
 
+async function seedGlobalActiveSprint(): Promise<void> {
+  const now = new Date();
+  await prisma.sprint.create({
+    data: {
+      name: 'Global Active Sprint',
+      startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      endDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      isCurrent: true,
+    },
+  });
+}
+
 describe('computeWorkstreamMetrics', () => {
   let sprintId: string;
   let workstreamId: string;
@@ -43,6 +55,7 @@ describe('computeWorkstreamMetrics', () => {
   });
 
   it('should upsert correct MetricSnapshot when all data present (happy path)', async () => {
+    await seedGlobalActiveSprint();
     await prisma.sprintWorkstream.create({
       data: {
         sprintId,
@@ -120,6 +133,7 @@ describe('computeWorkstreamMetrics', () => {
   });
 
   it('should handle missing SprintWorkstream (overhead null, rest computed)', async () => {
+    await seedGlobalActiveSprint();
     await prisma.workItem.create({
       data: {
         adoId: 2001,
@@ -150,6 +164,7 @@ describe('computeWorkstreamMetrics', () => {
   });
 
   it('should handle no work items (velocity 0, predictability null, carryOver null)', async () => {
+    await seedGlobalActiveSprint();
     await prisma.sprintWorkstream.create({
       data: {
         sprintId,
@@ -199,6 +214,7 @@ describe('computeWorkstreamMetrics', () => {
         name: 'Current Sprint',
         startDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
         endDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
+        isCurrent: true,
       },
     });
 
@@ -267,6 +283,7 @@ describe('computeWorkstreamMetrics', () => {
   });
 
   it('should apply delivery-point rules when computing snapshot values', async () => {
+    await seedGlobalActiveSprint();
     await prisma.sprintWorkstream.create({
       data: {
         sprintId,
@@ -373,6 +390,7 @@ describe('computeWorkstreamMetrics', () => {
           name: 'Current Sprint - Snapshot',
           startDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+          isCurrent: true,
         },
       });
 
@@ -431,7 +449,8 @@ describe('computeWorkstreamMetrics', () => {
     });
 
     it('should NOT write snapshot rows for completed sprints', async () => {
-      // Default sprint dates are in the past → completed
+      await seedGlobalActiveSprint();
+      // Default sprint dates are in the past → completed and not the resolver winner
       await prisma.workItem.create({
         data: {
           adoId: 5003,
@@ -462,6 +481,7 @@ describe('computeWorkstreamMetrics', () => {
           name: 'Current Sprint - Upsert',
           startDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+          isCurrent: true,
         },
       });
 
@@ -518,6 +538,7 @@ describe('computeWorkstreamMetrics', () => {
           name: 'Current Sprint - Stale',
           startDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+          isCurrent: true,
         },
       });
 
