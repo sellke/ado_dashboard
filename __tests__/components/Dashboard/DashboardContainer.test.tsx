@@ -3,6 +3,11 @@
  */
 
 import { DashboardContainer } from '@/components/Dashboard/DashboardContainer';
+import {
+  dashboardWorkstreamScopeKey,
+  loadDashboardWorkstreamScopeFromCookies,
+  saveDashboardWorkstreamScopeToCookie,
+} from '@/lib/dashboard/workstream-scope';
 import { render, screen, userEvent, waitFor } from '@/test-utils';
 
 const mockMilestonesWithBreakdown = {
@@ -91,6 +96,12 @@ describe('DashboardContainer', () => {
   beforeEach(() => {
     global.fetch = jest.fn();
     window.localStorage.clear();
+    document.cookie.split(';').forEach((cookie) => {
+      const name = cookie.split('=')[0]?.trim();
+      if (name) {
+        document.cookie = `${name}=; Max-Age=0; Path=/`;
+      }
+    });
   });
 
   afterEach(() => {
@@ -443,10 +454,7 @@ describe('DashboardContainer', () => {
   });
 
   it('restores saved workstream scope and sends it to metrics and milestones fetches', async () => {
-    window.localStorage.setItem(
-      'dashboardWorkstreamScope:v1:main',
-      JSON.stringify({ includedWorkstreamIds: ['ws-2'], updatedAt: '2026-05-27T00:00:00.000Z' })
-    );
+    saveDashboardWorkstreamScopeToCookie('main', ['ws-2'], new Date('2026-05-27T00:00:00.000Z'));
 
     const scopedMetrics = {
       ...mockSuccessResponse,
@@ -509,13 +517,258 @@ describe('DashboardContainer', () => {
     });
   });
 
-  it('ignores stale saved workstream scope ids until they are validated against the registry', async () => {
+  it('migrates legacy localStorage scope to a cookie on mount', async () => {
     window.localStorage.setItem(
-      'dashboardWorkstreamScope:v1:main',
-      JSON.stringify({
-        includedWorkstreamIds: ['stale-ws'],
-        updatedAt: '2026-05-27T00:00:00.000Z',
-      })
+      dashboardWorkstreamScopeKey('main'),
+      JSON.stringify({ includedWorkstreamIds: ['ws-2'], updatedAt: '2026-05-27T00:00:00.000Z' })
+    );
+
+    const scopedMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Pitch Tracker',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(scopedMetrics) });
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText('Pitch Tracker')).toBeInTheDocument();
+    expect(window.localStorage.getItem(dashboardWorkstreamScopeKey('main'))).toBeNull();
+    expect(loadDashboardWorkstreamScopeFromCookies(document.cookie, 'main')).toEqual(['ws-2']);
+  });
+
+  it('uses SSR initialScopeIds for the first scoped fetch without a client cookie', async () => {
+    const scopedMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Pitch Tracker',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(scopedMetrics) });
+    });
+
+    render(<DashboardContainer initialScopeIds={['ws-2']} />);
+
+    expect(await screen.findByText('Pitch Tracker')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/metrics?dashboard=main&workstreamIds=ws-2')
+      );
+    });
+  });
+
+  it('writes saved modal scope to a cookie and refetches with the selected ids', async () => {
+    const user = userEvent.setup();
+    const scopedMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        mockSuccessResponse.workstreams[0],
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Pitch Tracker',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Pitch Tracker', adoAreaPath: 'Area\\Pitch Tracker' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(scopedMetrics) });
+    });
+
+    render(<DashboardContainer initialScopeIds={['ws-1']} />);
+
+    await user.click(await screen.findByRole('button', { name: /workstream scope/i }));
+    await user.click(await screen.findByRole('checkbox', { name: /pitch tracker/i }));
+    await user.click(screen.getByRole('button', { name: /save scope/i }));
+
+    await waitFor(() => {
+      expect(loadDashboardWorkstreamScopeFromCookies(document.cookie, 'main')).toEqual([
+        'ws-1',
+        'ws-2',
+      ]);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/metrics?dashboard=main&workstreamIds=ws-1%2Cws-2')
+      );
+    });
+  });
+
+  it('keeps main and streams dashboard scope cookies isolated', async () => {
+    saveDashboardWorkstreamScopeToCookie('main', ['ws-1'], new Date('2026-05-27T00:00:00.000Z'));
+    saveDashboardWorkstreamScopeToCookie('streams', ['ws-2'], new Date('2026-05-27T00:00:00.000Z'));
+
+    const streamsMetrics = {
+      ...mockSuccessResponse,
+      workstreams: [
+        {
+          ...mockSuccessResponse.workstreams[0],
+          workstreamId: 'ws-2',
+          workstreamName: 'Streams',
+        },
+      ],
+    };
+
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/workstreams')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              workstreams: [
+                { id: 'ws-1', name: 'Action Tracker', adoAreaPath: 'Area\\Action Tracker' },
+                { id: 'ws-2', name: 'Streams', adoAreaPath: 'Area\\Streams' },
+              ],
+            }),
+        });
+      }
+      if (url.includes('/api/milestones')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              milestones: [],
+              programRollup: {
+                currentMonth: 'March 2026',
+                currentMonthCompletionPercent: null,
+                currentMonthTotalSP: 0,
+                currentMonthCompletedSP: 0,
+                quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+              },
+            }),
+        });
+      }
+      if (url.includes('/api/sprints/stories')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(streamsMetrics) });
+    });
+
+    render(<DashboardContainer dashboard="streams" title="Streams Dashboard" />);
+
+    expect(await screen.findByText('Streams')).toBeInTheDocument();
+
+    await waitFor(() => {
+      const metricsCalls = (global.fetch as jest.Mock).mock.calls
+        .map(([url]) => String(url))
+        .filter((url) => url.startsWith('/api/metrics'));
+      expect(metricsCalls.some((url) => url.includes('dashboard=streams'))).toBe(true);
+      expect(metricsCalls.some((url) => url.includes('workstreamIds=ws-2'))).toBe(true);
+      expect(metricsCalls.some((url) => url.includes('workstreamIds=ws-1'))).toBe(false);
+    });
+  });
+
+  it('ignores stale saved workstream scope ids until they are validated against the registry', async () => {
+    saveDashboardWorkstreamScopeToCookie(
+      'main',
+      ['stale-ws'],
+      new Date('2026-05-27T00:00:00.000Z')
     );
 
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
@@ -702,10 +955,7 @@ describe('DashboardContainer', () => {
   });
 
   it('ignores stale metrics responses when a newer guarded request has completed', async () => {
-    window.localStorage.setItem(
-      'dashboardWorkstreamScope:v1:main',
-      JSON.stringify({ includedWorkstreamIds: ['ws-2'], updatedAt: '2026-05-27T00:00:00.000Z' })
-    );
+    saveDashboardWorkstreamScopeToCookie('main', ['ws-2'], new Date('2026-05-27T00:00:00.000Z'));
 
     let resolveStaleMetrics:
       | ((value: { ok: boolean; json: () => Promise<typeof mockSuccessResponse> }) => void)

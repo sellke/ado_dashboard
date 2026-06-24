@@ -812,7 +812,7 @@ export function mapApiResponseToDashboardViewModel(
       metricId: 'deliveryToBugRatio',
     });
 
-    // Apply 2-decimal-place formatting to overhead % tile.
+    // Workstream tiles show sprint-actual values; rolling averages appear as avgLabel.
     const overheadIdx = metrics.findIndex((m) => m.label === 'Overhead %');
     if (overheadIdx >= 0) {
       const rawVal = metrics[overheadIdx]!.rawValue;
@@ -827,7 +827,6 @@ export function mapApiResponseToDashboardViewModel(
       };
     }
 
-    // Apply 2-decimal-place formatting to carry-over % tile (more precise than default formatPercent).
     const carryOverIdx = metrics.findIndex((m) => m.label === 'Carry-Over %');
     if (carryOverIdx >= 0) {
       const rawVal = metrics[carryOverIdx]!.rawValue;

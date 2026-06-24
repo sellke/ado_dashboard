@@ -1,4 +1,5 @@
 import type { DashboardId } from './config';
+import { parseCookieHeader, readServerCookie, setClientCookie } from './settings-cookies';
 
 export const DASHBOARD_WORKSTREAM_SCOPE_STORAGE_PREFIX = 'dashboardWorkstreamScope:v1';
 
@@ -67,6 +68,21 @@ export function loadDashboardWorkstreamScope(
   }
 }
 
+export function loadDashboardWorkstreamScopeFromCookies(
+  cookieHeaderOrGetter: string | null | undefined | (() => string | null | undefined),
+  dashboardId: DashboardId
+): string[] | null {
+  try {
+    const cookieHeader =
+      typeof cookieHeaderOrGetter === 'function' ? cookieHeaderOrGetter() : cookieHeaderOrGetter;
+    return parseDashboardWorkstreamScope(
+      parseCookieHeader(cookieHeader, dashboardWorkstreamScopeKey(dashboardId))
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function saveDashboardWorkstreamScope(
   storage: Pick<Storage, 'setItem'>,
   dashboardId: DashboardId,
@@ -84,6 +100,62 @@ export function saveDashboardWorkstreamScope(
   };
   storage.setItem(dashboardWorkstreamScopeKey(dashboardId), JSON.stringify(payload));
   return payload;
+}
+
+export function saveDashboardWorkstreamScopeToCookie(
+  dashboardId: DashboardId,
+  includedWorkstreamIds: readonly string[],
+  updatedAt = new Date()
+): DashboardWorkstreamScopePayload {
+  const ids = normalizeIds(includedWorkstreamIds);
+  if (ids.length === 0) {
+    throw new Error('At least one workstream must be included');
+  }
+
+  const payload = {
+    includedWorkstreamIds: ids,
+    updatedAt: updatedAt.toISOString(),
+  };
+  setClientCookie(dashboardWorkstreamScopeKey(dashboardId), JSON.stringify(payload));
+  return payload;
+}
+
+export async function loadDashboardWorkstreamScopeFromServerCookie(
+  dashboardId: DashboardId
+): Promise<string[] | null> {
+  try {
+    return parseDashboardWorkstreamScope(
+      await readServerCookie(dashboardWorkstreamScopeKey(dashboardId))
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function migrateLocalStorageScopeToCookie(
+  storage: Pick<Storage, 'getItem' | 'removeItem'> | null | undefined,
+  dashboardId: DashboardId,
+  cookieHeaderOrGetter: string | null | undefined | (() => string | null | undefined) = () =>
+    typeof document === 'undefined' ? null : document.cookie
+): string[] | null {
+  const key = dashboardWorkstreamScopeKey(dashboardId);
+
+  if (loadDashboardWorkstreamScopeFromCookies(cookieHeaderOrGetter, dashboardId)) {
+    return null;
+  }
+
+  const migratedIds = loadDashboardWorkstreamScope(storage, dashboardId);
+  if (!migratedIds) {
+    return null;
+  }
+
+  try {
+    saveDashboardWorkstreamScopeToCookie(dashboardId, migratedIds);
+    storage?.removeItem(key);
+    return migratedIds;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveDashboardWorkstreamScope(args: {
@@ -139,7 +211,10 @@ export function buildWorkstreamIdsQuery(includedWorkstreamIds: readonly string[]
   return `workstreamIds=${encodeURIComponent(ids.join(','))}`;
 }
 
-export function appendWorkstreamIdsParam(url: string, includedWorkstreamIds: readonly string[]): string {
+export function appendWorkstreamIdsParam(
+  url: string,
+  includedWorkstreamIds: readonly string[]
+): string {
   const query = buildWorkstreamIdsQuery(includedWorkstreamIds);
   if (!query) {
     return url;

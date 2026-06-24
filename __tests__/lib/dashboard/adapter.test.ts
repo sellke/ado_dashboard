@@ -234,6 +234,13 @@ describe('dashboard adapter', () => {
       expect(programCarryOver?.rawValue).toBe(13.5);
       expect(programCarryOver?.rag).toBe('Amber');
 
+      const wsOverhead = vm.workstreamCards[0].metrics.find((m) => m.label === 'Overhead %');
+      const wsCarryOver = vm.workstreamCards[0].metrics.find((m) => m.label === 'Carry-Over %');
+      expect(wsOverhead?.rawValue).toBe(28.5);
+      expect(wsOverhead?.avgLabel).toBe('26.20%');
+      expect(wsCarryOver?.rawValue).toBe(8.5);
+      expect(wsCarryOver?.avgLabel).toBe('11.00%');
+
       const ws = vm.workstreamCards[0];
       expect(ws.workstreamName).toBe('Action Tracker');
       expect(ws.cycleTime?.[0]).toMatchObject({
@@ -1325,6 +1332,34 @@ describe('dashboard adapter', () => {
       expect(vm.quarterlyComplete).toBe(3);
       expect(vm.quarterlyInProgress).toBe(5);
       expect(vm.quarterlyNotStarted).toBe(2);
+    });
+  });
+
+  describe('program vs workstream metric sources', () => {
+    it('uses rolling average on program tiles and sprint value on workstream tiles', () => {
+      const singleWorkstreamResponse: ApiResponse = {
+        ...fullApiResponse,
+        workstreams: [fullApiResponse.workstreams[0]!],
+        program: {
+          ...fullApiResponse.program!,
+          metrics: {
+            ...fullApiResponse.program!.metrics,
+            overheadPercent: { value: 28.5, avg: 26.2, rag: 'Green' },
+            carryOverRate: { value: 8.5, avg: 11, rag: 'Green' },
+          },
+        },
+      };
+
+      const vm = mapApiResponseToDashboardViewModel(singleWorkstreamResponse);
+      const programOverhead = vm.programMetrics?.find((m) => m.label === 'Avg Total Overhead %');
+      const programCarryOver = vm.programMetrics?.find((m) => m.label === 'Avg Total Carry-Over %');
+      const wsOverhead = vm.workstreamCards[0]?.metrics.find((m) => m.label === 'Overhead %');
+      const wsCarryOver = vm.workstreamCards[0]?.metrics.find((m) => m.label === 'Carry-Over %');
+
+      expect(programOverhead?.rawValue).toBe(26.2);
+      expect(wsOverhead?.rawValue).toBe(28.5);
+      expect(programCarryOver?.rawValue).toBe(11);
+      expect(wsCarryOver?.rawValue).toBe(8.5);
     });
   });
 

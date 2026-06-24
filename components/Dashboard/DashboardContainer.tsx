@@ -18,9 +18,10 @@ import type {
 } from '@/lib/dashboard/types';
 import {
   appendWorkstreamIdsParam,
-  loadDashboardWorkstreamScope,
+  loadDashboardWorkstreamScopeFromCookies,
+  migrateLocalStorageScopeToCookie,
   resolveDashboardWorkstreamScope,
-  saveDashboardWorkstreamScope,
+  saveDashboardWorkstreamScopeToCookie,
   type WorkstreamScopeOption,
 } from '@/lib/dashboard/workstream-scope';
 import { buildPresentation, enrichExportInput, type ExportInput } from '@/lib/export';
@@ -44,11 +45,17 @@ const ADO_AUTH_ERROR_PATTERN =
 
 export interface DashboardContainerProps {
   dashboard?: DashboardId;
+  initialScopeIds?: string[] | null;
   title?: string;
 }
 
-export function DashboardContainer({ dashboard, title = 'Dashboard' }: DashboardContainerProps) {
+export function DashboardContainer({
+  dashboard,
+  initialScopeIds,
+  title = 'Dashboard',
+}: DashboardContainerProps) {
   const dashboardId = dashboard ?? 'main';
+  const hasInitialScopeIds = initialScopeIds !== undefined;
   const [rawMetrics, setRawMetrics] = useState<ApiResponse | null>(null);
   const [metricsViewState, setMetricsViewState] = useState<'loading' | 'error' | 'success'>(
     'loading'
@@ -76,7 +83,7 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   const [allWorkstreams, setAllWorkstreams] = useState<WorkstreamScopeOption[]>([]);
   const [workstreamsLoading, setWorkstreamsLoading] = useState(true);
   const [workstreamsError, setWorkstreamsError] = useState<string | null>(null);
-  const [storedScopeIds, setStoredScopeIds] = useState<string[] | null>(null);
+  const [storedScopeIds, setStoredScopeIds] = useState<string[] | null>(initialScopeIds ?? null);
   const [activeScopedIds, setActiveScopedIds] = useState<string[] | null>(null);
   const [activeSprintId, setActiveSprintId] = useState('');
   const [currentSprintId, setCurrentSprintId] = useState<string | null | undefined>(undefined);
@@ -137,10 +144,15 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
   }, []);
 
   useEffect(() => {
-    const savedIds = loadDashboardWorkstreamScope(window.localStorage, dashboardId);
-    setStoredScopeIds(savedIds);
+    const migratedIds = migrateLocalStorageScopeToCookie(window.localStorage, dashboardId);
+    setStoredScopeIds(
+      migratedIds ??
+        (hasInitialScopeIds
+          ? (initialScopeIds ?? null)
+          : loadDashboardWorkstreamScopeFromCookies(() => document.cookie, dashboardId))
+    );
     setActiveScopedIds(null);
-  }, [dashboardId]);
+  }, [dashboardId, hasInitialScopeIds, initialScopeIds]);
 
   useEffect(() => {
     fetchAllWorkstreams();
@@ -319,7 +331,11 @@ export function DashboardContainer({ dashboard, title = 'Dashboard' }: Dashboard
 
   const handleSaveScope = useCallback(
     (includedWorkstreamIds: string[]) => {
-      saveDashboardWorkstreamScope(window.localStorage, dashboardId, includedWorkstreamIds);
+      try {
+        saveDashboardWorkstreamScopeToCookie(dashboardId, includedWorkstreamIds);
+      } catch {
+        // The active React state below still applies the scope for this session.
+      }
       setStoredScopeIds(includedWorkstreamIds);
       setActiveScopedIds(includedWorkstreamIds);
       setActiveSprintId('');
