@@ -13,11 +13,12 @@
 
 ### Primary Operator
 
-- **Scrum Master / Program Lead** (you): The person who runs the tool, triggers data syncs, uploads transcripts, reviews metrics, and exports slides for distribution.
+- **Scrum Master / Program Lead**: The person who runs the tool, triggers data syncs, uploads transcripts, reviews metrics, and exports slides for distribution.
 
 ### Report Consumers
 
 - **Product Owners (POs):** Need workstream-level detail — feature progress, sprint health, risks affecting their backlog.
+- **Team Members:** Will review data during stand-ups and other meetings as part of their Agile practice.
 - **Directors:** Need cross-workstream view — which workstreams are on track, where are the dependencies and blockers, is Q4 going to land.
 - **Senior Directors:** Need program-level summary — overall RAG status, milestone progress against quarterly commitments, escalation-worthy risks.
 

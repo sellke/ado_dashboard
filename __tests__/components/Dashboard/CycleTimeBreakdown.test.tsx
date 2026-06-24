@@ -170,11 +170,24 @@ describe('CycleTimeBreakdown', () => {
   });
 
   it('leaves unavailable counts static when no drilldown context is provided', () => {
-    render(<CycleTimeBreakdown title="Cycle Time" items={cycleTimeItems} />);
+    render(<CycleTimeBreakdown title="Cycle Time" items={cycleTimeItems} variant="tiles" />);
 
     expect(screen.getByText('1 unavailable')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Open unavailable User Stories cycle-time items' })
     ).not.toBeInTheDocument();
+  });
+
+  it('renders tile layout with total and completed subtext', () => {
+    render(<CycleTimeBreakdown title="Cycle Time" items={cycleTimeItems} variant="tiles" />);
+
+    expect(screen.getByText('Total 12 days • 3 completed')).toBeInTheDocument();
+  });
+
+  it('renders row layout without total subtext', () => {
+    render(<CycleTimeBreakdown title="Cycle Time" items={cycleTimeItems} variant="rows" />);
+
+    expect(screen.getByText('Avg 4 days')).toBeInTheDocument();
+    expect(screen.queryByText('Total 12 days • 3 completed')).not.toBeInTheDocument();
   });
 });

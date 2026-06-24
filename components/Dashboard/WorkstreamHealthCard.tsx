@@ -244,19 +244,27 @@ export function WorkstreamHealthCard({
             </Stack>
 
             {cycleTime.length > 0 ? (
-              <CycleTimeBreakdown
-                title="Cycle Time"
-                items={cycleTime}
-                drilldownContext={
-                  cycleTimeDrilldownContext
-                    ? {
-                        ...cycleTimeDrilldownContext,
-                        workstreamId: card.workstreamId,
-                        scopeLabel: card.workstreamName,
-                      }
-                    : undefined
-                }
-              />
+              <Stack
+                gap="xs"
+                mt="xs"
+                pt="xs"
+                style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+              >
+                <CycleTimeBreakdown
+                  title="Cycle Time"
+                  items={cycleTime}
+                  variant="rows"
+                  drilldownContext={
+                    cycleTimeDrilldownContext
+                      ? {
+                          ...cycleTimeDrilldownContext,
+                          workstreamId: card.workstreamId,
+                          scopeLabel: card.workstreamName,
+                        }
+                      : undefined
+                  }
+                />
+              </Stack>
             ) : null}
 
             <Stack

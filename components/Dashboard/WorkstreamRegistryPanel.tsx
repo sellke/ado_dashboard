@@ -63,24 +63,6 @@ function fieldError(errors: FieldError[], field: string) {
   return errors.find((error) => error.field === field)?.message;
 }
 
-function debugRegistryPanelLog(hypothesisId: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch('http://127.0.0.1:7536/ingest/a2aecde1-a79a-4148-a39b-e39a7d81f8a8', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'abae78' },
-    body: JSON.stringify({
-      sessionId: 'abae78',
-      runId: 'registry-load-initial',
-      hypothesisId,
-      location: 'components/Dashboard/WorkstreamRegistryPanel.tsx',
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-}
-
 export function WorkstreamRegistryPanel({
   opened,
   onClose,
@@ -119,11 +101,6 @@ export function WorkstreamRegistryPanel({
     setDeleteBlocked(null);
 
     try {
-      debugRegistryPanelLog('H4,H5', 'Registry panel load started', {
-        opened,
-        registryUrl: '/api/workstreams?includeDisabled=true',
-        projectsUrl: '/api/ado/projects',
-      });
       const [registryRes, projectsRes] = await Promise.all([
         fetch('/api/workstreams?includeDisabled=true'),
         fetch('/api/ado/projects'),
@@ -136,17 +113,6 @@ export function WorkstreamRegistryPanel({
         projects?: AdoProjectOption[];
         error?: string;
       };
-      debugRegistryPanelLog('H3,H4,H5', 'Registry panel API responses received', {
-        registryStatus: registryRes.status,
-        registryOk: registryRes.ok,
-        registryError: registryData.error ?? null,
-        registryCount: registryData.workstreams?.length ?? null,
-        projectsStatus: projectsRes.status,
-        projectsOk: projectsRes.ok,
-        projectsError: projectsData.error ?? null,
-        projectsCount: projectsData.projects?.length ?? null,
-      });
-
       if (!registryRes.ok) {
         throw new Error(registryData.error ?? `Registry request failed: ${registryRes.status}`);
       }
@@ -159,9 +125,6 @@ export function WorkstreamRegistryPanel({
         setTeamError(projectsData.error ?? `Project discovery failed: ${projectsRes.status}`);
       }
     } catch (err) {
-      debugRegistryPanelLog('H3,H4,H5', 'Registry panel load failed', {
-        message: err instanceof Error ? err.message : String(err),
-      });
       setLoadError(err instanceof Error ? err.message : 'Failed to load registry');
       setWorkstreams([]);
     } finally {

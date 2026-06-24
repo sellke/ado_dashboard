@@ -94,3 +94,18 @@ As a program stakeholder, I want program-level and workstream-level cycle-time s
 ### Deviations from Spec
 
 None
+
+## Visual References
+
+> **2026-06-19 design pass:** Tile integration wireframes — refactor nested `CycleTimeBreakdown` card to match sprint metric tile patterns.
+
+- **Primary layout (program):** `../mockups/program-summary-cycle-time-integration.excalidraw` — cycle time as second tile row, no wrapper card
+- **Mobile layout:** `../mockups/program-summary-cycle-time-mobile.excalidraw` — 1-column stack matching sprint tiles
+- **Workstream card:** `../mockups/workstream-card-cycle-time-integration.excalidraw` — inline rows instead of nested card
+- **Component states:** `../mockups/cycle-time-tile-states.excalidraw` — populated, N/A, partial unavailable
+- **Design notes:** Cards use 8px border-radius (`radius="md"`), 16px padding (`p="md"`), 16px grid gap (`spacing="md"`); unavailable badge mirrors RAG placement
+- **Catalog:** `../mockups/README.md` and `../mockups/component-inventory.md`
+
+### Tile Integration Polish (2026-06-19)
+
+Refactored `CycleTimeBreakdown` with `variant="tiles"` (program summary) and `variant="rows"` (workstream cards). Program level uses individual metric tiles matching sprint tiles; workstream level uses inline rows with divider instead of nested card.

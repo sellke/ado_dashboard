@@ -73,8 +73,10 @@ describe('metric definitions registry', () => {
     it('encodes scope qualifiers for shared program/workstream metrics', () => {
       expect(getMetricTooltip('velocity')).toMatch(/rolling average/i);
       expect(getMetricTooltip('velocity')).toMatch(/program tile/i);
-      expect(getMetricTooltip('overheadPercent')).toMatch(/weighted average/i);
-      expect(getMetricTooltip('carryOverRate')).toMatch(/weighted average/i);
+      expect(getMetricTooltip('overheadPercent')).toMatch(/weighted rolling average/i);
+      expect(getMetricTooltip('overheadPercent')).toMatch(/Workstream tiles show the sprint value/i);
+      expect(getMetricTooltip('carryOverRate')).toMatch(/weighted rolling average/i);
+      expect(getMetricTooltip('carryOverRate')).toMatch(/Workstream tiles show the sprint value/i);
     });
 
     it('reflects velocity Done-like states and Bug/Spike exclusion', () => {

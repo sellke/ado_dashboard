@@ -249,7 +249,7 @@ describe('ProgramSummarySection', () => {
   it('renders program cycle-time totals, averages, N/A, and unavailable counts', () => {
     render(<ProgramSummarySection viewModel={populatedViewModel} />);
 
-    expect(screen.getByText('Program Cycle Time')).toBeInTheDocument();
+    expect(screen.getByText('Cycle Time')).toBeInTheDocument();
     expect(screen.getByText('User Stories')).toBeInTheDocument();
     expect(screen.getByText('Avg 4 days')).toBeInTheDocument();
     expect(screen.getByText('Total 12 days • 3 completed')).toBeInTheDocument();

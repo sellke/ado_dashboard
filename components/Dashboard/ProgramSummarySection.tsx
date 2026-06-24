@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Button, Card, Grid, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { AppLineChart, ChartLegend } from '@/lib/charts';
 import type {
   DashboardViewModel,
@@ -111,48 +111,50 @@ export function ProgramSummarySection({
         </Text>
       )}
       {programMetrics && programMetrics.length > 0 ? (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+        <Grid gutter="md">
           {programMetrics.map((m) => (
-            <Card key={m.label} withBorder padding="md">
-              <Stack gap="xs">
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <Group gap={4} align="center" wrap="nowrap">
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-                      {m.label}
-                    </Text>
-                    {m.metricId && <MetricDefinitionHint metricId={m.metricId} label={m.label} />}
+            <Grid.Col key={m.label} span={{ base: 12, sm: 6, md: 3 }}>
+              <Card withBorder padding="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
+                    <Group gap={4} align="center" wrap="nowrap">
+                      <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                        {m.label}
+                      </Text>
+                      {m.metricId && <MetricDefinitionHint metricId={m.metricId} label={m.label} />}
+                    </Group>
+                    {m.rag !== null && (
+                      <RagBadge
+                        rag={m.rag}
+                        ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null}
+                      />
+                    )}
                   </Group>
-                  {m.rag !== null && (
-                    <RagBadge
-                      rag={m.rag}
-                      ragTooltip={m.metricId ? getRagTooltip(m.metricId) : null}
-                    />
-                  )}
-                </Group>
-                <Text fw={600} size="lg">
-                  {m.value}
-                </Text>
-                {m.avgLabel && (
-                  <Text size="xs" c="dimmed">
-                    {m.avgLabel}
+                  <Text fw={600} size="lg">
+                    {m.value}
                   </Text>
-                )}
-                {m.rollingMetric ? (
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    size="xs"
-                    px={0}
-                    onClick={() => setSelectedRollingMetric(m.rollingMetric ?? null)}
-                    aria-label={`Open rolling details for ${m.label}`}
-                  >
-                    View rolling details
-                  </Button>
-                ) : null}
-              </Stack>
-            </Card>
+                  {m.avgLabel && (
+                    <Text size="xs" c="dimmed">
+                      {m.avgLabel}
+                    </Text>
+                  )}
+                  {m.rollingMetric ? (
+                    <Button
+                      type="button"
+                      variant="subtle"
+                      size="xs"
+                      px={0}
+                      onClick={() => setSelectedRollingMetric(m.rollingMetric ?? null)}
+                      aria-label={`Open rolling details for ${m.label}`}
+                    >
+                      View rolling details
+                    </Button>
+                  ) : null}
+                </Stack>
+              </Card>
+            </Grid.Col>
           ))}
-        </SimpleGrid>
+        </Grid>
       ) : (
         <Text size="sm" c="dimmed">
           No program metrics available
@@ -161,8 +163,9 @@ export function ProgramSummarySection({
 
       {programCycleTime && programCycleTime.length > 0 ? (
         <CycleTimeBreakdown
-          title="Program Cycle Time"
+          title="Cycle Time"
           items={programCycleTime}
+          variant="tiles"
           drilldownContext={
             cycleTimeDrilldownContext
               ? { ...cycleTimeDrilldownContext, scopeLabel: 'Program' }

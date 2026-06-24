@@ -63,13 +63,14 @@ export const METRIC_DEFINITIONS: Record<MetricId, MetricDefinition> = {
   overheadPercent: {
     definition: 'Share of capacity spent on non-delivery work (ceremonies, bugs, spikes, support).',
     calculation:
-      '(ceremony + bug + spike + support hours) ÷ gross hours × 100. The program tile is a weighted average by planned points across workstreams. N/A when gross hours is zero.',
+      '(ceremony + bug + spike + support hours) ÷ gross hours × 100. Workstream tiles show the sprint value; the program tile is a weighted rolling average by planned points across workstreams. N/A when gross hours is zero.',
     ragExplanation: 'Green 0–30%, Amber 30.01–45%, Red above 45%.',
   },
   carryOverRate: {
-    definition: 'Share of planned story points not completed within the sprint.',
+    definition:
+      'The number of points carried over divided by the total planned points within a sprint.',
     calculation:
-      'Carry-over points ÷ planned points × 100; Bugs and Spikes excluded from the point plan. The program tile is a weighted average by planned points across workstreams. N/A when planned points is zero.',
+      'Carry-over points ÷ planned points × 100. Zero when all planned points are done. N/A when there are no planned points. Workstream tiles show the sprint value; the program tile is a weighted rolling average by planned points across workstreams.',
     ragExplanation: 'Green 0–10%, Amber 10.01–25%, Red above 25%.',
   },
   cycleTimeTotal: {

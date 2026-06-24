@@ -181,12 +181,12 @@ export function calculatePredictability(
 /**
  * Compute carry-over metrics: items, points, and rate.
  *
- * - carryOverItems = count of delivery items NOT in Done-like states
- * - carryOverPoints = sum of storyPoints for incomplete delivery items (null → 0)
- * - plannedPoints = sum of delivery items' storyPoints (null → 0)
+ * - plannedPoints = sum of included delivery items' storyPoints (null → 0)
+ * - completedPoints = sum of Done-like delivery items' storyPoints (null → 0)
+ * - carryOverPoints = plannedPoints − completedPoints
  * - carryOverRate = carryOverPoints / plannedPoints × 100
- * - Bug and Spike items are excluded — their effort feeds Overhead hours, not point plans.
- * - Returns null when plannedPoints = 0 (division by zero)
+ * - Included work item types follow metric config delivery-point rules.
+ * - Returns null when plannedPoints = 0 (N/A)
  */
 export function calculateCarryOver(
   workItems: WorkItemInput[],
@@ -199,15 +199,17 @@ export function calculateCarryOver(
     return null;
   }
 
+  const completedPoints = deliveryItems
+    .filter((wi) => (DONE_STATES as readonly string[]).includes(wi.state))
+    .reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
+
+  const carryOverPoints = plannedPoints - completedPoints;
   const incompleteItems = deliveryItems.filter(
     (wi) => !(DONE_STATES as readonly string[]).includes(wi.state)
   );
 
-  const carryOverItems = incompleteItems.length;
-  const carryOverPoints = incompleteItems.reduce((sum, wi) => sum + (wi.storyPoints ?? 0), 0);
-
   return {
-    carryOverItems,
+    carryOverItems: incompleteItems.length,
     carryOverPoints,
     plannedPoints,
     carryOverRate: (carryOverPoints / plannedPoints) * 100,

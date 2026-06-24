@@ -7,10 +7,10 @@ import {
   Badge,
   Button,
   Card,
+  Grid,
   Group,
   Loader,
   Modal,
-  SimpleGrid,
   Stack,
   Table,
   Text,
@@ -26,10 +26,13 @@ export interface CycleTimeDrilldownContext {
   scopeLabel?: string;
 }
 
+export type CycleTimeBreakdownVariant = 'tiles' | 'rows';
+
 export interface CycleTimeBreakdownProps {
-  title: string;
+  title?: string;
   items: CycleTimeTypeViewModel[];
   drilldownContext?: CycleTimeDrilldownContext;
+  variant?: CycleTimeBreakdownVariant;
 }
 
 interface UnavailableCycleTimeItem {
@@ -66,7 +69,49 @@ function buildUnavailableItemsUrl(
   return `/api/metrics/cycle-time/unavailable?${params.toString()}`;
 }
 
-export function CycleTimeBreakdown({ title, items, drilldownContext }: CycleTimeBreakdownProps) {
+function UnavailableBadge({
+  item,
+  canOpenDrilldown,
+  onOpen,
+}: {
+  item: CycleTimeTypeViewModel;
+  canOpenDrilldown: boolean;
+  onOpen: (item: CycleTimeTypeViewModel) => void;
+}) {
+  if (!item.unavailableLabel) {
+    return null;
+  }
+
+  if (canOpenDrilldown) {
+    return (
+      <Badge
+        component="button"
+        type="button"
+        size="xs"
+        variant="light"
+        color="yellow"
+        onClick={() => onOpen(item)}
+        aria-label={`Open unavailable ${item.label} cycle-time items`}
+        style={{ cursor: 'pointer', border: 0 }}
+      >
+        {item.unavailableLabel}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge size="xs" variant="light" color="yellow">
+      {item.unavailableLabel}
+    </Badge>
+  );
+}
+
+export function CycleTimeBreakdown({
+  title = 'Cycle Time',
+  items,
+  drilldownContext,
+  variant = 'tiles',
+}: CycleTimeBreakdownProps) {
   const [selectedItem, setSelectedItem] = useState<CycleTimeTypeViewModel | null>(null);
   const [drilldownItems, setDrilldownItems] = useState<UnavailableCycleTimeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -112,65 +157,81 @@ export function CycleTimeBreakdown({ title, items, drilldownContext }: CycleTime
     ? `${selectedItem.label} unavailable cycle-time items`
     : 'Unavailable cycle-time items';
 
-  return (
-    <>
-      <Card withBorder padding="md">
-        <Stack gap="sm">
-          <Group gap={4} align="center" wrap="nowrap">
-            <Text fw={600}>{title}</Text>
-            <MetricDefinitionHint metricId="cycleTimeAverage" label={title} />
-          </Group>
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-            {items.map((item) => {
-              const canOpenDrilldown = !!drilldownContext && item.unavailableItemCount > 0;
+  const canOpenDrilldownFor = (item: CycleTimeTypeViewModel) =>
+    !!drilldownContext && item.unavailableItemCount > 0;
 
-              return (
-                <Stack
-                  key={item.type}
-                  gap={4}
-                  p="xs"
-                  style={{
-                    border: '1px solid var(--mantine-color-default-border)',
-                    borderRadius: 8,
-                  }}
-                >
-                  <Group justify="space-between" align="center" wrap="nowrap">
+  const sectionHeader =
+    variant === 'rows' ? (
+      <Group gap={4} align="center" wrap="nowrap">
+        <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+          {title}
+        </Text>
+        <MetricDefinitionHint metricId="cycleTimeAverage" label={title} />
+      </Group>
+    ) : (
+      <Group gap={4} align="center" wrap="nowrap">
+        <Text fw={600}>{title}</Text>
+        <MetricDefinitionHint metricId="cycleTimeAverage" label={title} />
+      </Group>
+    );
+
+  const content =
+    variant === 'rows' ? (
+      <Stack gap="xs">
+        {sectionHeader}
+        {items.map((item) => (
+          <Group key={item.type} justify="space-between" align="center" wrap="nowrap" gap="xs">
+            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+              {item.label}
+            </Text>
+            <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+              <Text size="sm" fw={500}>
+                Avg {item.averageLabel}
+              </Text>
+              <UnavailableBadge
+                item={item}
+                canOpenDrilldown={canOpenDrilldownFor(item)}
+                onOpen={loadDrilldown}
+              />
+            </Group>
+          </Group>
+        ))}
+      </Stack>
+    ) : (
+      <Stack gap="md">
+        {sectionHeader}
+        <Grid gutter="md">
+          {items.map((item) => (
+            <Grid.Col key={item.type} span={{ base: 12, sm: 4, md: 4 }}>
+              <Card withBorder padding="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
                     <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
                       {item.label}
                     </Text>
-                    {item.unavailableLabel ? (
-                      canOpenDrilldown ? (
-                        <Badge
-                          component="button"
-                          type="button"
-                          size="xs"
-                          variant="light"
-                          color="yellow"
-                          onClick={() => loadDrilldown(item)}
-                          aria-label={`Open unavailable ${item.label} cycle-time items`}
-                          style={{ cursor: 'pointer', border: 0 }}
-                        >
-                          {item.unavailableLabel}
-                        </Badge>
-                      ) : (
-                        <Badge size="xs" variant="light" color="yellow">
-                          {item.unavailableLabel}
-                        </Badge>
-                      )
-                    ) : null}
+                    <UnavailableBadge
+                      item={item}
+                      canOpenDrilldown={canOpenDrilldownFor(item)}
+                      onOpen={loadDrilldown}
+                    />
                   </Group>
-                  <Text size="sm" fw={600}>
+                  <Text fw={600} size="lg">
                     Avg {item.averageLabel}
                   </Text>
                   <Text size="xs" c="dimmed">
                     Total {item.totalLabel} • {item.completedItemCount} completed
                   </Text>
                 </Stack>
-              );
-            })}
-          </SimpleGrid>
-        </Stack>
-      </Card>
+              </Card>
+            </Grid.Col>
+          ))}
+        </Grid>
+      </Stack>
+    );
+
+  return (
+    <>
+      {content}
 
       <Modal
         opened={selectedItem !== null}
