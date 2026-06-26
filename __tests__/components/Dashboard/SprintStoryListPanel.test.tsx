@@ -152,10 +152,11 @@ describe('SprintStoryListPanel', () => {
         statusGroups: [
           createStatusGroup({ group: 'Planned', stories: [createStoryRow({ statusGroup: 'Planned' })] }),
           createStatusGroup({ group: 'Active', stories: [createStoryRow({ statusGroup: 'Active' })] }),
+          createStatusGroup({ group: 'Testing', stories: [createStoryRow({ statusGroup: 'Testing', title: 'QA story' })] }),
           createStatusGroup({ group: 'Resolved', stories: [createStoryRow({ statusGroup: 'Resolved' })] }),
           createStatusGroup({ group: 'Completed', stories: [createStoryRow({ statusGroup: 'Completed' })] }),
         ],
-        totalStories: 4,
+        totalStories: 5,
       }),
     ];
 
@@ -163,8 +164,34 @@ describe('SprintStoryListPanel', () => {
 
     expect(screen.getByText('Planned')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Testing')).toBeInTheDocument();
     expect(screen.getByText('Resolved')).toBeInTheDocument();
     expect(screen.getByText('Completed')).toBeInTheDocument();
+  });
+
+  it('renders Testing section between Active and Resolved with cyan badges', () => {
+    const sprints = [
+      createSprint({
+        id: 's1',
+        statusGroups: [
+          createStatusGroup({ group: 'Active', stories: [createStoryRow({ statusGroup: 'Active', title: 'Dev story' })] }),
+          createStatusGroup({
+            group: 'Testing',
+            stories: [createStoryRow({ statusGroup: 'Testing', title: 'QA story', storyPoints: '3' })],
+          }),
+          createStatusGroup({ group: 'Resolved', stories: [createStoryRow({ statusGroup: 'Resolved', title: 'Done story' })] }),
+        ],
+        totalStories: 3,
+      }),
+    ];
+
+    render(<SprintStoryListPanel sprints={sprints} activeSprintId="s1" />);
+
+    const headings = screen.getAllByText(/^(Active|Testing|Resolved)$/);
+    expect(headings.map((el) => el.textContent)).toEqual(['Active', 'Testing', 'Resolved']);
+
+    const testingBadges = screen.getByText('Testing').closest('div')?.querySelectorAll('[class*="Badge"]');
+    expect(testingBadges?.length).toBeGreaterThan(0);
   });
 
   it('renders loading skeleton', () => {

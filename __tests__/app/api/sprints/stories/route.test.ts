@@ -140,8 +140,9 @@ describe('GET /api/sprints/stories', () => {
       { adoId: 2, title: 'S2', assignedTo: null, storyPoints: 2, state: 'Approved', sprintId: 'sprint-5' },
       { adoId: 3, title: 'S3', assignedTo: null, storyPoints: 3, state: 'Committed', sprintId: 'sprint-5' },
       { adoId: 4, title: 'S4', assignedTo: null, storyPoints: 4, state: 'Active', sprintId: 'sprint-5' },
-      { adoId: 5, title: 'S5', assignedTo: null, storyPoints: 5, state: 'Resolved', sprintId: 'sprint-5' },
-      { adoId: 6, title: 'S6', assignedTo: null, storyPoints: 6, state: 'Closed', sprintId: 'sprint-5' },
+      { adoId: 5, title: 'S5', assignedTo: null, storyPoints: 5, state: 'Testing', sprintId: 'sprint-5' },
+      { adoId: 6, title: 'S6', assignedTo: null, storyPoints: 6, state: 'Resolved', sprintId: 'sprint-5' },
+      { adoId: 7, title: 'S7', assignedTo: null, storyPoints: 7, state: 'Closed', sprintId: 'sprint-5' },
     ]);
 
     const req = new Request('http://localhost/api/sprints/stories?workstreamId=ws-1');
@@ -153,8 +154,9 @@ describe('GET /api/sprints/stories', () => {
     expect(stories.find((s: { adoId: number }) => s.adoId === 2).statusGroup).toBe('Planned');
     expect(stories.find((s: { adoId: number }) => s.adoId === 3).statusGroup).toBe('Planned');
     expect(stories.find((s: { adoId: number }) => s.adoId === 4).statusGroup).toBe('Active');
-    expect(stories.find((s: { adoId: number }) => s.adoId === 5).statusGroup).toBe('Resolved');
-    expect(stories.find((s: { adoId: number }) => s.adoId === 6).statusGroup).toBe('Completed');
+    expect(stories.find((s: { adoId: number }) => s.adoId === 5).statusGroup).toBe('Testing');
+    expect(stories.find((s: { adoId: number }) => s.adoId === 6).statusGroup).toBe('Resolved');
+    expect(stories.find((s: { adoId: number }) => s.adoId === 7).statusGroup).toBe('Completed');
   });
 
   it('excludes Removed and unknown states from response', async () => {

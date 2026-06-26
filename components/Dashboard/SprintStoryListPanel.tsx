@@ -14,6 +14,7 @@ export interface SprintStoryListPanelProps {
 const STATUS_COLOR: Record<StatusGroup, string> = {
   Planned: 'gray',
   Active: 'blue',
+  Testing: 'cyan',
   Resolved: 'yellow',
   Completed: 'green',
 };

@@ -111,20 +111,21 @@ describe('mapSprintStoriesResponse', () => {
     expect(result[0].statusGroups[0].stories[0].assignedTo).toBe('Jane Doe');
   });
 
-  it('orders status groups: Planned → Active → Resolved → Completed', () => {
+  it('orders status groups: Planned → Active → Testing → Resolved → Completed', () => {
     const response = buildResponse({
       stories: [
         { adoId: 1, title: 'Closed', assignedTo: null, storyPoints: 1, state: 'Closed', statusGroup: 'Completed' },
         { adoId: 2, title: 'Active', assignedTo: null, storyPoints: 2, state: 'Active', statusGroup: 'Active' },
         { adoId: 3, title: 'New', assignedTo: null, storyPoints: 3, state: 'New', statusGroup: 'Planned' },
-        { adoId: 4, title: 'Resolved', assignedTo: null, storyPoints: 4, state: 'Resolved', statusGroup: 'Resolved' },
+        { adoId: 4, title: 'Testing', assignedTo: null, storyPoints: 4, state: 'Testing', statusGroup: 'Testing' },
+        { adoId: 5, title: 'Resolved', assignedTo: null, storyPoints: 5, state: 'Resolved', statusGroup: 'Resolved' },
       ],
     });
 
     const result = mapSprintStoriesResponse(response);
     const groupOrder = result[0].statusGroups.map((g) => g.group);
 
-    expect(groupOrder).toEqual(['Planned', 'Active', 'Resolved', 'Completed']);
+    expect(groupOrder).toEqual(['Planned', 'Active', 'Testing', 'Resolved', 'Completed']);
   });
 
   it('excludes empty status groups from view model', () => {
