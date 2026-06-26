@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.8.0] - 2026-06-26
+
+### Added
+
+- **Testing status group in sprint story metrics** — User Stories in ADO `Testing` state
+  appear in the Sprint Stories panel under a dedicated cyan section between Active and
+  Resolved, with correct lifecycle ordering and counts. Bug burndown and milestone
+  breakdown behavior unchanged.
+  (Testing State Workstream Metrics spec, Stories 1–2)
+
 ## [0.7.0] - 2026-06-22
 
 ### Added
