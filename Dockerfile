@@ -12,13 +12,12 @@ ARG ARTIFACTORY_PASSWORD
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
-COPY scripts/prisma-mirror-auth.sh ./scripts/prisma-mirror-auth.sh
-RUN chmod +x scripts/prisma-mirror-auth.sh \
-  && export PRISMA_ENGINES_MIRROR="${PRISMA_ENGINES_MIRROR}" \
-  && export PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING="${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING}" \
+RUN export PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING="${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING}" \
   && export ARTIFACTORY_USERNAME="${ARTIFACTORY_USERNAME}" \
   && export ARTIFACTORY_PASSWORD="${ARTIFACTORY_PASSWORD}" \
-  && ./scripts/prisma-mirror-auth.sh \
+  && ENCODED_PASSWORD="$(node -e "console.log(encodeURIComponent(process.env.ARTIFACTORY_PASSWORD))")" \
+  && MIRROR_HOST="$(echo "${PRISMA_ENGINES_MIRROR}" | sed 's|^https://||')" \
+  && export PRISMA_ENGINES_MIRROR="https://${ARTIFACTORY_USERNAME}:${ENCODED_PASSWORD}@${MIRROR_HOST}" \
   && pnpm install --frozen-lockfile
 
 FROM base AS builder
