@@ -1,0 +1,22 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ado-dashboard
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/registered
+                    operator: DoesNotExist
+      initContainers:
+        - name: wait-for-postgres
+          image: case.artifacts.medtronic.com/ext-docker-remote/postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h postgres -p 5432; do echo "waiting for postgres"; sleep 2; done

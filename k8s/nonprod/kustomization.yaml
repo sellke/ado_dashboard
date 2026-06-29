@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ado-dashboard
+
+replacements:
+  - source:
+      fieldPath: data.role-arn
+      kind: ConfigMap
+      name: config
+    targets:
+      - fieldPaths:
+          - metadata.annotations.eks\.amazonaws\.com/role-arn
+        select:
+          kind: ServiceAccount
+
+resources:
+  - config.yaml
+  - postgres-configmap.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+  - ../base
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+  - path: secrets-provider.yaml
+    target:
+      kind: SecretProviderClass
+      name: aws-secrets
+
+images:
+  - name: ado-dashboard
+    newName: case.artifacts.medtronic.com/operations_innovation-docker-dev-local/livelink-ado-dashboard
+    newTag: latest

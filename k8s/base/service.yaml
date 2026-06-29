@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ado-dashboard
+  labels:
+    tier: web
+spec:
+  selector:
+    app: ado-dashboard
+    tier: web
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000

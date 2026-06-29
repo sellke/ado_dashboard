@@ -1,0 +1,31 @@
+---
+include:
+  - local: pipeline.yml
+
+variables:
+  K8S_DIR: "k8s"
+  PROJECT: ado-dashboard
+  CI_REGISTRY_IMAGE: "${CI_REGISTRY}/livelink-ado-dashboard"
+  NODE_IMAGE: case.artifacts.medtronic.com/ext-docker-remote/node:22-alpine
+
+stages:
+  - lint
+  - check
+  - test
+  - build
+  - release
+  - deploy
+
+.nonprod:
+  variables:
+    PROMOTION_LEVEL: nonprod
+  environment:
+    name: TF-aipmeccsdf-2-dev
+    deployment_tier: staging
+
+.prod:
+  variables:
+    PROMOTION_LEVEL: prod
+  environment:
+    name: TF-aipmeccsdf-prd
+    deployment_tier: production

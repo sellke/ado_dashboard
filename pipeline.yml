@@ -1,0 +1,96 @@
+---
+include:
+  - file: containers.yml
+    project: Operations_Innovation/devops/semantic-release
+    ref: main
+
+lint:commit:
+  extends: [.lint:commit]
+
+semantic-release-conditions:
+  extends: [.semantic-release-conditions]
+
+test:
+  stage: test
+  tags:
+    - linux-small-amd64-k8s-aws
+  image: $NODE_IMAGE
+  services:
+    - name: case.artifacts.medtronic.com/ext-docker-remote/postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: nextapp
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/nextapp?schema=public"
+  before_script:
+    - apk add --no-cache openssl libc6-compat
+    - corepack enable
+    - pnpm install --frozen-lockfile
+    - pnpm exec prisma migrate deploy
+  script:
+    - pnpm test
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+build-image:
+  extends: .image-build
+  needs:
+    - job: semantic-release-conditions
+    - job: test
+  before_script:
+    - echo VERSION=${VERSION} > version.env
+    - VERSION=${CI_COMMIT_TAG:=$VERSION-SNAPSHOT}
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - "**/*"
+        - "!k8s/**/*"
+        - "!infrastructure/**/k8s/**/*"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "**/*"
+        - "!k8s/**/*"
+        - "!infrastructure/**/k8s/**/*"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: on_success
+    - when: on_success
+
+semantic-release:
+  extends: [.semantic-release]
+
+tag-image:
+  extends: .image-tag
+
+nonprod-deploy:
+  extends:
+    - .nonprod
+    - .deploy-local
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "dev"
+
+prod-deploy:
+  extends:
+    - .prod
+    - .deploy-local
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: manual
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual

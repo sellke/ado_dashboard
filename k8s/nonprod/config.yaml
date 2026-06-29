@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+data:
+  #ingress-host: ado-dashboard.ephemeral.aipmeccsdf-2-dev.eks.mdtcloud.io
+  role-arn: arn:aws:iam::351031447555:role/k8s-SA-ROLE-ado-dashboard-ado-dashboard-secrets-manager
+  #waf-acl-arn: arn:aws:wafv2:us-east-1:351031447555:regional/webacl/TF-aipmeccsdf-2-dev/ed39291d-f6ae-4557-8727-7534edbd6932

@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ado-dashboard
+  labels:
+    app: ado-dashboard
+    tier: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ado-dashboard
+      tier: web
+  template:
+    metadata:
+      labels:
+        app: ado-dashboard
+        tier: web
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      serviceAccountName: ado-dashboard-secrets-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets
+      containers:
+        - name: ado-dashboard
+          image: ado-dashboard
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+          ports:
+            - name: http
+              containerPort: 3000
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/config"
+              readOnly: true
+          env:
+            - name: SECRETS_DIR
+              value: "/config"
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+          readinessProbe:
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 10
+            httpGet:
+              port: 3000
+              path: /
+          livenessProbe:
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 20
+            httpGet:
+              port: 3000
+              path: /
