@@ -6,14 +6,18 @@ include:
 
 lint:commit:
   extends: [.lint:commit]
+  tags:
+    - livelink
 
 semantic-release-conditions:
   extends: [.semantic-release-conditions]
+  tags:
+    - livelink
 
 test:
   stage: test
   tags:
-    - linux-small-amd64-k8s-aws
+    - livelink
   image: $NODE_IMAGE
   services:
     - name: case.artifacts.medtronic.com/ext-docker-remote/postgres:16-alpine
@@ -39,6 +43,8 @@ test:
 
 build-image:
   extends: .image-build
+  tags:
+    - livelink
   needs:
     - job: semantic-release-conditions
     - job: test
@@ -68,14 +74,20 @@ build-image:
 
 semantic-release:
   extends: [.semantic-release]
+  tags:
+    - livelink
 
 tag-image:
   extends: .image-tag
+  tags:
+    - livelink
 
 nonprod-deploy:
   extends:
     - .nonprod
     - .deploy-local
+  tags:
+    - livelink
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
       when: never
@@ -87,6 +99,8 @@ prod-deploy:
   extends:
     - .prod
     - .deploy-local
+  tags:
+    - livelink
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
       when: never
