@@ -23,9 +23,9 @@ stages:
     name: TF-aipmeccsdf-2-dev
     deployment_tier: staging
 
-#.prod:
-#  variables:
-#    PROMOTION_LEVEL: prod
-#  environment:
-#    name: TF-aipmeccsdf-prd
-#    deployment_tier: production
+.prod:
+  variables:
+    PROMOTION_LEVEL: prod
+  environment:
+    name: TF-aipmeccsdf-prd
+    deployment_tier: production
