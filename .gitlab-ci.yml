@@ -6,7 +6,7 @@ variables:
   K8S_DIR: "k8s"
   PROJECT: ado-dashboard
   CI_REGISTRY_IMAGE: "${CI_REGISTRY}/livelink-ado-dashboard"
-  NODE_IMAGE: case.artifacts.medtronic.com/ext-docker-remote/node:22-alpine
+  NODE_IMAGE: case.artifacts.medtronic.com/ext-docker-hub-remote/node:22-alpine
 
 stages:
   - lint
