@@ -449,6 +449,8 @@ export interface StoryRowViewModel {
 export interface StatusGroupViewModel {
   group: StatusGroup;
   stories: StoryRowViewModel[];
+  /** Sum of raw story points in this group (null/unestimated → 0). */
+  totalStoryPoints: number;
 }
 
 /** View model for a single sprint tab in the story list panel */

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.9.0] - 2026-06-29
+
+### Added
+
+- **Status group story point totals** — Sprint Stories panel section header badges show
+  the sum of story points per status group instead of story count. Unestimated stories
+  contribute 0 to the total.
+  (Status Group SP Badge spec, Story 1)
+- **Persisted ADO organization in credentials modal** — Azure DevOps organization is
+  editable in the credentials modal, validated with the PAT, and stored in sync program
+  config. Sync and credential APIs resolve org from database with env fallback.
+
 ## [0.8.0] - 2026-06-26
 
 ### Added

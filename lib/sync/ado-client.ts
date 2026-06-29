@@ -6,6 +6,7 @@
  */
 
 import { getResolvedPat, isPlaceholderPat } from './credentials';
+import { getResolvedAdoOrg } from './sync-config-loader';
 import type { AdoWorkItemRaw } from './mappers';
 import type { AdoCapacityMember, AdoIterationInput } from './types';
 
@@ -14,7 +15,7 @@ const RETRY_MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 500;
 
 export async function resolveAdoEnv(): Promise<{ org: string; pat: string }> {
-  const org = process.env.ADO_ORG?.trim();
+  const org = await getResolvedAdoOrg();
   const pat = await getResolvedPat();
 
   if (!org) {

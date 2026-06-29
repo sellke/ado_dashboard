@@ -31,12 +31,17 @@ export function mapSprintStoriesResponse(
 ): SprintStoryViewModel[] {
   return response.sprints.map((sprint) => {
     const rowsByGroup = new Map<StatusGroup, StoryRowViewModel[]>();
+    const pointsByGroup = new Map<StatusGroup, number>();
     for (const story of sprint.stories) {
       const row = mapStoryRow(story);
       if (!rowsByGroup.has(row.statusGroup)) {
         rowsByGroup.set(row.statusGroup, []);
       }
       rowsByGroup.get(row.statusGroup)!.push(row);
+      pointsByGroup.set(
+        row.statusGroup,
+        (pointsByGroup.get(row.statusGroup) ?? 0) + (story.storyPoints ?? 0)
+      );
     }
 
     const statusGroups: StatusGroupViewModel[] = STATUS_GROUP_ORDER
@@ -44,6 +49,7 @@ export function mapSprintStoriesResponse(
       .map((group) => ({
         group,
         stories: rowsByGroup.get(group)!,
+        totalStoryPoints: pointsByGroup.get(group) ?? 0,
       }));
 
     return {

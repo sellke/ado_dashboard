@@ -43,21 +43,27 @@ describe('AdoCredentialsModal', () => {
 
   it('keeps the modal open and shows inline error when ADO rejects the PAT', async () => {
     const user = userEvent.setup();
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({ configured: true, org: 'Operations-Innovation', patHint: '7890' }),
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        json: () => Promise.resolve({ errorCode: 'AUTH_REJECTED' }),
-      });
+    (global.fetch as jest.Mock).mockImplementation(
+      (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'POST') {
+          return Promise.resolve({
+            ok: false,
+            status: 422,
+            json: () => Promise.resolve({ errorCode: 'AUTH_REJECTED' }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({ configured: true, org: 'Operations-Innovation', patHint: '7890' }),
+        });
+      }
+    );
 
     render(<AdoCredentialsModal opened onClose={jest.fn()} />);
 
+    await screen.findByDisplayValue('Operations-Innovation');
     fireEvent.change(await screen.findByTestId('ado-pat-input'), {
       target: { value: VALID_PAT },
     });
@@ -71,21 +77,27 @@ describe('AdoCredentialsModal', () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
     const onSaved = jest.fn();
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({ configured: true, org: 'Operations-Innovation', patHint: '7890' }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ success: true, configured: true, patHint: '7890' }),
-      });
+    (global.fetch as jest.Mock).mockImplementation(
+      (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ success: true, configured: true, patHint: '7890' }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({ configured: true, org: 'Operations-Innovation', patHint: '7890' }),
+        });
+      }
+    );
 
     render(<AdoCredentialsModal opened onClose={onClose} onSaved={onSaved} />);
 
+    await screen.findByDisplayValue('Operations-Innovation');
     fireEvent.change(await screen.findByTestId('ado-pat-input'), {
       target: { value: ` ${VALID_PAT} ` },
     });
@@ -96,7 +108,7 @@ describe('AdoCredentialsModal', () => {
         '/api/ado/credentials',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ pat: VALID_PAT }),
+          body: JSON.stringify({ pat: VALID_PAT, org: 'Operations-Innovation' }),
         })
       );
       expect(onSaved).toHaveBeenCalledTimes(1);

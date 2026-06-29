@@ -61,7 +61,7 @@ function StatusSection({ group }: { group: StatusGroupViewModel }) {
           {group.group}
         </Text>
         <Badge size="xs" variant="light" color={STATUS_COLOR[group.group]}>
-          {group.stories.length}
+          {group.totalStoryPoints}
         </Badge>
       </Group>
       {group.stories.map((story) => (
