@@ -32,8 +32,6 @@ test:
     - corepack enable
     - export ARTIFACTORY_USERNAME="${ARTIFACTORY_USERNAME}"
     - export ARTIFACTORY_PASSWORD="${ARTIFACTORY_PASSWORD}"
-    - chmod +x scripts/prisma-mirror-auth.sh
-    - ./scripts/prisma-mirror-auth.sh
     - |
       for attempt in 1 2 3 4 5; do
         echo "pnpm install attempt ${attempt}/5"
