@@ -30,6 +30,10 @@ test:
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates
     - corepack enable
+    - export ARTIFACTORY_USERNAME="${ARTIFACTORY_USERNAME}"
+    - export ARTIFACTORY_PASSWORD="${ARTIFACTORY_PASSWORD}"
+    - chmod +x scripts/prisma-mirror-auth.sh
+    - ./scripts/prisma-mirror-auth.sh
     - |
       for attempt in 1 2 3 4 5; do
         echo "pnpm install attempt ${attempt}/5"
@@ -69,7 +73,7 @@ build-image:
   before_script:
     - echo VERSION=${VERSION} > version.env
     - VERSION=${CI_COMMIT_TAG:=$VERSION-SNAPSHOT}
-    - BUILD_ARGS="--build-arg PRISMA_ENGINES_MIRROR=${PRISMA_ENGINES_MIRROR} --build-arg PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING}"
+    - BUILD_ARGS="--build-arg PRISMA_ENGINES_MIRROR=${PRISMA_ENGINES_MIRROR} --build-arg PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING} --build-arg ARTIFACTORY_USERNAME=${ARTIFACTORY_USERNAME} --build-arg ARTIFACTORY_PASSWORD=${ARTIFACTORY_PASSWORD}"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /^chore\(release\):/
       when: never

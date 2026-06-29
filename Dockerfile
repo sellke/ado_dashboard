@@ -1,18 +1,25 @@
 # syntax=docker/dockerfile:1
 
 FROM node:22-alpine AS base
-ARG PRISMA_ENGINES_MIRROR
-ARG PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-ENV PRISMA_ENGINES_MIRROR=${PRISMA_ENGINES_MIRROR}
-ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING}
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 FROM base AS deps
+ARG PRISMA_ENGINES_MIRROR=https://case.artifacts.medtronic.com/artifactory/operations_innovation-generic-dev-local
+ARG PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ARG ARTIFACTORY_USERNAME
+ARG ARTIFACTORY_PASSWORD
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
-RUN pnpm install --frozen-lockfile
+COPY scripts/prisma-mirror-auth.sh ./scripts/prisma-mirror-auth.sh
+RUN chmod +x scripts/prisma-mirror-auth.sh \
+  && export PRISMA_ENGINES_MIRROR="${PRISMA_ENGINES_MIRROR}" \
+  && export PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING="${PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING}" \
+  && export ARTIFACTORY_USERNAME="${ARTIFACTORY_USERNAME}" \
+  && export ARTIFACTORY_PASSWORD="${ARTIFACTORY_PASSWORD}" \
+  && ./scripts/prisma-mirror-auth.sh \
+  && pnpm install --frozen-lockfile
 
 FROM base AS builder
 RUN corepack enable

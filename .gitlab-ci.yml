@@ -7,6 +7,7 @@ variables:
   PROJECT: ado-dashboard
   CI_REGISTRY_IMAGE: "${CI_REGISTRY}/livelink-ado-dashboard"
   NODE_IMAGE: case.artifacts.medtronic.com/ext-docker-hub-remote/node:22-bookworm-slim
+  # Base URL only — CI injects ARTIFACTORY_USERNAME/PASSWORD via scripts/prisma-mirror-auth.sh
   PRISMA_ENGINES_MIRROR: "https://case.artifacts.medtronic.com/artifactory/operations_innovation-generic-dev-local"
   PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: "1"
 
