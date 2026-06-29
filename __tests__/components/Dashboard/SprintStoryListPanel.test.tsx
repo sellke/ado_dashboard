@@ -23,9 +23,17 @@ function createStoryRow(overrides: Partial<StoryRowViewModel> = {}): StoryRowVie
 }
 
 function createStatusGroup(overrides: Partial<StatusGroupViewModel> = {}): StatusGroupViewModel {
+  const stories = overrides.stories ?? [createStoryRow()];
+  const totalStoryPoints =
+    overrides.totalStoryPoints ??
+    stories.reduce(
+      (sum, s) => sum + (s.storyPoints === '\u2014' ? 0 : Number(s.storyPoints)),
+      0
+    );
   return {
     group: 'Active',
-    stories: [createStoryRow()],
+    stories,
+    totalStoryPoints,
     ...overrides,
   };
 }
@@ -93,7 +101,8 @@ describe('SprintStoryListPanel', () => {
     expect(screen.getByText('#42')).toBeInTheDocument();
     expect(screen.getByText('Build login page')).toBeInTheDocument();
     expect(screen.getByText('Bob Smith')).toBeInTheDocument();
-    expect(screen.getByText('8')).toBeInTheDocument();
+    const rowLink = screen.getByRole('link', { name: /Open Build login page/ });
+    expect(rowLink).toHaveTextContent('8');
   });
 
   it('renders ADO deep links that open in new tab', () => {
@@ -253,6 +262,32 @@ describe('SprintStoryListPanel', () => {
 
     render(<SprintStoryListPanel sprints={sprints} activeSprintId="s1" />);
     expect(screen.getByText('Unassigned')).toBeInTheDocument();
+  });
+
+  it('renders status section header badge with total story points, not story count', () => {
+    const sprints = [
+      createSprint({
+        id: 's1',
+        statusGroups: [
+          createStatusGroup({
+            group: 'Active',
+            stories: [
+              createStoryRow({ storyPoints: '5', statusGroup: 'Active' }),
+              createStoryRow({ adoId: '#2', storyPoints: '5', statusGroup: 'Active', title: 'Story 2' }),
+              createStoryRow({ adoId: '#3', storyPoints: '5', statusGroup: 'Active', title: 'Story 3' }),
+            ],
+            totalStoryPoints: 15,
+          }),
+        ],
+        totalStories: 3,
+      }),
+    ];
+
+    render(<SprintStoryListPanel sprints={sprints} activeSprintId="s1" />);
+
+    const activeHeader = screen.getByText('Active').closest('div');
+    expect(activeHeader).toHaveTextContent('15');
+    expect(activeHeader).not.toHaveTextContent('3');
   });
 
   it('displays "\u2014" for stories with no story points', () => {

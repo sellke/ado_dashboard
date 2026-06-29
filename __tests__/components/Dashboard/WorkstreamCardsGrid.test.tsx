@@ -51,9 +51,17 @@ function createStoryRow(overrides: Partial<StoryRowViewModel> = {}): StoryRowVie
 }
 
 function createStatusGroup(overrides: Partial<StatusGroupViewModel> = {}): StatusGroupViewModel {
+  const stories = overrides.stories ?? [createStoryRow()];
+  const totalStoryPoints =
+    overrides.totalStoryPoints ??
+    stories.reduce(
+      (sum, s) => sum + (s.storyPoints === '\u2014' ? 0 : Number(s.storyPoints)),
+      0
+    );
   return {
     group: 'Active',
-    stories: [createStoryRow()],
+    stories,
+    totalStoryPoints,
     ...overrides,
   };
 }

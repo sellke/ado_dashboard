@@ -202,6 +202,56 @@ describe('mapSprintStoriesResponse', () => {
     expect(result[0].statusGroups).toHaveLength(1);
     expect(result[0].statusGroups[0].group).toBe('Planned');
     expect(result[0].statusGroups[0].stories).toHaveLength(3);
+    expect(result[0].statusGroups[0].totalStoryPoints).toBe(6);
+  });
+
+  it('computes totalStoryPoints as sum of story points per group', () => {
+    const response = buildResponse({
+      stories: [
+        { adoId: 1, title: 'Active A', assignedTo: null, storyPoints: 5, state: 'Active', statusGroup: 'Active' },
+        { adoId: 2, title: 'Active B', assignedTo: null, storyPoints: 5, state: 'Active', statusGroup: 'Active' },
+        { adoId: 3, title: 'Active C', assignedTo: null, storyPoints: 5, state: 'Active', statusGroup: 'Active' },
+      ],
+    });
+
+    const result = mapSprintStoriesResponse(response);
+    expect(result[0].statusGroups[0].totalStoryPoints).toBe(15);
+  });
+
+  it('treats null storyPoints as 0 when summing totalStoryPoints', () => {
+    const response = buildResponse({
+      stories: [
+        { adoId: 1, title: 'Estimated', assignedTo: null, storyPoints: 5, state: 'Active', statusGroup: 'Active' },
+        { adoId: 2, title: 'Estimated 2', assignedTo: null, storyPoints: 3, state: 'Active', statusGroup: 'Active' },
+        { adoId: 3, title: 'Unestimated', assignedTo: null, storyPoints: null, state: 'Active', statusGroup: 'Active' },
+      ],
+    });
+
+    const result = mapSprintStoriesResponse(response);
+    expect(result[0].statusGroups[0].totalStoryPoints).toBe(8);
+  });
+
+  it('sets totalStoryPoints to 0 when all stories in group are unestimated', () => {
+    const response = buildResponse({
+      stories: [
+        { adoId: 1, title: 'Unestimated A', assignedTo: null, storyPoints: null, state: 'New', statusGroup: 'Planned' },
+        { adoId: 2, title: 'Unestimated B', assignedTo: null, storyPoints: null, state: 'New', statusGroup: 'Planned' },
+      ],
+    });
+
+    const result = mapSprintStoriesResponse(response);
+    expect(result[0].statusGroups[0].totalStoryPoints).toBe(0);
+  });
+
+  it('sets totalStoryPoints to single story points for one-story group', () => {
+    const response = buildResponse({
+      stories: [
+        { adoId: 1, title: 'Solo', assignedTo: null, storyPoints: 8, state: 'Active', statusGroup: 'Active' },
+      ],
+    });
+
+    const result = mapSprintStoriesResponse(response);
+    expect(result[0].statusGroups[0].totalStoryPoints).toBe(8);
   });
 
   it('handles empty API response (no sprints)', () => {
