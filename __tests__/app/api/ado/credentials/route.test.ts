@@ -27,10 +27,19 @@ jest.mock('@/lib/sync/ado-client', () => ({
   probeAdoPat: jest.fn(),
 }));
 
+jest.mock('@/lib/sync/sync-config-loader', () => ({
+  getResolvedAdoOrg: jest.fn(),
+  saveAdoOrg: jest.fn(),
+}));
+
 const configuredMock = jest.mocked(isCredentialConfigured);
 const hintMock = jest.mocked(getStoredCredentialHint);
 const savePatMock = jest.mocked(savePat);
 const probeMock = jest.mocked(probeAdoPat);
+const { getResolvedAdoOrg, saveAdoOrg } = jest.requireMock('@/lib/sync/sync-config-loader') as {
+  getResolvedAdoOrg: jest.Mock;
+  saveAdoOrg: jest.Mock;
+};
 const ORIGINAL_ENV = process.env;
 const VALID_PAT = 'abcdefghijklmnopqrstuvwxyz1234567890';
 
@@ -48,6 +57,8 @@ describe('/api/ado/credentials', () => {
     process.env = { ...ORIGINAL_ENV, ADO_ORG: 'Operations-Innovation' };
     configuredMock.mockResolvedValue(true);
     hintMock.mockResolvedValue('7890');
+    getResolvedAdoOrg.mockResolvedValue('Operations-Innovation');
+    saveAdoOrg.mockResolvedValue(undefined);
   });
 
   afterAll(() => {
@@ -74,7 +85,7 @@ describe('/api/ado/credentials', () => {
   });
 
   it('POST returns MISSING_ORG when org is unset', async () => {
-    process.env.ADO_ORG = '';
+    getResolvedAdoOrg.mockResolvedValue('');
 
     const res = await POST(postRequest({ pat: VALID_PAT }));
     const data = await res.json();
@@ -82,6 +93,20 @@ describe('/api/ado/credentials', () => {
     expect(res.status).toBe(503);
     expect(data.errorCode).toBe('MISSING_ORG');
     expect(probeMock).not.toHaveBeenCalled();
+  });
+
+  it('POST validates org from request body and persists it', async () => {
+    getResolvedAdoOrg.mockResolvedValue('');
+    probeMock.mockResolvedValue({ ok: true, status: 200, statusText: 'OK' });
+    savePatMock.mockResolvedValue({ patHint: '7890' });
+
+    const res = await POST(postRequest({ pat: VALID_PAT, org: 'My-Org' }));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(probeMock).toHaveBeenCalledWith(VALID_PAT, 'My-Org');
+    expect(saveAdoOrg).toHaveBeenCalledWith('My-Org');
+    expect(data).toEqual({ success: true, configured: true, patHint: '7890' });
   });
 
   it('POST rejects expired or invalid PAT without saving', async () => {

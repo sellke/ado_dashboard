@@ -6,6 +6,7 @@ import {
   isCredentialConfigured,
   savePat,
 } from '@/lib/sync/credentials';
+import { getResolvedAdoOrg, saveAdoOrg } from '@/lib/sync/sync-config-loader';
 
 const MIN_PAT_LENGTH = 20;
 const MAX_PAT_LENGTH = 200;
@@ -16,7 +17,7 @@ function jsonError(status: number, errorCode: string, error: string) {
 }
 
 export async function GET() {
-  const org = process.env.ADO_ORG?.trim() ?? '';
+  const org = await getResolvedAdoOrg();
   const [configured, patHint] = await Promise.all([
     isCredentialConfigured(),
     getStoredCredentialHint(),
@@ -32,14 +33,15 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const pat = typeof body?.pat === 'string' ? body.pat.trim() : '';
+  const bodyOrg = typeof body?.org === 'string' ? body.org.trim() : '';
 
   if (pat.length < MIN_PAT_LENGTH || pat.length > MAX_PAT_LENGTH) {
     return jsonError(422, 'VALIDATION_ERROR', 'PAT must be between 20 and 200 characters.');
   }
 
-  const org = process.env.ADO_ORG?.trim();
+  const org = bodyOrg || (await getResolvedAdoOrg());
   if (!org) {
-    return jsonError(503, 'MISSING_ORG', 'ADO_ORG is not configured.');
+    return jsonError(503, 'MISSING_ORG', 'Azure DevOps organization is required.');
   }
 
   const probe = await probeAdoPat(pat, org).catch(() => null);
@@ -61,6 +63,9 @@ export async function POST(request: Request) {
 
   try {
     const { patHint } = await savePat(pat);
+    if (bodyOrg) {
+      await saveAdoOrg(bodyOrg);
+    }
     return NextResponse.json({ success: true, configured: true, patHint });
   } catch (err) {
     if (err instanceof CredentialEncryptionError) {

@@ -33,7 +33,7 @@ function errorMessageFor(code?: string, fallback?: string): string {
     return 'Credential encryption is not configured. Set CREDENTIAL_ENCRYPTION_KEY and try again.';
   }
   if (code === 'MISSING_ORG') {
-    return 'ADO_ORG is not configured on the server.';
+    return 'Azure DevOps organization is required.';
   }
   if (code === 'VALIDATION_ERROR') {
     return fallback ?? 'PAT must be between 20 and 200 characters.';
@@ -79,7 +79,12 @@ export function AdoCredentialsModal({ opened, onClose, onSaved }: AdoCredentials
   }, [opened]);
 
   async function handleSave() {
+    const trimmedOrg = org.trim();
     const trimmedPat = pat.trim();
+    if (!trimmedOrg) {
+      setError('Azure DevOps organization is required.');
+      return;
+    }
     if (trimmedPat.length < 20 || trimmedPat.length > 200) {
       setError('PAT must be between 20 and 200 characters.');
       return;
@@ -91,7 +96,7 @@ export function AdoCredentialsModal({ opened, onClose, onSaved }: AdoCredentials
       const res = await fetch('/api/ado/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pat: trimmedPat }),
+        body: JSON.stringify({ pat: trimmedPat, org: trimmedOrg }),
       });
       const data = (await res.json()) as CredentialSaveResponse;
       if (!res.ok || !data.success) {
@@ -119,10 +124,16 @@ export function AdoCredentialsModal({ opened, onClose, onSaved }: AdoCredentials
     <Modal opened={opened} onClose={onClose} title="Update ADO credentials" centered>
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Enter a new Azure DevOps PAT. The organization is read from server configuration.
+          Enter your Azure DevOps organization and a new PAT. Both are validated and saved for sync.
         </Text>
 
-        <TextInput label="Azure DevOps organization" value={org} readOnly disabled={loading} />
+        <TextInput
+          label="Azure DevOps organization"
+          value={org}
+          disabled={loading || saving}
+          data-testid="ado-org-input"
+          onChange={(event) => setOrg(event.currentTarget.value)}
+        />
 
         {patHint && (
           <Text size="sm" c="dimmed">
