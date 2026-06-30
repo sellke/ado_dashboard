@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 (nothing yet)
 
+## [0.10.0] - 2026-06-30
+
+### Added
+
+- **ADP metrics dashboard toggle** — Program-wide `includeAdpMetrics` flag in Metric
+  Configuration Inclusion Rules. When excluded, the ADP Milestones panel is hidden,
+  `/api/milestones` fetches are skipped, and ADP slides/tiles are omitted from PPTX
+  export. Defaults to included (today's behavior).
+  (ADP Metrics Dashboard Toggle spec, Stories 1–4)
+- **Kubernetes deployment** — Dockerfile, GitLab CI pipeline, and k8s manifests for
+  nonprod deployment with in-cluster PostgreSQL.
+
+### Internal
+
+- CI/CD and container configuration fixes for Artifactory registry, Prisma engine
+  mirroring, and GitLab runner tags.
+
 ## [0.9.0] - 2026-06-29
 
 ### Added
