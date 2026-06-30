@@ -48,7 +48,10 @@ interface MetricConfigPanelProps {
 }
 
 type EditableThreshold = Record<keyof ThresholdConfigInput, string>;
-type EditableEngine = Record<keyof MetricEngineConfigInput, string>;
+type EditableEngine = Record<
+  Exclude<keyof MetricEngineConfigInput, 'includeAdpMetrics'>,
+  string
+>;
 
 const METRIC_LABELS: Record<string, string> = {
   overheadPercent: 'Overhead percent',
@@ -91,7 +94,7 @@ function toEditableEngine(engine: MetricEngineConfigInput): EditableEngine {
   };
 }
 
-function parseEditableEngine(engine: EditableEngine): MetricEngineConfigInput {
+function parseEditableEngine(engine: EditableEngine): Omit<MetricEngineConfigInput, 'includeAdpMetrics'> {
   const parseNumber = (value: string) => (value.trim() === '' ? Number.NaN : Number(value));
 
   return {
@@ -115,6 +118,7 @@ export function MetricConfigPanel({
   const [thresholds, setThresholds] = useState<EditableThreshold[]>([]);
   const [engine, setEngine] = useState<EditableEngine>(toEditableEngine(DEFAULT_ENGINE_CONFIG));
   const [rules, setRules] = useState<MetricRuleConfigInput[]>([]);
+  const [includeAdpMetrics, setIncludeAdpMetrics] = useState(true);
   const [validationErrors, setValidationErrors] = useState<ConfigValidationError[]>([]);
 
   const parsedThresholds = useMemo(() => thresholds.map(toThreshold), [thresholds]);
@@ -138,6 +142,7 @@ export function MetricConfigPanel({
       setThresholds(visible.map(toEditable));
       setEngine(toEditableEngine(data.engine));
       setRules(data.rules);
+      setIncludeAdpMetrics(data.engine.includeAdpMetrics ?? true);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Failed to load metric configuration');
       setThresholds([]);
@@ -242,10 +247,11 @@ export function MetricConfigPanel({
       const res = await fetch('/api/metric-config/rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules }),
+        body: JSON.stringify({ rules, includeAdpMetrics }),
       });
       const data = (await res.json()) as {
         rules?: MetricRuleConfigInput[];
+        includeAdpMetrics?: boolean;
         errors?: ConfigValidationError[];
         error?: string;
       };
@@ -262,6 +268,9 @@ export function MetricConfigPanel({
         return;
       }
       setRules(data.rules ?? rules);
+      if (typeof data.includeAdpMetrics === 'boolean') {
+        setIncludeAdpMetrics(data.includeAdpMetrics);
+      }
       notifications.show({ color: 'green', title: 'Saved', message: 'Metric rules saved.' });
     } catch (err) {
       notifications.show({
@@ -306,7 +315,7 @@ export function MetricConfigPanel({
         });
         return;
       }
-      setEngine(toEditableEngine(data.engine ?? parsedEngine));
+      setEngine(toEditableEngine(data.engine ?? { ...parsedEngine, includeAdpMetrics }));
       notifications.show({ color: 'green', title: 'Saved', message: 'Metric engine saved.' });
     } catch (err) {
       notifications.show({
@@ -456,6 +465,19 @@ export function MetricConfigPanel({
 
           <Tabs.Panel value="rules" pt="md">
             <Stack gap="md">
+              <Stack gap="xs">
+                <Text fw={600}>ADP metrics</Text>
+                <Checkbox
+                  aria-label="Include ADP metrics on dashboard and export"
+                  label="Include ADP metrics on dashboard and export"
+                  checked={includeAdpMetrics}
+                  onChange={(event) => setIncludeAdpMetrics(event.currentTarget.checked)}
+                />
+                <Text size="sm" c="dimmed">
+                  Changes take effect after you reload the dashboard. Azure DevOps sync is unaffected
+                  — milestone-tagged Features continue to sync.
+                </Text>
+              </Stack>
               <Text size="sm" c="dimmed">
                 Defaults reproduce current behavior: Bug and Spike are excluded from delivery
                 points; Bug, Spike, and Support count toward overhead hours.

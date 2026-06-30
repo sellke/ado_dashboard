@@ -1,4 +1,5 @@
 import type { ExportInput } from './types';
+import { isAdpMetricsIncluded } from '@/lib/metrics/config-rules';
 
 /**
  * Ordered slide section kinds for the layered export deck.
@@ -116,12 +117,14 @@ export function buildSlidePlan(
       workstreamId: ws.workstreamId,
       workstreamName: ws.workstreamName,
     });
-    push({
-      kind: 'workstream-milestone',
-      sectionLabel: 'Milestones',
-      workstreamId: ws.workstreamId,
-      workstreamName: ws.workstreamName,
-    });
+    if (isAdpMetricsIncluded(input)) {
+      push({
+        kind: 'workstream-milestone',
+        sectionLabel: 'Milestones',
+        workstreamId: ws.workstreamId,
+        workstreamName: ws.workstreamName,
+      });
+    }
   }
 
   if (includeAppendices) {
@@ -131,7 +134,7 @@ export function buildSlidePlan(
     if (hasCycleTimeAppendixData(input)) {
       push({ kind: 'cycle-time-appendix', sectionLabel: 'Cycle Time Appendix' });
     }
-    if (hasMilestoneContextData(input)) {
+    if (isAdpMetricsIncluded(input) && hasMilestoneContextData(input)) {
       push({ kind: 'milestone-context-appendix', sectionLabel: 'Milestone Context Appendix' });
     }
     if (hasPartialDataCaveats(input)) {

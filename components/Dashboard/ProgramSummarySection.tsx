@@ -26,6 +26,7 @@ export interface ProgramSummarySectionProps {
   milestoneQuarterGroups?: MilestoneQuarterGroup[];
   milestonesLoading?: boolean;
   milestonesError?: string | null;
+  showAdpMetrics?: boolean;
   cycleTimeDrilldownContext?: CycleTimeDrilldownContext;
 }
 
@@ -77,6 +78,7 @@ export function ProgramSummarySection({
   milestoneQuarterGroups = [],
   milestonesLoading,
   milestonesError,
+  showAdpMetrics = true,
   cycleTimeDrilldownContext,
 }: ProgramSummarySectionProps) {
   const [selectedRollingMetric, setSelectedRollingMetric] =
@@ -174,14 +176,16 @@ export function ProgramSummarySection({
         />
       ) : null}
 
-      <Stack gap="xs">
-        <Text fw={600}>ADP Milestones</Text>
-        <MilestoneQuarterlyPanel
-          quarterGroups={milestoneQuarterGroups}
-          loading={milestonesLoading}
-          error={milestonesError}
-        />
-      </Stack>
+      {showAdpMetrics ? (
+        <Stack gap="xs">
+          <Text fw={600}>ADP Milestones</Text>
+          <MilestoneQuarterlyPanel
+            quarterGroups={milestoneQuarterGroups}
+            loading={milestonesLoading}
+            error={milestonesError}
+          />
+        </Stack>
+      ) : null}
 
       {programTrendSprints.length > 0 && (
         <Stack gap="md">

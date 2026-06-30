@@ -1,22 +1,27 @@
-# Writ Project Context
+# Project Context
 
-> Last Updated: 2026-06-29T00:00:00Z
+> Auto-maintained by `/implement-spec` and `/implement-story`. Last updated: 2026-06-29.
 
 ## Active Spec
 
-- **Spec:** 2026-06-29-status-group-sp-total — Status Group Badge Story Point Totals
-- **Status:** Complete
-- **Story:** 1 of 1 — Status Group SP Badge (Completed ✅)
-- **Progress:** 6/6 tasks complete (100%)
+**2026-06-29-adp-metrics-dashboard-toggle** — Complete
 
-## What Was Built
+Program-wide `includeAdpMetrics` toggle on `MetricEngineConfig`; Inclusion Rules UI; dashboard milestone fetch/panel gating; export slide/tile gating.
 
-- Added `totalStoryPoints: number` to `StatusGroupViewModel` in `lib/dashboard/types.ts`
-- `mapSprintStoriesResponse()` sums raw API `storyPoints ?? 0` per status group in `lib/dashboard/sprint-stories-adapter.ts`
-- `StatusSection` header badge in `SprintStoryListPanel.tsx` renders `group.totalStoryPoints` instead of `group.stories.length`
-- Adapter tests for multi-story sum, null → 0, single-story, and all-unestimated groups
-- Panel test asserting header badge shows point total; test factories derive `totalStoryPoints` from story rows
+## Recent Changes
 
-## Open Issues
+- Added `includeAdpMetrics Boolean @default(true)` to `MetricEngineConfig` (migration `20260629210927_add_include_adp_metrics`)
+- Extended `PUT /api/metric-config/rules` with optional `includeAdpMetrics` in same transaction as rule upserts
+- `MetricConfigPanel` Inclusion Rules tab: ADP checkbox + helper text; saves flag with rules
+- `DashboardContainer`: loads metric config on mount; skips `/api/milestones` when excluded; passes `showAdpMetrics` to shell
+- Export: `buildSlidePlan`, `buildProgramSummaryTiles`, `enrichExportInput` honor `includeAdpMetrics`
 
-- Origin improvement issue: `.writ/issues/improvements/2026-06-29-status-group-sp-total.md` — may be closable
+## Test Status
+
+- 1473 tests passing (full suite)
+- TypeScript: `tsc --noEmit` clean
+
+## Next Steps
+
+- Manual verify: toggle ADP off in Metric configuration → Save rules → reload → confirm panel hidden and export omits milestone content
+- Optional: `/verify-spec`, `/ship`

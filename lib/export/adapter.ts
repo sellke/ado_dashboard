@@ -5,6 +5,7 @@ import type {
   WorkstreamCardViewModel,
 } from '@/lib/dashboard/types';
 import type { ApiProgramMilestoneRollup } from '@/lib/milestones/types';
+import { isAdpMetricsIncluded } from '@/lib/metrics/config-rules';
 import type {
   ExportCycleTimeSection,
   ExportCycleTimeTypeRow,
@@ -251,7 +252,8 @@ export function mapMilestoneContext(
 
 export function deriveDataCaveats(
   viewModel: DashboardViewModel,
-  programRollup: ApiProgramMilestoneRollup | null
+  programRollup: ApiProgramMilestoneRollup | null,
+  includeAdpMetrics = true
 ): ExportDataCaveat[] {
   const caveats: ExportDataCaveat[] = [];
 
@@ -279,7 +281,7 @@ export function deriveDataCaveats(
     }
   }
 
-  if (!programRollup) {
+  if (includeAdpMetrics && !programRollup) {
     caveats.push({
       severity: 'info',
       scopeLabel: 'Program',
@@ -297,13 +299,19 @@ export function enrichExportInput(
   viewModel: DashboardViewModel,
   programRollup: ApiProgramMilestoneRollup | null
 ): ExportInput {
+  const adpIncluded = isAdpMetricsIncluded(base);
+  const effectiveRollup = adpIncluded ? programRollup : null;
+
   return {
     ...base,
+    includeAdpMetrics: adpIncluded,
+    programRollup: adpIncluded ? base.programRollup : null,
+    milestones: adpIncluded ? base.milestones : [],
     visualizationSummary: mapVisualizationSummary(viewModel, base.sprintName, base.computedAt),
     workstreamSnapshots: mapWorkstreamSnapshots(base.workstreams),
     rollingMetricAppendix: mapRollingMetricAppendix(viewModel.programMetrics, base.workstreams),
     cycleTimeAppendix: mapCycleTimeAppendix(viewModel.programCycleTime, base.workstreams),
-    milestoneContext: mapMilestoneContext(programRollup),
-    dataCaveats: deriveDataCaveats(viewModel, programRollup),
+    milestoneContext: adpIncluded ? mapMilestoneContext(effectiveRollup) : null,
+    dataCaveats: deriveDataCaveats(viewModel, effectiveRollup, adpIncluded),
   };
 }

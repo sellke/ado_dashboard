@@ -100,4 +100,32 @@ describe('buildSlidePlan', () => {
     expect(withData.descriptors.some((d) => d.kind === 'rolling-metric-appendix')).toBe(true);
     expect(withData.descriptors.some((d) => d.kind === 'partial-data-appendix')).toBe(true);
   });
+
+  it('produces 1 + (workstreams × 3) slides when ADP metrics are excluded', () => {
+    const plan = buildSlidePlan(makeInput(1, { includeAdpMetrics: false }));
+    expect(plan.totalSlides).toBe(4);
+    expect(plan.descriptors.map((d) => d.kind)).toEqual([
+      'program-summary',
+      'workstream-velocity',
+      'workstream-bug-burndown',
+      'workstream-overhead',
+    ]);
+  });
+
+  it('omits milestone appendix slides when ADP metrics are excluded', () => {
+    const plan = buildSlidePlan(
+      makeInput(1, {
+        includeAdpMetrics: false,
+        milestoneContext: {
+          monthlyRollupLabel: 'March 2026',
+          quarterlyRollupLabel: 'Q4',
+          sparseDataCaveat: null,
+        },
+      }),
+      { includeAppendices: true }
+    );
+
+    expect(plan.descriptors.some((d) => d.kind === 'workstream-milestone')).toBe(false);
+    expect(plan.descriptors.some((d) => d.kind === 'milestone-context-appendix')).toBe(false);
+  });
 });

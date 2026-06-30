@@ -103,6 +103,8 @@ export interface ExportInput {
   rawWorkstreams: ApiWorkstream[];
   /** Milestone goals with burnup data — empty array when milestone data is unavailable. */
   milestones: ApiMilestoneWithProgress[];
+  /** When false, omit ADP milestone slides/tiles from export. Defaults to included. */
+  includeAdpMetrics?: boolean;
 
   /** Optional layered-deck visualization fields — absent during incremental rollout. */
   visualizationSummary?: ExportVisualizationSummary;

@@ -20,6 +20,7 @@ const configResponse = {
     velocityAmberFloor: 0.7,
     rollingWindow: 4,
     cycleTimeRollingWindow: 4,
+    includeAdpMetrics: true,
   },
   rules: [],
 };
@@ -200,6 +201,57 @@ describe('MetricConfigPanel', () => {
       expect(global.fetch).toHaveBeenLastCalledWith(
         '/api/metric-config/rules',
         expect.objectContaining({ method: 'PUT' })
+      );
+    });
+    expect(await screen.findByText(/Metric rules saved/i)).toBeInTheDocument();
+  });
+
+  it('renders ADP metrics checkbox from engine config and saves includeAdpMetrics', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...configWithRules,
+            engine: { ...configResponse.engine, includeAdpMetrics: true },
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            rules: configWithRules.rules,
+            includeAdpMetrics: false,
+          }),
+      });
+
+    render(<MetricConfigPanel opened onClose={jest.fn()} />);
+
+    await user.click(await screen.findByRole('tab', { name: /inclusion rules/i }));
+    const adpCheckbox = await screen.findByLabelText(
+      'Include ADP metrics on dashboard and export'
+    );
+    expect(adpCheckbox).toBeChecked();
+    expect(
+      screen.getByText(/Changes take effect after you reload the dashboard/i)
+    ).toBeInTheDocument();
+
+    await user.click(adpCheckbox);
+    await user.click(screen.getByRole('button', { name: /save rules/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        '/api/metric-config/rules',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({
+            rules: configWithRules.rules,
+            includeAdpMetrics: false,
+          }),
+        })
       );
     });
     expect(await screen.findByText(/Metric rules saved/i)).toBeInTheDocument();

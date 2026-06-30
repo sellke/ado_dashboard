@@ -58,6 +58,82 @@ const mockEmptyResponse = {
   computedAt: null,
 };
 
+const defaultProgramRollup = {
+  currentMonth: 'March 2026',
+  currentMonthCompletionPercent: null,
+  currentMonthTotalSP: 0,
+  currentMonthCompletedSP: 0,
+  quarterlyMilestones: { total: 0, complete: 0, inProgress: 0, notStarted: 0 },
+};
+
+function metricConfigResponse(includeAdpMetrics = true) {
+  return {
+    thresholds: [],
+    engine: {
+      velocityGreenFloor: 1,
+      velocityAmberFloor: 0.7,
+      rollingWindow: 4,
+      cycleTimeRollingWindow: 4,
+      includeAdpMetrics,
+    },
+    rules: [],
+  };
+}
+
+function createDashboardFetchMock(
+  overrides: {
+    includeAdpMetrics?: boolean;
+    metrics?: typeof mockSuccessResponse;
+    milestones?: typeof mockMilestonesWithBreakdown | { milestones: []; programRollup: typeof defaultProgramRollup };
+    workstreams?: Array<{ id: string; name: string; adoAreaPath?: string; syncEnabled?: boolean }>;
+    handler?: (url: string) => ReturnType<typeof Promise.resolve> | undefined;
+  } = {}
+) {
+  return (url: string) => {
+    const custom = overrides.handler?.(url);
+    if (custom) {
+      return custom;
+    }
+    if (url.includes('/api/metric-config')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(metricConfigResponse(overrides.includeAdpMetrics ?? true)),
+      });
+    }
+    if (url.includes('/api/workstreams')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            workstreams: overrides.workstreams ?? [
+              { id: 'ws-1', name: 'Action Tracker', syncEnabled: true },
+            ],
+          }),
+      });
+    }
+    if (url.includes('/api/milestones')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            overrides.milestones ?? { milestones: [], programRollup: defaultProgramRollup }
+          ),
+      });
+    }
+    if (url.includes('/api/sprints/stories')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ sprints: [] }) });
+    }
+    if (url.includes('/api/metrics')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(overrides.metrics ?? mockSuccessResponse),
+      });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+  };
+}
+
 const mockSuccessResponse = {
   sprint: { id: 's1', name: 'Sprint 27.1', startDate: '2026-04-27', endDate: '2026-05-08' },
   workstreams: [
@@ -119,10 +195,7 @@ describe('DashboardContainer', () => {
   });
 
   it('shows success state when API returns data', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockSuccessResponse),
-    });
+    (global.fetch as jest.Mock).mockImplementation(createDashboardFetchMock());
 
     render(<DashboardContainer />);
 
@@ -442,15 +515,55 @@ describe('DashboardContainer', () => {
       computedAt: null,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(nullMetricPayload),
-    });
+    (global.fetch as jest.Mock).mockImplementation(
+      createDashboardFetchMock({ metrics: nullMetricPayload as unknown as typeof mockSuccessResponse })
+    );
 
     render(<DashboardContainer />);
 
     expect(await screen.findByText('Test')).toBeInTheDocument();
     expect(screen.getByText(/Planned: N\/A/)).toBeInTheDocument();
+  });
+
+  it('skips milestone fetch when includeAdpMetrics is false', async () => {
+    (global.fetch as jest.Mock).mockImplementation(
+      createDashboardFetchMock({ includeAdpMetrics: false })
+    );
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/metric-config');
+    });
+
+    const milestoneCalls = (global.fetch as jest.Mock).mock.calls.filter(([url]) =>
+      String(url).includes('/api/milestones')
+    );
+    expect(milestoneCalls).toHaveLength(0);
+    expect(screen.queryByText('ADP Milestones')).not.toBeInTheDocument();
+  });
+
+  it('defaults ADP to included when metric config load fails', async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/metric-config')) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({ error: 'Config unavailable' }),
+        });
+      }
+      return createDashboardFetchMock()(url);
+    });
+
+    render(<DashboardContainer />);
+
+    expect(await screen.findByText(/Sprint 27\.1/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/milestones'));
+    });
+    expect(screen.getByText('ADP Milestones')).toBeInTheDocument();
   });
 
   it('restores saved workstream scope and sends it to metrics and milestones fetches', async () => {

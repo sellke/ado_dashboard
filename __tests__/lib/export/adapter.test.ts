@@ -43,7 +43,10 @@ function makeViewModel(overrides: Partial<DashboardViewModel> = {}): DashboardVi
   };
 }
 
-function makeBaseInput(workstreams: WorkstreamCardViewModel[] = []): ExportInput {
+function makeBaseInput(
+  workstreams: WorkstreamCardViewModel[] = [],
+  extras: Partial<ExportInput> = {}
+): ExportInput {
   return {
     sprintName: 'Sprint 24',
     computedAt: '2026-06-17T12:00:00Z',
@@ -54,6 +57,7 @@ function makeBaseInput(workstreams: WorkstreamCardViewModel[] = []): ExportInput
     workstreams,
     rawWorkstreams: [],
     milestones: [],
+    ...extras,
   };
 }
 
@@ -127,6 +131,39 @@ describe('export adapter', () => {
     expect(enriched.visualizationSummary?.healthLabel).toBe('Needs Attention');
     expect(enriched.workstreamSnapshots).toHaveLength(1);
     expect(enriched.dataCaveats?.some((c) => c.message.includes('Milestone rollup'))).toBe(true);
+  });
+
+  it('strips milestone export fields when ADP metrics are excluded', () => {
+    const enriched = enrichExportInput(
+      makeBaseInput([], {
+        includeAdpMetrics: false,
+        milestones: [{ id: 'ms-1' } as ExportInput['milestones'][number]],
+        programRollup: {
+          currentMonth: 'March 2026',
+          currentMonthCompletionPercent: 50,
+          currentMonthTotalSP: 10,
+          currentMonthCompletedSP: 5,
+          quarter: 'Q4',
+          quarterlyMilestones: { total: 1, complete: 0, inProgress: 1, notStarted: 0 },
+        },
+      }),
+      makeViewModel(),
+      {
+        currentMonth: 'March 2026',
+        currentMonthCompletionPercent: 50,
+        currentMonthTotalSP: 10,
+        currentMonthCompletedSP: 5,
+        quarter: 'Q4',
+        quarterlyMilestones: { total: 1, complete: 0, inProgress: 1, notStarted: 0 },
+      }
+    );
+
+    expect(enriched.milestones).toEqual([]);
+    expect(enriched.programRollup).toBeNull();
+    expect(enriched.milestoneContext).toBeNull();
+    expect(enriched.dataCaveats?.some((c) => c.sectionId === 'milestone-context-appendix')).toBe(
+      false
+    );
   });
 
   it('derives program metric caveat when metrics are missing', () => {

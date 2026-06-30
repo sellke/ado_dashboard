@@ -2,6 +2,7 @@ import type PptxGenJS from 'pptxgenjs';
 import { BugBurndownChart } from '@/components/Dashboard/BugBurndownChart';
 import { VelocityTrendChart } from '@/components/Dashboard/VelocityTrendChart';
 import type { WorkstreamCardViewModel } from '@/lib/dashboard/types';
+import { isAdpMetricsIncluded } from '@/lib/metrics/config-rules';
 import { MDT_COLORS, MDT_FONT, MDT_TYPO, mdtContentTop } from '../mdt-theme';
 import { ragColor } from '../rag-colors';
 import { addChartUnavailablePlaceholder, addEmptyDataPanel } from '../placeholders';
@@ -45,6 +46,10 @@ function buildTiles(input: ExportInput): TileData[] {
     }
   }
 
+  if (!isAdpMetricsIncluded(input)) {
+    return tiles;
+  }
+
   const rollup = input.programRollup;
   const monthlyPct =
     rollup?.currentMonthCompletionPercent != null
@@ -69,6 +74,11 @@ function buildTiles(input: ExportInput): TileData[] {
   });
 
   return tiles;
+}
+
+/** Exported for unit tests — builds program summary metric tiles including optional ADP rollup tiles. */
+export function buildProgramSummaryTiles(input: ExportInput): TileData[] {
+  return buildTiles(input);
 }
 
 /**

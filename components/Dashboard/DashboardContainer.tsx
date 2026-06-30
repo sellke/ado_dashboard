@@ -24,6 +24,7 @@ import {
   saveDashboardWorkstreamScopeToCookie,
   type WorkstreamScopeOption,
 } from '@/lib/dashboard/workstream-scope';
+import { isAdpMetricsIncluded } from '@/lib/metrics/config-rules';
 import { buildPresentation, enrichExportInput, type ExportInput } from '@/lib/export';
 import type {
   ApiMilestonesResponse,
@@ -63,8 +64,10 @@ export function DashboardContainer({
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [milestones, setMilestones] = useState<ApiMilestoneWithProgress[]>([]);
   const [programRollup, setProgramRollup] = useState<ApiProgramMilestoneRollup | null>(null);
-  const [milestonesLoading, setMilestonesLoading] = useState(true);
+  const [milestonesLoading, setMilestonesLoading] = useState(false);
   const [milestonesError, setMilestonesError] = useState<string | null>(null);
+  const [includeAdpMetrics, setIncludeAdpMetrics] = useState(true);
+  const [metricConfigLoaded, setMetricConfigLoaded] = useState(false);
   const [sprintStoriesMap, setSprintStoriesMap] = useState<Record<string, SprintStoryViewModel[]>>(
     {}
   );
@@ -244,6 +247,14 @@ export function DashboardContainer({
   );
 
   const fetchMilestones = useCallback(async () => {
+    if (!isAdpMetricsIncluded({ includeAdpMetrics })) {
+      setMilestones([]);
+      setProgramRollup(null);
+      setMilestonesLoading(false);
+      setMilestonesError(null);
+      return;
+    }
+
     const requestId = ++milestonesRequestIdRef.current;
     setMilestonesLoading(true);
     setMilestonesError(null);
@@ -282,7 +293,48 @@ export function DashboardContainer({
         setMilestonesLoading(false);
       }
     }
-  }, [milestonesUrl]);
+  }, [milestonesUrl, includeAdpMetrics]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMetricConfig() {
+      try {
+        const res = await fetch('/api/metric-config');
+        const data = (await res.json()) as {
+          engine?: { includeAdpMetrics?: boolean };
+          error?: string;
+        };
+        if (cancelled) {
+          return;
+        }
+        if (res.ok) {
+          const included = data.engine?.includeAdpMetrics ?? true;
+          setIncludeAdpMetrics(included);
+          if (!included) {
+            setMilestones([]);
+            setProgramRollup(null);
+            setMilestonesLoading(false);
+            setMilestonesError(null);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setIncludeAdpMetrics(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setMetricConfigLoaded(true);
+        }
+      }
+    }
+
+    loadMetricConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /** Triggers POST /api/sync/ado (full refresh), then auto-refetches metrics and milestones. */
   const handleSync = useCallback(async () => {
@@ -356,20 +408,22 @@ export function DashboardContainer({
     setExportInProgress(true);
     try {
       const PptxGenJS = (await import('pptxgenjs')).default;
+      const adpIncluded = isAdpMetricsIncluded({ includeAdpMetrics });
       const input: ExportInput = enrichExportInput(
         {
           sprintName: rawMetrics?.sprint?.name ?? 'Unknown Sprint',
           computedAt: rawMetrics?.computedAt ?? null,
           programMetrics: viewModel.programMetrics,
-          programRollup,
+          programRollup: adpIncluded ? programRollup : null,
           programTrendSprints: viewModel.programTrendSprints,
           sprint5Prediction: viewModel.sprint5Prediction,
           workstreams: viewModel.workstreamCards,
           rawWorkstreams: rawMetrics?.workstreams ?? [],
-          milestones,
+          milestones: adpIncluded ? milestones : [],
+          includeAdpMetrics: adpIncluded,
         },
         viewModel,
-        programRollup
+        adpIncluded ? programRollup : null
       );
       const prs = await buildPresentation(PptxGenJS, input);
       const date = new Date().toISOString().slice(0, 10);
@@ -380,7 +434,7 @@ export function DashboardContainer({
     } finally {
       setExportInProgress(false);
     }
-  }, [rawMetrics, viewModel, programRollup, milestones]);
+  }, [rawMetrics, viewModel, programRollup, milestones, includeAdpMetrics]);
 
   const fetchSprintStories = useCallback(async (workstreamIds: string[]) => {
     const requestId = ++storiesRequestIdRef.current;
@@ -425,8 +479,11 @@ export function DashboardContainer({
   }, [fetchMetrics, scopeRefreshToken]);
 
   useEffect(() => {
+    if (!metricConfigLoaded) {
+      return;
+    }
     fetchMilestones();
-  }, [fetchMilestones, scopeRefreshToken]);
+  }, [fetchMilestones, scopeRefreshToken, metricConfigLoaded]);
 
   useEffect(() => {
     if (metricsViewState === 'success' && rawMetrics?.workstreams) {
@@ -514,12 +571,15 @@ export function DashboardContainer({
         viewModel={viewModel}
         onRetry={() => {
           fetchMetrics();
-          fetchMilestones();
+          if (metricConfigLoaded) {
+            fetchMilestones();
+          }
         }}
         milestoneQuarterGroups={milestoneQuarterGroups}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
         programRollup={programRollup}
+        showAdpMetrics={isAdpMetricsIncluded({ includeAdpMetrics })}
         sprintStoriesMap={sprintStoriesMap}
         storiesLoading={storiesLoading}
         storiesError={storiesError}

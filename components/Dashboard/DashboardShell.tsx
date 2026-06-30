@@ -19,6 +19,7 @@ export interface DashboardShellProps {
   milestonesLoading?: boolean;
   milestonesError?: string | null;
   programRollup?: ApiProgramMilestoneRollup | null;
+  showAdpMetrics?: boolean;
   sprintStoriesMap?: Record<string, SprintStoryViewModel[]>;
   storiesLoading?: boolean;
   storiesError?: string | null;
@@ -145,6 +146,7 @@ export function DashboardShell({
   milestonesLoading,
   milestonesError,
   programRollup,
+  showAdpMetrics = true,
   sprintStoriesMap,
   storiesLoading,
   storiesError,
@@ -180,6 +182,7 @@ export function DashboardShell({
         milestoneQuarterGroups={milestoneQuarterGroups}
         milestonesLoading={milestonesLoading}
         milestonesError={milestonesError}
+        showAdpMetrics={showAdpMetrics}
         cycleTimeDrilldownContext={cycleTimeDrilldownContext}
       />
       <WorkstreamSection

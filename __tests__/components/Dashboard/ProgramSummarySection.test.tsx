@@ -498,6 +498,24 @@ describe('ProgramSummarySection', () => {
     expect(screen.getByText('0.85 pts/hr')).toBeInTheDocument();
   });
 
+  it('hides ADP milestones section when showAdpMetrics is false', () => {
+    render(
+      <ProgramSummarySection
+        viewModel={populatedViewModel}
+        showAdpMetrics={false}
+        milestoneQuarterGroups={[
+          {
+            quarter: 'Q4',
+            features: [],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Program Summary')).toBeInTheDocument();
+    expect(screen.queryByText('ADP Milestones')).not.toBeInTheDocument();
+  });
+
   it('returns null when viewModel.state is not success', () => {
     render(
       <ProgramSummarySection
