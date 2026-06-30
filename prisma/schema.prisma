@@ -255,12 +255,13 @@ model ThresholdConfig {
 }
 
 model MetricEngineConfig {
-  id                 String   @id @default(cuid())
-  key                String   @unique @default("default")
-  velocityGreenFloor Float    @default(1.0)
-  velocityAmberFloor Float    @default(0.7)
+  id                      String   @id @default(cuid())
+  key                     String   @unique @default("default")
+  velocityGreenFloor      Float    @default(1.0)
+  velocityAmberFloor      Float    @default(0.7)
   rollingWindow           Int      @default(4)
   cycleTimeRollingWindow  Int      @default(4)
+  includeAdpMetrics       Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 

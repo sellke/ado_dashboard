@@ -74,6 +74,7 @@ export async function loadMetricConfig(db: PrismaClient = prisma): Promise<Metri
         engineRow?.cycleTimeRollingWindow,
         DEFAULT_ENGINE_CONFIG.cycleTimeRollingWindow
       ),
+      includeAdpMetrics: engineRow?.includeAdpMetrics ?? DEFAULT_ENGINE_CONFIG.includeAdpMetrics,
     },
     rules: mergeRuleDefaults(
       ruleRows.map((rule) => ({

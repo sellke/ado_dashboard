@@ -2,8 +2,13 @@ import {
   DEFAULT_DELIVERY_EXCLUDED_TYPES,
   DEFAULT_OVERHEAD_INCLUDED_TYPES,
   type MetricCategory,
+  type MetricEngineConfigInput,
   type MetricRuleConfigInput,
 } from './types';
+
+export function isAdpMetricsIncluded(engine: { includeAdpMetrics?: boolean }): boolean {
+  return engine.includeAdpMetrics !== false;
+}
 
 export function getDefaultInclusion(category: MetricCategory, workItemType: string): boolean {
   if (category === 'deliveryPoints') {

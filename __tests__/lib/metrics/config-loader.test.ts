@@ -65,6 +65,7 @@ describe('loadMetricConfig', () => {
       velocityAmberFloor: 0.8,
       rollingWindow: 2,
       cycleTimeRollingWindow: 3,
+      includeAdpMetrics: true,
     });
     expect(config.rules).toEqual(
       expect.arrayContaining([
@@ -85,6 +86,7 @@ describe('loadMetricConfig', () => {
     const config = await loadMetricConfig(db as any);
 
     expect(config.engine).toEqual(DEFAULT_ENGINE_CONFIG);
+    expect(config.engine.includeAdpMetrics).toBe(true);
     expect(config.thresholds).toEqual(
       expect.arrayContaining([
         {

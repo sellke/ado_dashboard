@@ -1,4 +1,4 @@
-import { getDefaultInclusion, isIncluded } from '@/lib/metrics/config-rules';
+import { getDefaultInclusion, isAdpMetricsIncluded, isIncluded } from '@/lib/metrics/config-rules';
 import type { MetricRuleConfigInput } from '@/lib/metrics/types';
 
 describe('metric config rules', () => {
@@ -26,5 +26,11 @@ describe('metric config rules', () => {
     expect(isIncluded(rules, 'deliveryPoints', 'Bug')).toBe(true);
     expect(isIncluded(rules, 'overheadHours', 'Support')).toBe(false);
     expect(isIncluded(rules, 'deliveryPoints', 'Spike')).toBe(false);
+  });
+
+  it('treats missing includeAdpMetrics as included', () => {
+    expect(isAdpMetricsIncluded({} as { includeAdpMetrics: boolean })).toBe(true);
+    expect(isAdpMetricsIncluded({ includeAdpMetrics: true })).toBe(true);
+    expect(isAdpMetricsIncluded({ includeAdpMetrics: false })).toBe(false);
   });
 });

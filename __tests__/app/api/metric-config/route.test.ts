@@ -318,6 +318,75 @@ describe('/api/metric-config', () => {
     );
   });
 
+  it('GET returns includeAdpMetrics true by default', async () => {
+    prisma.metricEngineConfig.findUnique.mockResolvedValue(null);
+
+    const res = await GET();
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.engine.includeAdpMetrics).toBe(true);
+  });
+
+  it('PUT rules persists includeAdpMetrics false in the same transaction', async () => {
+    const rules = DEFAULT_METRIC_RULE_CONFIGS.slice(0, 1);
+    prisma.metricEngineConfig.findUnique.mockResolvedValue({
+      ...DEFAULT_ENGINE_CONFIG,
+      includeAdpMetrics: false,
+    });
+
+    const res = await putRules(
+      jsonRequest('http://localhost/api/metric-config/rules', {
+        rules,
+        includeAdpMetrics: false,
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(prisma.metricEngineConfig.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'default' },
+        update: { includeAdpMetrics: false },
+      })
+    );
+    expect(data.includeAdpMetrics).toBe(false);
+  });
+
+  it('PUT rules rejects non-boolean includeAdpMetrics', async () => {
+    const res = await putRules(
+      jsonRequest('http://localhost/api/metric-config/rules', {
+        rules: DEFAULT_METRIC_RULE_CONFIGS.slice(0, 1),
+        includeAdpMetrics: 'false',
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(422);
+    expect(data.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'includeAdpMetrics' })])
+    );
+    expect(prisma.metricEngineConfig.upsert).not.toHaveBeenCalled();
+  });
+
+  it('PUT rules without includeAdpMetrics leaves engine flag unchanged', async () => {
+    prisma.metricEngineConfig.findUnique.mockResolvedValue({
+      ...DEFAULT_ENGINE_CONFIG,
+      includeAdpMetrics: false,
+    });
+
+    const res = await putRules(
+      jsonRequest('http://localhost/api/metric-config/rules', {
+        rules: DEFAULT_METRIC_RULE_CONFIGS.slice(0, 1),
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(prisma.metricEngineConfig.upsert).not.toHaveBeenCalled();
+    expect(data.includeAdpMetrics).toBe(false);
+  });
+
   it('returns 500 when config load fails', async () => {
     prisma.thresholdConfig.findMany.mockRejectedValue(new Error('DB unavailable'));
 

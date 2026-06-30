@@ -27,6 +27,7 @@ export interface MetricEngineConfigInput {
   velocityAmberFloor: number;
   rollingWindow: number;
   cycleTimeRollingWindow: number;
+  includeAdpMetrics: boolean;
 }
 
 /** Defaults that reproduce the pre-configuration metric engine behavior. */
@@ -35,6 +36,7 @@ export const DEFAULT_ENGINE_CONFIG: MetricEngineConfigInput = {
   velocityAmberFloor: 0.7,
   rollingWindow: 4,
   cycleTimeRollingWindow: 4,
+  includeAdpMetrics: true,
 };
 
 export type MetricCategory = 'deliveryPoints' | 'overheadHours';
