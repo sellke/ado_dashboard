@@ -6,13 +6,13 @@
 
 | Story | Title | Status | Tasks | Priority |
 |---|---|---|---|---|
-| 1 | [Config Schema and Rules API](./story-1-config-schema-and-api.md) | Not Started | 7 | High |
-| 2 | [Inclusion Rules UI](./story-2-inclusion-rules-ui.md) | Not Started | 7 | High |
-| 3 | [Dashboard Fetch and Panel Gating](./story-3-dashboard-gating.md) | Not Started | 7 | High |
-| 4 | [Export Gating and Integration Tests](./story-4-export-gating.md) | Not Started | 7 | Normal |
+| 1 | [Config Schema and Rules API](./story-1-config-schema-and-api.md) | Complete | 7 | High |
+| 2 | [Inclusion Rules UI](./story-2-inclusion-rules-ui.md) | Complete | 7 | High |
+| 3 | [Dashboard Fetch and Panel Gating](./story-3-dashboard-gating.md) | Complete | 7 | High |
+| 4 | [Export Gating and Integration Tests](./story-4-export-gating.md) | Complete | 7 | Normal |
 
 **Total tasks:** 28  
-**Progress:** 0 / 28 (0%)
+**Progress:** 28 / 28 (100%)
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 # Story 2: Inclusion Rules UI
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 

@@ -1,6 +1,6 @@
 # ADP Metrics Dashboard Toggle
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-06-29
 > **Owner:** @AdamSellke
 > **Origin:** Promoted from issue: `.writ/issues/features/2026-06-29-adp-metrics-dashboard-toggle.md`
